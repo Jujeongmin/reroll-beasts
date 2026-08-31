@@ -254,3 +254,77 @@ describe('castSkill ctx 검증', () => {
     expect(() => castSkill(bare, caster)).toThrow(/effectiveStat/)
   })
 })
+
+// 로그만으로 HP 를 복원할 수 있어야 한다. 합계만 남기면 보호막과 HP 중
+// 무엇이 깎였는지, 광역기가 대상별로 얼마를 넣었는지 되찾을 수 없다.
+describe('로그 복원 가능성 (스키마 계약)', () => {
+  it('skill_single 이 보호막·HP 몫을 쪼개 싣는다', () => {
+    const caster = mk(0, 'A', 3, 3)
+    const foe = mk(1, 'B', 2, 3, { hp: 1000, shield: 30 })
+    caster.targetId = foe.id
+    const [e] = castSkill(ctx([caster, foe]), caster)
+    expect(e.toShield + e.toHp).toBe(e.amount)
+    expect(e.toShield).toBe(30)
+    expect(e.toHp).toBe(1000 - foe.hp)
+  })
+
+  it('흡혈이 실제 회복량만큼 heal 이벤트를 낸다', () => {
+    const skill = { id: 's', type: 'single', params: { dmgPct: 300, hits: 1, lifestealPct: 50 } }
+    const caster = mk(0, 'A', 3, 3, { skill, hp: 100, maxHp: 1000 })
+    const foe = mk(1, 'B', 2, 3, { hp: 100000, maxHp: 100000 })
+    caster.targetId = foe.id
+    const events = castSkill(ctx([caster, foe]), caster)
+    const heal = events.find((x) => x.type === 'heal')
+    expect(heal).toBeDefined()
+    expect(heal.targetIds).toEqual([0])
+    expect(heal.amount).toBe(caster.hp - 100)
+  })
+
+  it('흡혈 회복이 maxHp 에 걸리면 상한 뒤 실제 회복량을 싣는다', () => {
+    const skill = { id: 's', type: 'single', params: { dmgPct: 300, hits: 1, lifestealPct: 100 } }
+    const caster = mk(0, 'A', 3, 3, { skill, hp: 995, maxHp: 1000 })
+    const foe = mk(1, 'B', 2, 3, { hp: 100000, maxHp: 100000 })
+    caster.targetId = foe.id
+    const heal = castSkill(ctx([caster, foe]), caster).find((x) => x.type === 'heal')
+    // 상한 전 값을 실으면 재생기가 maxHp 를 넘겨 복원한다.
+    expect(heal.amount).toBe(5)
+    expect(caster.hp).toBe(1000)
+  })
+
+  it('흡혈 회복이 0 이면 heal 이벤트를 남기지 않는다', () => {
+    const skill = { id: 's', type: 'single', params: { dmgPct: 300, hits: 1, lifestealPct: 50 } }
+    const caster = mk(0, 'A', 3, 3, { skill, hp: 1000, maxHp: 1000 })
+    const foe = mk(1, 'B', 2, 3, { hp: 100000, maxHp: 100000 })
+    caster.targetId = foe.id
+    expect(castSkill(ctx([caster, foe]), caster).some((x) => x.type === 'heal')).toBe(false)
+  })
+
+  it('skill_aoe 가 대상별 내역을 id 오름차순으로 싣는다', () => {
+    const skill = { id: 's', type: 'aoe', params: { dmgPct: 100, radius: 2 } }
+    const caster = mk(0, 'A', 3, 3, { skill })
+    const f1 = mk(1, 'B', 2, 3, { shield: 20 })
+    const f2 = mk(2, 'B', 2, 4)
+    caster.targetId = f1.id
+    const [e] = castSkill(ctx([caster, f1, f2]), caster)
+    expect(e.hits.map((h) => h.id)).toEqual([...e.targetIds].sort((a, b) => a - b))
+    expect(e.hits.map((h) => h.id)).toEqual(e.targetIds)
+    expect(e.hits.reduce((s, h) => s + h.toShield + h.toHp, 0)).toBe(e.amount)
+    expect(e.hits.find((h) => h.id === 1).toShield).toBe(20)
+  })
+
+  it('skill_buff 가 대상별 보호막 부여량과 버프 내용을 싣는다', () => {
+    const params = { target: 'allies', amountPctMaxHp: 10, stat: 'def', amount: 25, durationTicks: 90 }
+    const caster = mk(0, 'A', 3, 3, { skill: { id: 's', type: 'buff', params } })
+    const ally = mk(1, 'A', 3, 4, { maxHp: 500 })
+    const [e] = castSkill(ctx([caster, ally]), caster)
+    expect(e.stat).toBe('def')
+    expect(e.amount).toBe(25)
+    expect(e.durationTicks).toBe(90)
+    // 보호막은 대상별 maxHp 의 백분율이라 값이 다르다.
+    expect(e.grants).toEqual([
+      { id: 0, shieldGranted: 100 },
+      { id: 1, shieldGranted: 50 },
+    ])
+    expect(e.grants.map((g) => g.id)).toEqual(e.targetIds)
+  })
+})

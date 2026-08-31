@@ -13,22 +13,24 @@ export function magicDamage(power, mr, defK) {
 // 흡혈과 마나 획득이 이 값을 곱하므로, 과잉 피해를 그대로 돌려주면
 // HP 50 남은 적을 1000 으로 마무리한 흡혈 유닛이 500 을 회복한다.
 // 보호막이 막은 몫은 흡수에 포함한다 — 실제로 들어간 피해다.
+//
+// toShield · toHp 는 그 dealt 를 쪼갠 값이다 (toShield + toHp === dealt).
+// 로그에 합계만 남기면 재생기가 보호막과 HP 중 무엇이 깎였는지 알 수 없어
+// 로그만으로 HP 를 복원하지 못한다 — 리플레이와 서버 검증이 어긋난다.
 export function applyDamage(victim, amount) {
-  if (!victim.alive) return { dealt: 0, died: false }
+  if (!victim.alive) return { dealt: 0, toShield: 0, toHp: 0, died: false }
 
   let remaining = amount
-  let absorbed = 0
+  let toShield = 0
 
   if (victim.shield > 0) {
-    const byShield = Math.min(victim.shield, remaining)
-    victim.shield -= byShield
-    remaining -= byShield
-    absorbed += byShield
+    toShield = Math.min(victim.shield, remaining)
+    victim.shield -= toShield
+    remaining -= toShield
   }
 
-  const byHp = Math.min(victim.hp, remaining)
-  victim.hp -= byHp
-  absorbed += byHp
+  const toHp = Math.min(victim.hp, remaining)
+  victim.hp -= toHp
 
   let died = false
   if (victim.hp <= 0) {
@@ -37,5 +39,5 @@ export function applyDamage(victim, amount) {
     died = true
   }
 
-  return { dealt: absorbed, died }
+  return { dealt: toShield + toHp, toShield, toHp, died }
 }

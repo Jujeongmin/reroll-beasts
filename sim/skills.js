@@ -23,6 +23,8 @@ function castSingle(ctx, caster) {
   const defK = ctx.combatCfg.damage.defK
 
   let total = 0
+  let toShield = 0
+  let toHp = 0
   for (let i = 0; i < hits; i++) {
     if (!target.alive) break
     const raw = Math.floor((caster.stats.power * (p.dmgPct ?? 100)) / 100)
@@ -30,15 +32,28 @@ function castSingle(ctx, caster) {
     const mr = p.defIgnorePct ? Math.floor(baseMr * (1 - p.defIgnorePct / 100)) : baseMr
     const mult = ctx.damageTakenMultiplier(target)
     const dmg = Math.floor(magicDamage(raw, mr, defK) * mult)
-    const { dealt } = applyDamage(target, dmg)
-    total += dealt
+    const hit = applyDamage(target, dmg)
+    total += hit.dealt
+    toShield += hit.toShield
+    toHp += hit.toHp
   }
+
+  const events = [
+    { tick: ctx.tick, type: 'skill_single', casterId: caster.id, targetIds: [target.id], amount: total, toShield, toHp },
+  ]
 
   if (p.lifestealPct) {
+    // 실제로 회복된 양을 로그에 남긴다. 상한 전 값을 남기면 재생기가
+    // maxHp 를 넘겨 복원해 시뮬과 어긋난다.
+    const before = caster.hp
     caster.hp = Math.min(caster.maxHp, caster.hp + Math.floor((total * p.lifestealPct) / 100))
+    const healed = caster.hp - before
+    if (healed > 0) {
+      events.push({ tick: ctx.tick, type: 'heal', casterId: caster.id, targetIds: [caster.id], amount: healed })
+    }
   }
 
-  return [{ tick: ctx.tick, type: 'skill_single', casterId: caster.id, targetIds: [target.id], amount: total }]
+  return events
 }
 
 function castAoe(ctx, caster) {
@@ -54,13 +69,21 @@ function castAoe(ctx, caster) {
 
   let total = 0
   const ids = []
+  // 합계만 남기면 대상별 피해를 되찾을 수 없다. victims 는 이미 id 오름차순이라
+  // hits 도 같은 순서 — targetIds 와 인덱스가 맞는다.
+  const hits = []
   for (const v of victims) {
+    let toShield = 0
+    let toHp = 0
     if (raw > 0) {
       const vMr = ctx.effectiveStat(v, 'mr')
       const vMult = ctx.damageTakenMultiplier(v)
-      const { dealt } = applyDamage(v, Math.floor(magicDamage(raw, vMr, defK) * vMult))
-      total += dealt
+      const hit = applyDamage(v, Math.floor(magicDamage(raw, vMr, defK) * vMult))
+      total += hit.dealt
+      toShield = hit.toShield
+      toHp = hit.toHp
     }
+    hits.push({ id: v.id, toShield, toHp })
     if (p.tickDamagePct) {
       v.buffs.push({
         stat: 'dot',
@@ -72,7 +95,7 @@ function castAoe(ctx, caster) {
     ids.push(v.id)
   }
 
-  return [{ tick: ctx.tick, type: 'skill_aoe', casterId: caster.id, targetIds: ids, amount: total }]
+  return [{ tick: ctx.tick, type: 'skill_aoe', casterId: caster.id, targetIds: ids, amount: total, hits }]
 }
 
 function castBuff(ctx, caster) {
@@ -83,10 +106,16 @@ function castBuff(ctx, caster) {
       : [caster]
 
   const ids = []
+  // 보호막은 대상별 maxHp 의 백분율이라 값이 제각각이다. 대상마다 따로 남긴다.
+  // 로그에 효과를 안 실으면 재생기가 hk1_shield·mk2_bulwark 를 아예 못 본다.
+  const grants = []
   for (const r of receivers) {
+    let shieldGranted = 0
     if (p.amountPctMaxHp) {
-      r.shield += Math.floor((r.maxHp * p.amountPctMaxHp) / 100)
+      shieldGranted = Math.floor((r.maxHp * p.amountPctMaxHp) / 100)
+      r.shield += shieldGranted
     }
+    grants.push({ id: r.id, shieldGranted })
     if (p.amount && p.stat !== 'shieldAndDef') {
       r.buffs.push({ stat: p.stat, amount: p.amount, expiresAt: ctx.tick + p.durationTicks })
     }
@@ -99,7 +128,18 @@ function castBuff(ctx, caster) {
     ids.push(r.id)
   }
 
-  return [{ tick: ctx.tick, type: 'skill_buff', casterId: caster.id, targetIds: ids }]
+  return [
+    {
+      tick: ctx.tick,
+      type: 'skill_buff',
+      casterId: caster.id,
+      targetIds: ids,
+      stat: p.stat ?? null,
+      amount: p.amount ?? 0,
+      durationTicks: p.durationTicks ?? 0,
+      grants,
+    },
+  ]
 }
 
 function castSummon(ctx, caster) {

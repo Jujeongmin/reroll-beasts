@@ -164,8 +164,8 @@ export function simulate({ boardA, boardB, seed, data }) {
       // 지속 피해
       for (const b of c.buffs) {
         if (b.stat === 'dot' && tick % cfg.tickRate === 0) {
-          const { dealt } = applyDamage(c, b.amount)
-          log.push({ tick, type: 'dot', casterId: b.sourceId ?? null, targetIds: [c.id], amount: dealt })
+          const { dealt, toShield, toHp } = applyDamage(c, b.amount)
+          log.push({ tick, type: 'dot', casterId: b.sourceId ?? null, targetIds: [c.id], amount: dealt, toShield, toHp })
         }
       }
       if (!c.alive) {
@@ -221,7 +221,7 @@ export function simulate({ boardA, boardB, seed, data }) {
       if (isCrit) dmg = Math.floor(dmg * cfg.damage.critMultiplier)
       dmg = Math.floor(dmg * damageTakenMultiplier(target))
 
-      const { died, dealt } = applyDamage(target, dmg)
+      const { died, dealt, toShield, toHp } = applyDamage(target, dmg)
       // 쿨다운을 interval 로 두면 1→0 으로 내리는 틱이 공격을 못 해
       // 실제 주기가 interval+1 이 된다. 1 을 빼서 데이터값과 일치시킨다.
       c.attackCooldown = Math.max(0, effectiveStat(c, 'attackInterval') - 1)
@@ -233,7 +233,7 @@ export function simulate({ boardA, boardB, seed, data }) {
         )
       }
 
-      log.push({ tick, type: 'attack', casterId: c.id, targetIds: [target.id], amount: dealt, crit: isCrit })
+      log.push({ tick, type: 'attack', casterId: c.id, targetIds: [target.id], amount: dealt, toShield, toHp, crit: isCrit })
 
       if (died) {
         target.deathLogged = true

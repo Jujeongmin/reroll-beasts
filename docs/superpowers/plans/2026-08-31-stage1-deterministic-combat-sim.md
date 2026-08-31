@@ -2071,10 +2071,27 @@ Co-Authored-By: Claude Opus 5 <noreply@anthropic.com>"
   - `simulate({ boardA, boardB, seed, data }) => CombatResult`
     - `boardA` / `boardB` = `[{ unitId, star, tile }]` — `tile` 은 자기 진영 기준 0..21 인덱스
     - `CombatResult = { winner: 'A'|'B'|'draw', ticks: number, survivorsA: number, survivorsB: number, log: Event[] }`
-    - `Event = { tick, type, ... }` — 타입: `spawn` · `move` · `attack` · `skill_*` · `dot` · `death` · `end`
-    - 지속 피해도 반드시 `dot` 이벤트를 남긴다. 안 남기면 로그만으로 HP 를 복원할 수 없어
-      리플레이와 서버 검증이 어긋난다
-    - `attack.amount` 와 `dot.amount` 는 요청량이 아니라 `applyDamage` 가 돌려준 **실제 흡수량**이다
+    - `Event = { tick, type, ... }` — 타입: `spawn` · `move` · `attack` · `skill_*` · `dot` · `heal` · `death` · `end`
+    - **로그만으로 HP 를 복원할 수 있어야 한다.** 이게 이 스키마의 존재 이유다 —
+      복원이 안 되면 리플레이와 서버 검증이 어긋난다. HP 를 바꾸는 효과는 예외 없이
+      그 값을 이벤트에 싣는다. 지속 피해가 `dot` 이벤트를 남기는 것도 같은 이유다
+    - 피해량은 요청량이 아니라 `applyDamage` 가 돌려준 **실제 흡수량**이다.
+      `applyDamage` 는 `{ dealt, toShield, toHp, died }` 를 돌려주고 `toShield + toHp === dealt` 다.
+      합계만 남기면 보호막과 HP 중 무엇이 깎였는지 알 수 없어 복원이 불가능하므로,
+      피해를 보고하는 모든 이벤트가 이 쪼갠 값을 함께 싣는다
+    - 이벤트별 형태:
+      - `attack = { tick, type, casterId, targetIds: [id], amount, toShield, toHp, crit }`
+      - `dot = { tick, type, casterId, targetIds: [id], amount, toShield, toHp }` — `casterId` 는 출처가 없으면 `null`
+      - `skill_single = { tick, type, casterId, targetIds: [id], amount, toShield, toHp }` — `hits` 회 반복분의 합
+      - `skill_aoe = { tick, type, casterId, targetIds, amount, hits: [{ id, toShield, toHp }] }`
+        `amount` 는 전체 합계라 대상별 피해를 되찾을 수 없다. `hits` 가 대상별 내역이고
+        **id 오름차순**으로 `targetIds` 와 같은 순서다
+      - `skill_buff = { tick, type, casterId, targetIds, stat, amount, durationTicks, grants: [{ id, shieldGranted }] }`
+        보호막은 대상별 `maxHp` 의 백분율이라 값이 제각각이다. `grants` 가 대상별 실제 부여량이고
+        **id 오름차순**으로 `targetIds` 와 같은 순서다. `stat` 이 없으면 `null`, `amount`·`durationTicks` 는 없으면 `0`
+      - `heal = { tick, type, casterId, targetIds: [casterId], amount }` — 현재는 `castSingle` 의 흡혈뿐이다.
+        `amount` 는 `Math.min(maxHp, …)` 상한을 **적용한 뒤**의 실제 회복량이다. 상한 전 값을 남기면
+        재생기가 maxHp 를 넘겨 복원한다. 회복량이 0 이면 이벤트를 남기지 않는다
 
 - [ ] **Step 1: 실패하는 테스트 작성**
 
