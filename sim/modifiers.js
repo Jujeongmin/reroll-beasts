@@ -16,5 +16,7 @@ export function effectiveStat(c, key) {
 export function damageTakenMultiplier(c) {
   let pct = 0
   for (const b of c.buffs) if (b.stat === 'damageTakenPct') pct += b.amount
-  return 1 + pct / 100
+  // 음수 배율이면 공격이 회복이 된다. 현 데이터로는 도달 불가지만
+  // 지속시간을 올리거나 대상을 아군 전체로 바꾸면 조용히 출시된다.
+  return Math.max(0, 1 + pct / 100)
 }

@@ -133,6 +133,18 @@ describe('simulate', () => {
     expect(r.log[r.log.length - 1]).toEqual({ tick: data.combat.maxTicks, type: 'end', winner: 'draw' })
   })
 
+  it('maxTicks 도달 시 생존자 수가 다르면 더 많은 쪽이 이긴다 (동점 타이브레이크 회귀 방지)', () => {
+    // 3성 수호자 거울전을 2v2 로 벌리면 서로 못 죽이면서도 한쪽이 하나 먼저 죽어
+    // 생존자 수가 갈린다 — a === b 인 무승부 경로만 타는 기존 maxTicks 테스트로는
+    // finish(a === b ? 'draw' : a > b ? 'A' : 'B') 의 부등호 방향이 검증되지 않는다.
+    const wall2 = team([['hero_knight_1', 3, 0], ['hero_knight_1', 3, 1]])
+    const r = simulate({ boardA: wall2, boardB: wall2, seed: 0, data })
+    expect(r.ticks).toBe(data.combat.maxTicks)
+    expect(r.survivorsA).not.toBe(r.survivorsB)
+    expect(r.survivorsB).toBeGreaterThan(r.survivorsA)
+    expect(r.winner).toBe('B')
+  })
+
   it('진영 범위를 벗어난 타일은 조용히 무시하지 않고 터진다', () => {
     expect(() => simulate({ boardA: team([['rat', 1, 22]]), boardB: weakSide, seed: 1, data })).toThrow(/범위/)
   })
