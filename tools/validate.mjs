@@ -74,7 +74,19 @@ export function validate(data) {
     errors.push(`보드 rows 길이(${b.rows.length})와 rowOffset 길이(${b.rowOffset.length})가 다르다`)
   }
   const perSide = b.rows.reduce((a, n) => a + n, 0) / 2
-  if (perSide !== 22) errors.push(`진영당 칸 수가 ${perSide} 이다 (22 여야 한다)`)
+  if (perSide !== 28) errors.push(`진영당 칸 수가 ${perSide} 이다 (28 여야 한다)`)
+
+  // 진영 행 수가 같아야 180° 회전 대응이 성립한다 (스냅샷 PvP 의 전제)
+  if (b.allyRows.length !== b.enemyRows.length) {
+    errors.push(`allyRows(${b.allyRows.length}) 와 enemyRows(${b.enemyRows.length}) 의 행 수가 다르다`)
+  }
+  // 회전 대응: 행 r 과 (rowCount-1-r) 의 폭·오프셋이 같아야 한다
+  const n = b.rows.length
+  for (let r = 0; r < n; r++) {
+    if (b.rows[r] !== b.rows[n - 1 - r]) {
+      errors.push(`행 ${r} 과 ${n - 1 - r} 의 폭이 다르다 — 180° 회전 대응이 깨진다`)
+    }
+  }
 
   return errors
 }

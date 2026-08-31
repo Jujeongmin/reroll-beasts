@@ -34,30 +34,58 @@ export function buildGeometry(boardCfg, viewport) {
   const radiusOf = (s) => (tileW * s) / Math.sqrt(3)
   const rowGap = (s) => 1.5 * radiusOf(s) * SQUASH
 
+  // 다음 행이 반 칸 어긋나 있으면 벌집처럼 맞물리므로 1.5R 간격이 맞다.
+  // 같은 오프셋이면 세로로 정렬돼 꼭짓점끼리만 닿는다 — 그대로 두면 옆에
+  // 삼각 틈이 벌어진다. 그 자리(교전선)는 간격을 좁혀 겹쳐 보이게 한다.
+  //
+  // **이건 그리기 보정이지 기하 변경이 아니다.** 보드가 거울 대칭이라
+  // (toFieldTile 이 행 r ↔ 5-r 로 맞물린다 — 비동기 PvP 스냅샷의 전제)
+  // rowOffset[2] 와 rowOffset[3] 이 같을 수밖에 없고, 마주 보는 두 앞줄은
+  // 반드시 같은 x 에 선다. 대칭을 깨면 벌집은 매끈해지지만 스냅샷이 무너진다.
+  const MESHED = 1.5
+  const ALIGNED = 1.12
+  const gapFactor = (r) =>
+    r + 1 < rowCount && (rowOffset[r] ?? 0) === (rowOffset[r + 1] ?? 0) ? ALIGNED : MESHED
+
   // 전체 높이를 재서 화면 안에 들어오게 정규화한다
   let totalH = 0
-  for (let r = 0; r < rowCount; r++) totalH += rowGap(scale[r])
+  for (let r = 0; r < rowCount - 1; r++) totalH += radiusOf(scale[r]) * SQUASH * gapFactor(r)
   const fit = Math.min(1, (viewport.height * 0.86) / (totalH + radiusOf(1) * SQUASH * 2))
 
   const rowY = []
   let y = viewport.height * 0.1 + radiusOf(scale[0]) * SQUASH * fit
   for (let r = 0; r < rowCount; r++) {
     rowY.push(y)
-    y += rowGap(scale[r]) * fit
+    y += radiusOf(scale[r]) * SQUASH * gapFactor(r) * fit
   }
+
+  // **보드 전체를 하나의 좌표계로 놓고 가운데를 잡는다.**
+  // 행마다 따로 중앙정렬하면 안 된다 — 7칸 행과 8칸 행의 중심이 서로 어긋나
+  // 벌집이 맞물리지 않는다. 시뮬(sim/hex.js)이 쓰는 좌표가 `col + rowOffset[row]`
+  // 이고, 7칸 행은 0.5~6.5, 8칸 행은 0~7 로 **둘 다 중심이 3.5** 다.
+  // 화면도 같은 좌표를 써야 시뮬이 계산한 인접 관계가 눈에 그대로 보인다.
+  let lo = Infinity
+  let hi = -Infinity
+  for (let r = 0; r < rowCount; r++) {
+    for (let c = 0; c < rows[r]; c++) {
+      const p = c + (rowOffset[r] ?? 0)
+      if (p < lo) lo = p
+      if (p > hi) hi = p
+    }
+  }
+  const midCol = (lo + hi) / 2
 
   const cx = viewport.width / 2
   const tiles = []
   for (let r = 0; r < rowCount; r++) {
     const s = scale[r]
     const w = rows[r]
-    const stepX = tileW * s * 1.03 // 이음매를 살짝 겹쳐 벌집 사이 틈을 없앤다
+    const stepX = tileW * s
     const R = radiusOf(s) * fit
     const ry = R * SQUASH
-    const offset = (rowOffset[r] ?? 0) - 0.5
 
     for (let c = 0; c < w; c++) {
-      const x = cx + (c - (w - 1) / 2 + offset) * stepX
+      const x = cx + (c + (rowOffset[r] ?? 0) - midCol) * stepX
       tiles.push({
         x,
         y: rowY[r],

@@ -13,18 +13,26 @@ import { physicalDamage, applyDamage } from './damage.js'
 import { castSkill } from './skills.js'
 import { effectiveStat, damageTakenMultiplier } from './modifiers.js'
 
-// 자기 진영 0..21 → 전장 타일 인덱스.
+// 자기 진영 로컬 인덱스 → 전장 타일 인덱스.
 export function toFieldTile(board, localIndex, team, boardCfg) {
-  // 로컬 인덱스 0..21 은 **양 팀 모두 앞줄부터** 센다.
-  // A 의 앞줄은 행 3, B 의 앞줄은 행 2 — 보드가 행 r ↔ 5-r 로 대칭이므로
-  // B 는 enemyRows 를 뒤집어 순회해야 같은 인덱스가 같은 자리를 뜻한다.
-  // 이걸 안 뒤집으면 A 로 저장한 스냅샷이 B 로 불러올 때 전후가 뒤집혀
-  // 탱커가 뒷줄, 딜러가 앞줄에 서고 비동기 PvP 가 성립하지 않는다.
+  // 로컬 인덱스는 **양 팀 모두 앞줄부터** 센다.
+  // A 의 앞줄은 allyRows 의 첫 행, B 의 앞줄은 enemyRows 의 마지막 행이다.
+  //
+  // 두 진영의 대응은 **180° 회전**이다 — 행을 뒤집고 열도 뒤집는다.
+  // 반사(행만 뒤집기)로 하면 8행 균일 보드에서 오프셋이 번갈아 나올 때
+  // 좌우가 어긋난다. 회전이라야 내 보드가 그대로 돌아 상대를 마주 본다
+  // (TFT 가 쓰는 방식이다).
+  //
+  // 이 대응이 깨지면 A 로 저장한 스냅샷을 B 로 불러올 때 진형이 달라져
+  // 비동기 PvP 가 성립하지 않는다.
   const rows = team === 'A' ? boardCfg.allyRows : [...boardCfg.enemyRows].reverse()
   let remain = localIndex
   for (const row of rows) {
     const width = boardCfg.rows[row]
-    if (remain < width) return board.indexOf(row, remain)
+    if (remain < width) {
+      const col = team === 'A' ? remain : width - 1 - remain
+      return board.indexOf(row, col)
+    }
     remain -= width
   }
   return -1
@@ -76,7 +84,10 @@ function buildCombatants(entries, team, data, board) {
 
     const tile = toFieldTile(board, e.tile, team, data.combat.board)
     if (tile < 0) {
-      throw new Error(`보드 좌표가 범위를 벗어났다: team ${team}, tile ${e.tile} (0..21 이어야 한다)`)
+      const perSide = combatCfg.board.rows.reduce((a, n) => a + n, 0) / 2
+      throw new Error(
+        `보드 좌표가 범위를 벗어났다: team ${team}, tile ${e.tile} (0..${perSide - 1} 이어야 한다)`,
+      )
     }
 
     return {

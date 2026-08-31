@@ -4,16 +4,30 @@ import combat from '../game/public/data/combat.json' with { type: 'json' }
 
 const board = buildBoard(combat.board)
 
+// 보드 모양은 데이터가 정한다. 여기서 수치를 다시 적으면 보드를 바꿀 때마다
+// 두 곳을 고쳐야 하고, 한쪽만 고치면 테스트가 조용히 무의미해진다.
+const cfg = combat.board
+const TOTAL = cfg.rows.reduce((a, n) => a + n, 0)
+const PER_SIDE = TOTAL / 2
+
 describe('buildBoard', () => {
-  it('타일이 44칸이다 (진영당 22칸)', () => {
-    expect(board.tileCount).toBe(44)
-    expect(board.tiles).toHaveLength(44)
+  it('타일 수가 rows 합과 같고 진영이 반씩 나뉜다', () => {
+    expect(board.tileCount).toBe(TOTAL)
+    expect(board.tiles).toHaveLength(TOTAL)
+    expect(PER_SIDE).toBe(28)
+    expect(board.tiles.filter((t) => board.side(t.index) === 'ally')).toHaveLength(PER_SIDE)
+    expect(board.tiles.filter((t) => board.side(t.index) === 'enemy')).toHaveLength(PER_SIDE)
   })
 
-  it('행별 칸 수가 7/8/7/7/8/7 이다', () => {
-    const counts = [0, 0, 0, 0, 0, 0]
+  it('행별 칸 수가 설정과 같다', () => {
+    const counts = cfg.rows.map(() => 0)
     for (const t of board.tiles) counts[t.row]++
-    expect(counts).toEqual([7, 8, 7, 7, 8, 7])
+    expect(counts).toEqual(cfg.rows)
+  })
+
+  it('행 폭이 회전 대응을 이룬다 (행 r 과 마지막-r 의 폭이 같다)', () => {
+    const n = cfg.rows.length
+    for (let r = 0; r < n; r++) expect(cfg.rows[r]).toBe(cfg.rows[n - 1 - r])
   })
 
   it('indexOf 가 행·열로 타일 인덱스를 되돌린다', () => {
@@ -23,15 +37,22 @@ describe('buildBoard', () => {
   })
 
   it('없는 좌표는 -1 이다', () => {
-    expect(board.indexOf(0, 7)).toBe(-1)
-    expect(board.indexOf(6, 0)).toBe(-1)
+    expect(board.indexOf(0, cfg.rows[0])).toBe(-1)
+    expect(board.indexOf(cfg.rows.length, 0)).toBe(-1)
+    expect(board.indexOf(-1, 0)).toBe(-1)
   })
 
-  it('행 0~2 는 적, 행 3~5 는 아군이다', () => {
-    expect(board.side(board.indexOf(0, 0))).toBe('enemy')
-    expect(board.side(board.indexOf(2, 3))).toBe('enemy')
-    expect(board.side(board.indexOf(3, 0))).toBe('ally')
-    expect(board.side(board.indexOf(5, 6))).toBe('ally')
+  it('enemyRows 는 적, allyRows 는 아군이다', () => {
+    for (const r of cfg.enemyRows) expect(board.side(board.indexOf(r, 0))).toBe('enemy')
+    for (const r of cfg.allyRows) expect(board.side(board.indexOf(r, 0))).toBe('ally')
+    expect(cfg.enemyRows.length + cfg.allyRows.length).toBe(cfg.rows.length)
+  })
+
+  it('내부 타일은 인접이 6개다 (벌집이 실제로 맞물린다)', () => {
+    // 7-8-7 구조에서는 마주 보는 두 앞줄이 정렬돼 교전선이 좁은 통로였다.
+    // 균일 폭 + 오프셋 교대라야 내부가 온전한 벌집이 된다.
+    const six = board.neighbors.filter((n) => n.length === 6).length
+    expect(six).toBeGreaterThan(board.tileCount * 0.4)
   })
 
   it('인접은 대칭이다', () => {

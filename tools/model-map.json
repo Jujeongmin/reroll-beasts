@@ -1,0 +1,62 @@
+{
+  "_note": [
+    "유닛 26종 → 3D 모델 파일 매핑. 빌드 입력이지 게임 규칙이 아니다.",
+    "(게임 규칙은 game/public/data/*.json)",
+    "",
+    "Quaternius Ultimate Monsters 는 계열마다 애니 이름이 다르다.",
+    "이름이 규칙적이지 않아 자동 판별이 안 된다 — 그래서 계열별 매핑을 따로 둔다.",
+    "특히 Big/Flying 은 HitReact, Blob 은 HitRecieve 로 **오타까지 다르다**.",
+    "",
+    "evolved 가 있는 유닛은 3성에서 그 모델로 바꾼다. 발밑 링 색만 바꾸는 것보다",
+    "형태가 실제로 변하는 편이 훨씬 강하게 읽힌다 — 2D 로는 못 하던 연출이다."
+  ],
+
+  "pack": "q-ultimate-monsters",
+  "root": "Ultimate Monsters",
+
+  "animsByFamily": {
+    "Big":    { "idle": "Idle",        "run": "Run",         "attack": "Punch",      "hit": "HitReact",    "death": "Death" },
+    "Blob":   { "idle": "Idle",        "run": "Walk",        "attack": "Bite_Front", "hit": "HitRecieve",  "death": "Death" },
+    "Flying": { "idle": "Flying_Idle", "run": "Fast_Flying", "attack": "Headbutt",   "hit": "HitReact",    "death": "Death" }
+  },
+
+  "models": {
+    "green_blob":    { "family": "Blob",   "file": "GreenBlob" },
+    "pink_blob":     { "family": "Blob",   "file": "PinkBlob" },
+    "cat":           { "family": "Blob",   "file": "Cat" },
+    "chicken":       { "family": "Blob",   "file": "Chicken" },
+    "mushnub":       { "family": "Blob",   "file": "Mushnub",        "evolved": "Mushnub_Evolved" },
+    "pigeon":        { "family": "Flying", "file": "Pigeon" },
+    "goleling":      { "family": "Flying", "file": "Goleling",       "evolved": "Goleling_Evolved" },
+    "bunny":         { "family": "Big",    "file": "Bunny" },
+
+    "spiky_blob":    { "family": "Blob",   "file": "GreenSpikyBlob" },
+    "cactoro_blob":  { "family": "Blob",   "file": "Cactoro" },
+    "cactoro_big":   { "family": "Big",    "file": "Cactoro" },
+    "glub":          { "family": "Flying", "file": "Glub",           "evolved": "Glub_Evolved" },
+    "armabee":       { "family": "Flying", "file": "Armabee",        "evolved": "Armabee_Evolved" },
+    "ghost":         { "family": "Flying", "file": "Ghost" },
+    "frog":          { "family": "Big",    "file": "Frog" },
+
+    "wizard":        { "family": "Blob",   "file": "Wizard" },
+    "alpaking":      { "family": "Flying", "file": "Alpaking",       "evolved": "Alpaking_Evolved" },
+    "ghost_skull":   { "family": "Flying", "file": "Ghost_Skull" },
+    "orc":           { "family": "Big",    "file": "Orc" },
+    "ninja":         { "family": "Big",    "file": "Ninja" },
+
+    "yeti":          { "family": "Big",    "file": "Yeti" },
+    "mushroom_king": { "family": "Big",    "file": "MushroomKing" },
+    "orc_skull":     { "family": "Big",    "file": "Orc_Skull" },
+
+    "dragon":        { "family": "Flying", "file": "Dragon",         "evolved": "Dragon_Evolved" },
+    "blue_demon":    { "family": "Big",    "file": "BlueDemon" },
+    "dino":          { "family": "Big",    "file": "Dino" }
+  },
+
+  "unused": {
+    "_note": "남는 모델. 시즌 확장 후보다. Flying/Demon 은 애니가 Flying_Idle 하나뿐이라 제외.",
+    "Big": ["Alien", "Birb", "Demon", "Fish", "Monkroose", "Tribal"],
+    "Blob": ["Alien", "Birb", "Dog", "Fish", "Ninja", "Orc", "Yeti"],
+    "Flying": ["Hywirl", "Squidle", "Tribal"]
+  }
+}

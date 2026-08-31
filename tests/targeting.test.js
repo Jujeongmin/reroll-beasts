@@ -37,12 +37,27 @@ describe('findTarget', () => {
   })
 
   it('거리가 같으면 id 가 작은 쪽을 고른다 (결정론)', () => {
+    // 등거리 쌍을 좌표로 박아두면 보드 모양이 바뀔 때마다 조용히 무의미해진다.
+    // 보드에서 직접 찾는다.
     const self = c(0, 'A', 3, 3)
-    const left = c(5, 'B', 2, 2)
-    const right = c(2, 'B', 2, 4)
-    // 좌우 대칭 위치라 거리가 같아야 한다. 같지 않다면 이 테스트의 전제가 깨진 것이다.
-    expect(board.dist[self.tile][left.tile]).toBe(board.dist[self.tile][right.tile])
-    expect(findTarget(board, self, [self, left, right]).id).toBe(2)
+    const enemyTiles = board.tiles
+      .filter((t) => board.side(t.index) === 'enemy')
+      .map((t) => t.index)
+    let pair = null
+    for (let i = 0; i < enemyTiles.length && !pair; i++) {
+      for (let j = i + 1; j < enemyTiles.length; j++) {
+        if (board.dist[self.tile][enemyTiles[i]] === board.dist[self.tile][enemyTiles[j]]) {
+          pair = [enemyTiles[i], enemyTiles[j]]
+          break
+        }
+      }
+    }
+    expect(pair).not.toBeNull()
+
+    // 큰 id 를 배열 앞에 둔다 — 정렬이 아니라 id 비교로 골라야 통과한다.
+    const high = { id: 5, team: 'B', tile: pair[0], hp: 100, alive: true }
+    const low = { id: 2, team: 'B', tile: pair[1], hp: 100, alive: true }
+    expect(findTarget(board, self, [self, high, low]).id).toBe(2)
   })
 
   it('배열 순서를 바꿔도 같은 대상을 고른다', () => {

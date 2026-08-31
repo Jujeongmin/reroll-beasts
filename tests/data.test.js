@@ -44,7 +44,7 @@ describe('loadData', () => {
 
 describe('unitById', () => {
   it('id 로 유닛을 찾는다', () => {
-    expect(unitById(data.units, 'hero_knight_1').tier).toBe(2)
+    expect(unitById(data.units, 'frog').tier).toBe(2)
   })
 
   it('없는 id 는 undefined 다', () => {

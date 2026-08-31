@@ -27,7 +27,7 @@ describe('validate', () => {
 
   it('시너지 보유 유닛 수가 최대 활성 단계보다 적으면 잡아낸다', () => {
     const bad = clone(data)
-    const ranger = bad.traits.classes.find((c) => c.id === 'ranger')
+    const ranger = bad.traits.classes.find((c) => c.id === 'shooter')
     ranger.steps = [2, 3, 9]
     ranger.effects.push({ scope: 'trait' })
     expect(validate(bad).some((m) => m.includes('활성 단계'))).toBe(true)
@@ -35,7 +35,7 @@ describe('validate', () => {
 
   it('시너지에 T1 진입점이 없으면 잡아낸다', () => {
     const bad = clone(data)
-    for (const u of bad.units.units) if (u.class === 'ranger') u.tier = 2
+    for (const u of bad.units.units) if (u.class === 'shooter') u.tier = 2
     expect(validate(bad).some((m) => m.includes('T1 진입점'))).toBe(true)
   })
 
@@ -53,7 +53,7 @@ describe('validate', () => {
 
   it('없는 직업 계수를 참조하면 잡아낸다', () => {
     const bad = clone(data)
-    delete bad.combat.classModifier.ranger
+    delete bad.combat.classModifier.shooter
     expect(validate(bad).some((m) => m.includes('직업 계수'))).toBe(true)
   })
 

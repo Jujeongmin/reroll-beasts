@@ -216,7 +216,7 @@ describe('castSkill - buff', () => {
   })
 
   it('mk2_bulwark 은 여전히 shieldAndDef 를 쓴다 (데이터 이름이 바뀌면 위 테스트가 헛돈다)', () => {
-    const king = data.units.units.find((u) => u.id === 'medieval_king_2')
+    const king = data.units.units.find((u) => u.id === 'dino')
     expect(king.skill.params.stat).toBe('shieldAndDef')
   })
 })
@@ -224,7 +224,7 @@ describe('castSkill - buff', () => {
 describe('castSkill - summon', () => {
   it('onDeath 트리거는 즉시 소환하지 않는다', () => {
     const caster = mk(0, 'A', 3, 3, {
-      skill: { id: 'split', type: 'summon', params: { unitId: 'slime', count: 2, hpPct: 40, trigger: 'onDeath' } },
+      skill: { id: 'split', type: 'summon', params: { unitId: 'green_blob', count: 2, hpPct: 40, trigger: 'onDeath' } },
     })
     const events = castSkill(ctx([caster]), caster)
     expect(events).toEqual([])

@@ -3,8 +3,8 @@ import { loadData, unitById } from '../sim/data.js'
 import { resolveStats, applyTraitEffects } from '../sim/stats.js'
 
 const data = await loadData()
-const knight = unitById(data.units, 'hero_knight_1')   // T2 guardian
-const wizard = unitById(data.units, 'evil_wizard_3')   // T5 mage
+const knight = unitById(data.units, 'frog')   // T2 guardian
+const wizard = unitById(data.units, 'dragon')   // T5 mage
 
 describe('resolveStats', () => {
   it('티어 기본 × 직업 계수로 스탯을 낸다', () => {
