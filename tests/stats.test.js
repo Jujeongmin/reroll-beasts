@@ -42,6 +42,17 @@ describe('resolveStats', () => {
     expect(three.attackInterval).toBe(one.attackInterval)
   })
 
+  it('성급 스탯은 1성 표시값의 정확한 배수다 (내림을 두 번 하는 이유)', () => {
+    const one = resolveStats(knight, 1, data.combat)
+    const two = resolveStats(knight, 2, data.combat)
+    const three = resolveStats(knight, 3, data.combat)
+    const [, m2, m3] = data.combat.starMultiplier
+    expect(two.hp).toBe(Math.floor(one.hp * m2))
+    expect(three.hp).toBe(Math.floor(one.hp * m3))
+    expect(two.atk).toBe(Math.floor(one.atk * m2))
+    expect(three.atk).toBe(Math.floor(one.atk * m3))
+  })
+
   it('모든 스탯이 정수다 (critChance 제외)', () => {
     const s = resolveStats(wizard, 2, data.combat)
     for (const key of ['hp', 'atk', 'def', 'mr', 'power', 'attackInterval', 'range', 'manaStart']) {

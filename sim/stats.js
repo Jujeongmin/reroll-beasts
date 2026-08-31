@@ -9,6 +9,11 @@ export function resolveStats(unit, star, combatCfg) {
   const mod = combatCfg.classModifier[unit.class]
   const starMult = combatCfg.starMultiplier[star - 1]
 
+  // 내림을 두 번 한다. 중복이 아니다 —
+  // 1성 스탯을 먼저 정수로 확정하고, 성급은 그 확정된 정수를 곱한다.
+  // 그래야 화면에 보이는 1성 스탯과 2·3성 값이 정확한 배수 관계가 된다.
+  // 한 번에 내리면 floor(650×1.35×1.8)=1579 인데
+  // 표시값 기준으로는 floor(877×1.8)=1578 이라 UI 와 시뮬이 어긋난다.
   const scale = (key) => {
     const raw = Math.floor(base[key] * mod[key])
     return STAR_SCALED.includes(key) ? Math.floor(raw * starMult) : raw
