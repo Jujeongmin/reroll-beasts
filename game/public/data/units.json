@@ -1,0 +1,86 @@
+{
+  "meta": {
+    "count": 26,
+    "statSource": "combat.json > tierBase × classModifier × starMultiplier",
+    "note": "스탯을 여기 적지 않는다. 티어와 직업이 스탯의 단일소스다."
+  },
+  "units": [
+    { "id": "medieval_warrior_1", "name": { "ko": "왕국 병사", "en": "Medieval Warrior" }, "tier": 1, "origin": "kingdom", "class": "guardian", "sprite": "medieval_warrior_1",
+      "skill": { "id": "mw1_brace", "type": "buff", "params": { "target": "self", "stat": "def", "amount": 40, "durationTicks": 90 } } },
+
+    { "id": "medieval_warrior_2", "name": { "ko": "탈영병", "en": "Deserter" }, "tier": 1, "origin": "outlaw", "class": "blade", "sprite": "medieval_warrior_2",
+      "skill": { "id": "mw2_slash", "type": "single", "params": { "dmgPct": 180, "hits": 1 } } },
+
+    { "id": "rat", "name": { "ko": "쥐", "en": "Rat" }, "tier": 1, "origin": "wild", "class": "assassin", "sprite": "rat",
+      "skill": { "id": "rat_bleed", "type": "aoe", "params": { "radius": 0, "dmgPct": 0, "tickDamagePct": 18, "durationTicks": 150 } } },
+
+    { "id": "slime", "name": { "ko": "슬라임", "en": "Slime" }, "tier": 1, "origin": "aberration", "class": "undying", "sprite": "slime",
+      "skill": { "id": "slime_split", "type": "summon", "params": { "unitId": "slime", "count": 2, "hpPct": 40, "trigger": "onDeath" } } },
+
+    { "id": "goblin", "name": { "ko": "고블린", "en": "Goblin" }, "tier": 1, "origin": "wild", "class": "ranger", "sprite": "goblin",
+      "skill": { "id": "goblin_bomb", "type": "aoe", "params": { "radius": 1, "dmgPct": 150 } } },
+
+    { "id": "mushroom", "name": { "ko": "버섯", "en": "Mushroom" }, "tier": 1, "origin": "wild", "class": "mage", "sprite": "mushroom",
+      "skill": { "id": "mushroom_spore", "type": "aoe", "params": { "radius": 1, "dmgPct": 0, "tickDamagePct": 14, "durationTicks": 90 } } },
+
+    { "id": "bat", "name": { "ko": "박쥐", "en": "Bat" }, "tier": 1, "origin": "wild", "class": "assassin", "sprite": "bat",
+      "skill": { "id": "bat_drain", "type": "single", "params": { "dmgPct": 160, "hits": 1, "lifestealPct": 50 } } },
+
+    { "id": "skeleton", "name": { "ko": "해골 병사", "en": "Skeleton" }, "tier": 1, "origin": "coven", "class": "undying", "sprite": "skeleton",
+      "skill": { "id": "skeleton_guard", "type": "buff", "params": { "target": "self", "stat": "damageTakenPct", "amount": -50, "durationTicks": 90 } } },
+
+    { "id": "medieval_warrior_3", "name": { "ko": "왕국 검병", "en": "Kingdom Swordsman" }, "tier": 2, "origin": "kingdom", "class": "blade", "sprite": "medieval_warrior_3",
+      "skill": { "id": "mw3_cleave", "type": "single", "params": { "dmgPct": 220, "hits": 1 } } },
+
+    { "id": "martial_hero_1", "name": { "ko": "무투가", "en": "Martial Hero" }, "tier": 2, "origin": "outlaw", "class": "blade", "sprite": "martial_hero_1",
+      "skill": { "id": "mh1_triple", "type": "single", "params": { "dmgPct": 90, "hits": 3 } } },
+
+    { "id": "huntress_1", "name": { "ko": "사냥꾼", "en": "Huntress" }, "tier": 2, "origin": "outlaw", "class": "ranger", "sprite": "huntress_1",
+      "skill": { "id": "hu1_pierce", "type": "single", "params": { "dmgPct": 200, "hits": 1, "pierceCount": 2, "piercePct": 60 } } },
+
+    { "id": "wizard_pack", "name": { "ko": "견습 마법사", "en": "Apprentice Wizard" }, "tier": 2, "origin": "coven", "class": "mage", "sprite": "wizard_pack",
+      "skill": { "id": "wp_fireball", "type": "aoe", "params": { "radius": 1, "dmgPct": 220 } } },
+
+    { "id": "flying_eye", "name": { "ko": "부유안", "en": "Flying Eye" }, "tier": 2, "origin": "aberration", "class": "assassin", "sprite": "flying_eye",
+      "skill": { "id": "fe_beam", "type": "single", "params": { "dmgPct": 240, "hits": 1, "defIgnorePct": 30 } } },
+
+    { "id": "hero_knight_1", "name": { "ko": "영웅 기사", "en": "Hero Knight" }, "tier": 2, "origin": "kingdom", "class": "guardian", "sprite": "hero_knight_1",
+      "skill": { "id": "hk1_shield", "type": "buff", "params": { "target": "self", "stat": "shield", "amountPctMaxHp": 15, "durationTicks": 120 } } },
+
+    { "id": "mimic", "name": { "ko": "미믹", "en": "Mimic" }, "tier": 2, "origin": "aberration", "class": "undying", "sprite": "mimic",
+      "skill": { "id": "mimic_tongue", "type": "single", "params": { "dmgPct": 200, "hits": 1, "pull": true } } },
+
+    { "id": "martial_hero_2", "name": { "ko": "경공 무투가", "en": "Windstep Martial Hero" }, "tier": 3, "origin": "outlaw", "class": "assassin", "sprite": "martial_hero_2",
+      "skill": { "id": "mh2_strike", "type": "single", "params": { "dmgPct": 300, "hits": 1, "releapOnKill": true } } },
+
+    { "id": "huntress_2", "name": { "ko": "대사냥꾼", "en": "Grand Huntress" }, "tier": 3, "origin": "outlaw", "class": "ranger", "sprite": "huntress_2",
+      "skill": { "id": "hu2_rain", "type": "aoe", "params": { "radius": 2, "dmgPct": 180 } } },
+
+    { "id": "evil_wizard_1", "name": { "ko": "흑마법사", "en": "Evil Wizard" }, "tier": 3, "origin": "coven", "class": "mage", "sprite": "evil_wizard_1",
+      "skill": { "id": "ew1_burst", "type": "aoe", "params": { "radius": 2, "dmgPct": 280 } } },
+
+    { "id": "fantasy_warrior", "name": { "ko": "방랑 전사", "en": "Wandering Warrior" }, "tier": 3, "origin": "outlaw", "class": "guardian", "sprite": "fantasy_warrior",
+      "skill": { "id": "fw_bash", "type": "single", "params": { "dmgPct": 200, "hits": 1, "stunTicks": 30 } } },
+
+    { "id": "hero_knight_2", "name": { "ko": "영웅 기사단장", "en": "Knight Captain" }, "tier": 3, "origin": "kingdom", "class": "blade", "sprite": "hero_knight_2",
+      "skill": { "id": "hk2_sweep", "type": "aoe", "params": { "radius": 1, "dmgPct": 250 } } },
+
+    { "id": "martial_hero_3", "name": { "ko": "무신", "en": "Martial Saint" }, "tier": 4, "origin": "outlaw", "class": "blade", "sprite": "martial_hero_3",
+      "skill": { "id": "mh3_finisher", "type": "single", "params": { "dmgPct": 350, "hits": 1, "manaRefillOnKill": true } } },
+
+    { "id": "evil_wizard_2", "name": { "ko": "대흑마법사", "en": "Archwizard" }, "tier": 4, "origin": "coven", "class": "mage", "sprite": "evil_wizard_2",
+      "skill": { "id": "ew2_chain", "type": "aoe", "params": { "radius": 1, "dmgPct": 250, "chainCount": 4 } } },
+
+    { "id": "medieval_king_1", "name": { "ko": "왕", "en": "King" }, "tier": 4, "origin": "kingdom", "class": "guardian", "sprite": "medieval_king_1",
+      "skill": { "id": "mk1_rally", "type": "buff", "params": { "target": "allies", "stat": "atkPct", "amount": 20, "durationTicks": 150 } } },
+
+    { "id": "evil_wizard_3", "name": { "ko": "마왕", "en": "Dark Lord" }, "tier": 5, "origin": "coven", "class": "mage", "sprite": "evil_wizard_3",
+      "skill": { "id": "ew3_annihilate", "type": "aoe", "params": { "radius": 2, "dmgPctMaxHp": 12, "dmgPct": 200, "silenceTicks": 90 } } },
+
+    { "id": "medieval_king_2", "name": { "ko": "대왕", "en": "High King" }, "tier": 5, "origin": "kingdom", "class": "guardian", "sprite": "medieval_king_2",
+      "skill": { "id": "mk2_bulwark", "type": "buff", "params": { "target": "allies", "stat": "shieldAndDef", "amountPctMaxHp": 12, "amount": 50, "durationTicks": 240 } } },
+
+    { "id": "fire_worm", "name": { "ko": "화염충", "en": "Fire Worm" }, "tier": 5, "origin": "aberration", "class": "undying", "sprite": "fire_worm",
+      "skill": { "id": "fw_eruption", "type": "aoe", "params": { "radius": 1, "dmgPct": 300, "lineLength": 3, "burnTickPct": 10, "burnTicks": 90 } } }
+  ]
+}

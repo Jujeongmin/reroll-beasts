@@ -1,0 +1,69 @@
+{
+  "origins": [
+    { "id": "kingdom", "name": { "ko": "왕국", "en": "Kingdom" }, "steps": [2, 4, 6],
+      "effects": [
+        { "def": 15, "scope": "trait" },
+        { "def": 25, "scope": "trait", "allyDef": 10 },
+        { "def": 25, "scope": "trait", "allyDef": 10, "reviveOne": { "hpPct": 40, "perRound": 1 } }
+      ] },
+    { "id": "outlaw", "name": { "ko": "방랑자", "en": "Outlaw" }, "steps": [2, 4, 6],
+      "effects": [
+        { "attackSpeedPct": 15, "scope": "trait" },
+        { "attackSpeedPct": 30, "scope": "trait", "goldOnKillChance": 10 },
+        { "attackSpeedPct": 50, "scope": "trait", "goldOnKillChance": 10, "dodgePct": 30, "dodgeTicks": 90 }
+      ] },
+    { "id": "coven", "name": { "ko": "흑마회", "en": "Coven" }, "steps": [2, 3, 5],
+      "effects": [
+        { "manaStart": 20, "scope": "trait" },
+        { "manaStart": 30, "power": 20, "scope": "trait" },
+        { "manaStart": 40, "power": 50, "scope": "trait", "splashOnSkillPct": 40 }
+      ] },
+    { "id": "aberration", "name": { "ko": "마물", "en": "Aberration" }, "steps": [2, 3, 4],
+      "effects": [
+        { "hp": 250, "scope": "trait" },
+        { "hp": 500, "critTakenPct": -30, "scope": "trait" },
+        { "hp": 900, "critTakenPct": -30, "regenPctPer5s": 8, "scope": "trait" }
+      ] },
+    { "id": "wild", "name": { "ko": "야생", "en": "Wild" }, "steps": [2, 3, 4],
+      "effects": [
+        { "atkPct": 12, "scope": "trait" },
+        { "atkPct": 25, "shopGuaranteeSlot": 1, "scope": "trait" },
+        { "atkPct": 45, "shopGuaranteeSlot": 1, "priceDiscount": 1, "priceFloor": 1, "scope": "trait" }
+      ] }
+  ],
+  "classes": [
+    { "id": "guardian", "name": { "ko": "수호자", "en": "Guardian" }, "steps": [2, 3, 5],
+      "effects": [
+        { "def": 25, "hp": 250, "scope": "trait" },
+        { "def": 50, "hp": 500, "scope": "trait" },
+        { "def": 90, "hp": 900, "shieldPctMaxHp": 20, "shieldTicks": 150, "scope": "trait" }
+      ] },
+    { "id": "blade", "name": { "ko": "검사", "en": "Blade" }, "steps": [2, 3, 5],
+      "effects": [
+        { "atkPct": 20, "scope": "trait" },
+        { "atkPct": 35, "doubleStrikeChance": 15, "scope": "trait" },
+        { "atkPct": 60, "doubleStrikeChance": 30, "scope": "trait" }
+      ] },
+    { "id": "ranger", "name": { "ko": "사수", "en": "Ranger" }, "steps": [2, 3],
+      "effects": [
+        { "range": 1, "attackSpeedPct": 20, "scope": "trait" },
+        { "range": 2, "attackSpeedPct": 40, "pierceCount": 1, "piercePct": 60, "scope": "trait" }
+      ] },
+    { "id": "mage", "name": { "ko": "술사", "en": "Mage" }, "steps": [2, 3, 5],
+      "effects": [
+        { "power": 25, "scope": "trait" },
+        { "power": 50, "manaCostPct": -10, "scope": "trait" },
+        { "power": 110, "manaCostPct": -20, "aoeRadius": 1, "scope": "trait" }
+      ] },
+    { "id": "assassin", "name": { "ko": "암습", "en": "Assassin" }, "steps": [2, 4],
+      "effects": [
+        { "leapToBackline": true, "critChancePct": 20, "scope": "trait" },
+        { "leapToBackline": true, "critChancePct": 40, "critDamagePct": 40, "manaOnKill": 20, "scope": "trait" }
+      ] },
+    { "id": "undying", "name": { "ko": "불사", "en": "Undying" }, "steps": [2, 4],
+      "effects": [
+        { "deathBlastPct": 120, "deathBlastRadius": 1, "scope": "trait" },
+        { "deathBlastPct": 120, "deathBlastRadius": 1, "revive": { "hpPct": 40, "perRound": 1 }, "scope": "trait" }
+      ] }
+  ]
+}

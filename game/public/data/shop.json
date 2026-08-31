@@ -1,0 +1,22 @@
+{
+  "rerollCost": 2,
+  "xpCost": { "gold": 4, "xp": 4 },
+  "slots": 5,
+  "tierOdds": {
+    "3": [75, 25, 0, 0, 0],
+    "4": [55, 30, 15, 0, 0],
+    "5": [45, 33, 20, 2, 0],
+    "6": [30, 35, 28, 7, 0],
+    "7": [19, 30, 33, 16, 2],
+    "8": [15, 22, 32, 25, 6],
+    "9": [10, 15, 28, 32, 15]
+  },
+  "pool": {
+    "1": { "unitCount": 8, "copiesPerUnit": 22 },
+    "2": { "unitCount": 7, "copiesPerUnit": 18 },
+    "3": { "unitCount": 5, "copiesPerUnit": 14 },
+    "4": { "unitCount": 3, "copiesPerUnit": 10 },
+    "5": { "unitCount": 3, "copiesPerUnit": 8 }
+  },
+  "starUpCopies": { "2": 3, "3": 9 }
+}
