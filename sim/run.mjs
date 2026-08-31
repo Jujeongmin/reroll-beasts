@@ -12,11 +12,23 @@ export function parseComp(text) {
   if (!text || text.trim() === '') return []
   return text.split(',').map((chunk) => {
     const [unitId, star, tile] = chunk.split(':')
-    return {
-      unitId: unitId.trim(),
+    const parsed = {
+      unitId: (unitId ?? '').trim(),
       star: star ? Number(star) : 1,
       tile: Number(tile),
     }
+    // 잘못된 입력이 NaN 스탯으로 흘러가면 그럴듯한 승률이 나온다.
+    // 밸런스 도구의 출력은 사람이 그대로 믿고 쓰는 숫자다. 조용히 넘기지 않는다.
+    if (parsed.unitId === '') {
+      throw new Error(`유닛 id 가 비었다: "${chunk}"`)
+    }
+    if (!Number.isInteger(parsed.star) || parsed.star < 1 || parsed.star > 3) {
+      throw new Error(`성급이 1~3 정수가 아니다: "${chunk}"`)
+    }
+    if (!Number.isInteger(parsed.tile)) {
+      throw new Error(`타일이 정수가 아니다: "${chunk}"`)
+    }
+    return parsed
   })
 }
 
