@@ -25,7 +25,7 @@ describe('resolveStats', () => {
     expect(resolveStats(wizard, 1, data.combat).manaStart).toBe(10)
   })
 
-  it('성급이 hp·atk·power 를 배율로 올린다', () => {
+  it('성급이 hp·atk 를 배율로 올린다', () => {
     const one = resolveStats(knight, 1, data.combat)
     const two = resolveStats(knight, 2, data.combat)
     const three = resolveStats(knight, 3, data.combat)
@@ -35,11 +35,27 @@ describe('resolveStats', () => {
     expect(three.atk).toBeGreaterThan(two.atk)
   })
 
+  it('성급이 power 도 배율로 올린다', () => {
+    const one = resolveStats(wizard, 1, data.combat)
+    const two = resolveStats(wizard, 2, data.combat)
+    const three = resolveStats(wizard, 3, data.combat)
+    const [, m2, m3] = data.combat.starMultiplier
+    expect(two.power).toBe(Math.floor(one.power * m2))
+    expect(three.power).toBe(Math.floor(one.power * m3))
+  })
+
   it('성급은 사거리와 공격 간격을 바꾸지 않는다', () => {
     const one = resolveStats(knight, 1, data.combat)
     const three = resolveStats(knight, 3, data.combat)
     expect(three.range).toBe(one.range)
     expect(three.attackInterval).toBe(one.attackInterval)
+  })
+
+  it('성급은 def·mr 을 바꾸지 않는다 (배율 대상은 hp·atk·power 뿐)', () => {
+    const one = resolveStats(knight, 1, data.combat)
+    const three = resolveStats(knight, 3, data.combat)
+    expect(three.def).toBe(one.def)
+    expect(three.mr).toBe(one.mr)
   })
 
   it('성급 스탯은 1성 표시값의 정확한 배수다 (내림을 두 번 하는 이유)', () => {
