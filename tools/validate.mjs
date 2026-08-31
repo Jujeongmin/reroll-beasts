@@ -1,6 +1,7 @@
 // 데이터 불변식 검사. 밸런스를 만졌으면 반드시 돌린다.
 // 스펙 §12.4 의 8개 불변식을 검사하고, 위반 메시지 배열을 되돌린다.
 
+import { pathToFileURL } from 'node:url'
 import { loadData } from '../sim/data.js'
 
 const SKILL_TYPES = new Set(['single', 'aoe', 'buff', 'summon'])
@@ -78,7 +79,10 @@ export function validate(data) {
   return errors
 }
 
-const isMain = import.meta.url === `file://${process.argv[1]?.replace(/\\/g, '/')}`
+// Windows 에서 import.meta.url 은 file:///C:/... (슬래시 3개)로 렌더된다.
+// 문자열을 손으로 조립하면 슬래시 수가 어긋나 가드가 영영 거짓이 되고,
+// CLI 가 아무것도 안 하면서 exit 0 으로 통과한 척한다. pathToFileURL 로 정규화한다.
+const isMain = import.meta.url === pathToFileURL(process.argv[1] ?? '').href
 if (isMain) {
   const data = await loadData()
   const errors = validate(data)
