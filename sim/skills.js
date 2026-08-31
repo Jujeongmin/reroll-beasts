@@ -103,7 +103,9 @@ function castBuff(ctx, caster) {
 }
 
 function castSummon(ctx, caster) {
-  // onDeath 트리거는 사망 처리 시점에 combat.js 가 부른다. 시전 시점에는 아무것도 하지 않는다.
+  // 1단계에는 사망 시점 훅이 없다. onDeath 소환은 2단계 몫이다 —
+  // 전투 중 유닛 생성은 id 배정·타일 선택·결정론 보장이 새로 필요하다.
+  // 지금은 아무 일도 하지 않는다.
   if (caster.skill.params.trigger === 'onDeath') return []
   return [{ tick: ctx.tick, type: 'skill_summon', casterId: caster.id, targetIds: [], unitId: caster.skill.params.unitId }]
 }
