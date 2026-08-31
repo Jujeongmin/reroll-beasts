@@ -3,3 +3,7 @@ dist/
 game/dist/
 art-src/
 .env
+
+# 에셋 원본은 커밋하지 않는다 (용량·재배포 회피). README 만 남긴다
+art-src/*
+!art-src/README.md
