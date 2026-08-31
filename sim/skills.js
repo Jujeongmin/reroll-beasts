@@ -26,8 +26,10 @@ function castSingle(ctx, caster) {
   for (let i = 0; i < hits; i++) {
     if (!target.alive) break
     const raw = Math.floor((caster.stats.power * (p.dmgPct ?? 100)) / 100)
-    const mr = p.defIgnorePct ? Math.floor(target.stats.mr * (1 - p.defIgnorePct / 100)) : target.stats.mr
-    const dmg = magicDamage(raw, mr, defK)
+    const baseMr = ctx.effectiveStat ? ctx.effectiveStat(target, 'mr') : target.stats.mr
+    const mr = p.defIgnorePct ? Math.floor(baseMr * (1 - p.defIgnorePct / 100)) : baseMr
+    const mult = ctx.damageTakenMultiplier ? ctx.damageTakenMultiplier(target) : 1
+    const dmg = Math.floor(magicDamage(raw, mr, defK) * mult)
     const { dealt } = applyDamage(target, dmg)
     total += dealt
   }
@@ -54,7 +56,9 @@ function castAoe(ctx, caster) {
   const ids = []
   for (const v of victims) {
     if (raw > 0) {
-      const { dealt } = applyDamage(v, magicDamage(raw, v.stats.mr, defK))
+      const vMr = ctx.effectiveStat ? ctx.effectiveStat(v, 'mr') : v.stats.mr
+      const vMult = ctx.damageTakenMultiplier ? ctx.damageTakenMultiplier(v) : 1
+      const { dealt } = applyDamage(v, Math.floor(magicDamage(raw, vMr, defK) * vMult))
       total += dealt
     }
     if (p.tickDamagePct) {
@@ -83,8 +87,14 @@ function castBuff(ctx, caster) {
     if (p.amountPctMaxHp) {
       r.shield += Math.floor((r.maxHp * p.amountPctMaxHp) / 100)
     }
-    if (p.amount) {
+    if (p.amount && p.stat !== 'shieldAndDef') {
       r.buffs.push({ stat: p.stat, amount: p.amount, expiresAt: ctx.tick + p.durationTicks })
+    }
+    // shieldAndDef 는 보호막과 방어력 두 몫이다. 위 amountPctMaxHp 가 보호막을,
+    // 여기서 amount 를 방어력 버프로 나눠 붙인다. 한 덩어리로 두면
+    // effectiveStat 이 'shieldAndDef' 를 모르는 키로 보고 통째로 버린다.
+    if (p.stat === 'shieldAndDef' && p.amount) {
+      r.buffs.push({ stat: 'def', amount: p.amount, expiresAt: ctx.tick + p.durationTicks })
     }
     ids.push(r.id)
   }

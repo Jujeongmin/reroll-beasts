@@ -47,13 +47,18 @@ function buildCombatants(entries, team, data, board) {
     const base = resolveStats(unit, e.star, data.combat)
     const stats = applyTraitEffects(base, effects)
 
+    const tile = toFieldTile(board, e.tile, team, data.combat.board)
+    if (tile < 0) {
+      throw new Error(`보드 좌표가 범위를 벗어났다: team ${team}, tile ${e.tile} (0..21 이어야 한다)`)
+    }
+
     return {
       localIndex: i,
       team,
       unitId: unit.id,
       star: e.star,
       skill: unit.skill,
-      tile: toFieldTile(board, e.tile, team, data.combat.board),
+      tile,
       hp: stats.hp,
       maxHp: stats.hp,
       shield: 0,
@@ -68,7 +73,7 @@ function buildCombatants(entries, team, data, board) {
   })
 }
 
-function effectiveStat(c, key) {
+export function effectiveStat(c, key) {
   let value = c.stats[key]
   let pct = 0
   for (const b of c.buffs) {
@@ -79,7 +84,7 @@ function effectiveStat(c, key) {
   return value
 }
 
-function damageTakenMultiplier(c) {
+export function damageTakenMultiplier(c) {
   let pct = 0
   for (const b of c.buffs) if (b.stat === 'damageTakenPct') pct += b.amount
   return 1 + pct / 100
@@ -94,10 +99,21 @@ export function simulate({ boardA, boardB, seed, data }) {
   const teamA = buildCombatants(boardA, 'A', data, board)
   const teamB = buildCombatants(boardB, 'B', data, board)
 
-  // id 는 팀 A 먼저, 각 팀 안에서는 지정 순서대로 부여한다.
-  // 이 id 가 모든 타이브레이크의 기준이므로 결정론의 뿌리다.
+  // id 는 배열 순서가 아니라 **보드 상의 타일**로 정한다.
+  // localIndex 로 정렬하면 그건 호출자의 배열 순서라, 같은 보드를 다른 순서로
+  // 직렬화한 스냅샷이 다른 전투 결과를 낸다 — 비동기 PvP 가 무너진다.
+  // 타일은 보드의 canonical 속성이고 한 진영 안에서 중복될 수 없으므로 전순서다.
   const all = [...teamA, ...teamB]
-  all.sort((x, y) => (x.team === y.team ? x.localIndex - y.localIndex : x.team < y.team ? -1 : 1))
+
+  // 같은 진영 안에 타일이 겹치면 id 정렬이 전순서가 아니게 된다.
+  for (const team of ['A', 'B']) {
+    const tiles = all.filter((c) => c.team === team).map((c) => c.tile)
+    if (new Set(tiles).size !== tiles.length) {
+      throw new Error(`같은 진영에 겹친 타일이 있다: team ${team}`)
+    }
+  }
+
+  all.sort((x, y) => (x.team === y.team ? x.tile - y.tile : x.team < y.team ? -1 : 1))
   all.forEach((c, i) => {
     c.id = i
   })
@@ -138,7 +154,8 @@ export function simulate({ boardA, boardB, seed, data }) {
       // 지속 피해
       for (const b of c.buffs) {
         if (b.stat === 'dot' && tick % cfg.tickRate === 0) {
-          applyDamage(c, b.amount)
+          const { dealt } = applyDamage(c, b.amount)
+          log.push({ tick, type: 'dot', casterId: b.sourceId ?? null, targetIds: [c.id], amount: dealt })
         }
       }
       if (!c.alive) {
@@ -169,7 +186,10 @@ export function simulate({ boardA, boardB, seed, data }) {
 
       if (c.mana >= cfg.mana.full) {
         c.mana = 0
-        const events = castSkill({ board, all, occupied, rng, combatCfg: cfg, tick }, c)
+        const events = castSkill(
+          { board, all, occupied, rng, combatCfg: cfg, tick, effectiveStat, damageTakenMultiplier },
+          c,
+        )
         for (const e of events) log.push(e)
         for (const other of all) {
           if (!other.alive && !other.deathLogged) {
@@ -191,15 +211,19 @@ export function simulate({ boardA, boardB, seed, data }) {
       if (isCrit) dmg = Math.floor(dmg * cfg.damage.critMultiplier)
       dmg = Math.floor(dmg * damageTakenMultiplier(target))
 
-      const { died } = applyDamage(target, dmg)
-      c.attackCooldown = effectiveStat(c, 'attackInterval')
+      const { died, dealt } = applyDamage(target, dmg)
+      // 쿨다운을 interval 로 두면 1→0 으로 내리는 틱이 공격을 못 해
+      // 실제 주기가 interval+1 이 된다. 1 을 빼서 데이터값과 일치시킨다.
+      c.attackCooldown = Math.max(0, effectiveStat(c, 'attackInterval') - 1)
       c.mana = Math.min(cfg.mana.full, c.mana + cfg.mana.perAttack)
-      target.mana = Math.min(
-        cfg.mana.full,
-        target.mana + Math.min(cfg.mana.onHitMax, Math.floor((dmg * cfg.mana.onHitPercent) / 100)),
-      )
+      if (target.alive) {
+        target.mana = Math.min(
+          cfg.mana.full,
+          target.mana + Math.min(cfg.mana.onHitMax, Math.floor((dealt * cfg.mana.onHitPercent) / 100)),
+        )
+      }
 
-      log.push({ tick, type: 'attack', casterId: c.id, targetIds: [target.id], amount: dmg, crit: isCrit })
+      log.push({ tick, type: 'attack', casterId: c.id, targetIds: [target.id], amount: dealt, crit: isCrit })
 
       if (died) {
         target.deathLogged = true
