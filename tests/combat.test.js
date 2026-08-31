@@ -1,4 +1,7 @@
 import { describe, it, expect } from 'vitest'
+import { readFileSync, writeFileSync } from 'node:fs'
+import { fileURLToPath } from 'node:url'
+import { dirname, join } from 'node:path'
 import { loadData } from '../sim/data.js'
 import { simulate } from '../sim/combat.js'
 
@@ -10,6 +13,15 @@ function team(entries) {
 
 const weakSide = team([['medieval_warrior_1', 1, 0]])
 const strongSide = team([['medieval_king_2', 3, 0], ['evil_wizard_3', 3, 1], ['fire_worm', 3, 2]])
+
+const HERE = dirname(fileURLToPath(import.meta.url))
+const GOLDEN_PATH = join(HERE, 'fixtures', 'combat-golden.json')
+
+// 골든 로그 시나리오. 이동·평타·스킬·치명타·사망을 전부 지나간다.
+// 재생성: REGEN_GOLDEN=1 npx vitest run tests/combat.test.js
+const GOLDEN_A = team([['bat', 2, 0], ['hero_knight_1', 2, 8]])
+const GOLDEN_B = team([['rat', 2, 0], ['mushroom', 2, 8]])
+const GOLDEN_SEED = 20260831
 
 describe('simulate', () => {
   it('결과 객체 형태를 지킨다', () => {
@@ -43,13 +55,12 @@ describe('simulate', () => {
     expect(a.winner).toBe(b.winner)
   })
 
-  it('보드 배열 순서를 바꿔도 같은 결과를 낸다', () => {
-    const order1 = team([['huntress_1', 1, 5], ['hero_knight_1', 1, 0]])
-    const order2 = team([['hero_knight_1', 1, 0], ['huntress_1', 1, 5]])
-    const a = simulate({ boardA: order1, boardB: strongSide, seed: 3, data })
-    const b = simulate({ boardA: order2, boardB: strongSide, seed: 3, data })
-    expect(a.winner).toBe(b.winner)
-    expect(a.ticks).toBe(b.ticks)
+  it('보드 배열 순서를 바꿔도 로그가 완전히 같다', () => {
+    const forward = team([['huntress_1', 1, 5], ['hero_knight_1', 1, 0], ['rat', 2, 12]])
+    const reversed = [...forward].reverse()
+    const a = simulate({ boardA: forward, boardB: GOLDEN_B, seed: 3, data })
+    const b = simulate({ boardA: reversed, boardB: GOLDEN_B, seed: 3, data })
+    expect(a.log).toEqual(b.log)
   })
 
   it('maxTicks 를 넘지 않는다', () => {
@@ -86,5 +97,34 @@ describe('simulate', () => {
     // 3성은 더 오래 버티고, 적을 더 많이 죽인다.
     expect(three.ticks).toBeGreaterThan(one.ticks)
     expect(three.survivorsB).toBeLessThan(one.survivorsB)
+  })
+
+  it('다른 시드는 다른 로그를 낸다 (RNG 가 실제로 쓰인다)', () => {
+    const a = simulate({ boardA: GOLDEN_A, boardB: GOLDEN_B, seed: 1, data })
+    const b = simulate({ boardA: GOLDEN_A, boardB: GOLDEN_B, seed: 2, data })
+    expect(a.log).not.toEqual(b.log)
+  })
+
+  it('maxTicks 에 도달하면 그 값으로 끝난다', () => {
+    // 3성 수호자 거울전은 서로 못 죽여 제한 틱까지 간다.
+    const wall = team([['hero_knight_1', 3, 0]])
+    const r = simulate({ boardA: wall, boardB: wall, seed: 11, data })
+    expect(r.ticks).toBe(data.combat.maxTicks)
+    expect(r.winner).toBe('draw')
+    expect(r.log[r.log.length - 1]).toEqual({ tick: data.combat.maxTicks, type: 'end', winner: 'draw' })
+  })
+})
+
+describe('골든 로그', () => {
+  it('고정 시나리오의 전투 로그가 바뀌지 않는다', () => {
+    const result = simulate({ boardA: GOLDEN_A, boardB: GOLDEN_B, seed: GOLDEN_SEED, data })
+    const actual = { winner: result.winner, ticks: result.ticks, log: result.log }
+
+    if (process.env.REGEN_GOLDEN) {
+      writeFileSync(GOLDEN_PATH, JSON.stringify(actual, null, 2) + '\n')
+    }
+
+    const golden = JSON.parse(readFileSync(GOLDEN_PATH, 'utf8'))
+    expect(actual).toEqual(golden)
   })
 })
