@@ -1,0 +1,8 @@
+This package can be used in commercial and non-commercial projects.
+License: CC0 (Creative Commons Zero).
+Credits are not required, but greatly appreciated!
+
+--- 보관 기록 ---
+Source: https://luizmelo.itch.io/medieval-king-pack
+Retrieved: 2026-08-31
+Note: 팩에 License.txt 가 동봉되어 있지 않아 itch.io 페이지 문구를 옮겨 적었다.

@@ -1,0 +1,11 @@
+0x72 — 16x16 DungeonTileset II
+
+License: CC-0 (Creative Commons Zero).
+"You can use this tileset for whatever you like."
+Credit is optional but appreciated.
+
+--- 보관 기록 ---
+Source: https://0x72.itch.io/dungeontileset-ii
+Retrieved: 2026-08-31
+Note: 팩 동봉 README 는 오토타일 설명서라 라이선스 문구가 없다.
+      위 문구는 itch.io 페이지에서 확인한 것이다.
