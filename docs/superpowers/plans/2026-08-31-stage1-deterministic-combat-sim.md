@@ -1780,14 +1780,15 @@ describe('castSkill - single', () => {
     expect(events[0].targetIds).toContain(1)
   })
 
-  it('hits 만큼 여러 번 때린다', () => {
-    const caster = mk(0, 'A', 3, 3, { skill: { id: 'triple', type: 'single', params: { dmgPct: 100, hits: 3 } } })
-    const foe = mk(1, 'B', 2, 3)
-    caster.targetId = foe.id
-    const single = mk(2, 'B', 2, 4)
-    castSkill(ctx([caster, foe, single]), caster)
-    expect(1000 - foe.hp).toBeGreaterThan(0)
-    expect(castSkill(ctx([caster, foe, single]), caster).length).toBeGreaterThan(0)
+  it('hits 3 은 hits 1 보다 정확히 3배 때린다', () => {
+    const run = (hits) => {
+      const caster = mk(0, 'A', 3, 3, { skill: { id: 's', type: 'single', params: { dmgPct: 100, hits } } })
+      const foe = mk(1, 'B', 2, 3, { hp: 100000, maxHp: 100000 })
+      caster.targetId = foe.id
+      castSkill(ctx([caster, foe]), caster)
+      return 100000 - foe.hp
+    }
+    expect(run(3)).toBe(run(1) * 3)
   })
 
   it('타겟이 없으면 빈 배열이다', () => {
@@ -1806,8 +1807,9 @@ describe('castSkill - aoe', () => {
     caster.targetId = foe.id
     const events = castSkill(ctx([caster, foe, foe2]), caster)
     expect(events[0].type).toBe('skill_aoe')
-    expect(events[0].targetIds.length).toBeGreaterThanOrEqual(1)
+    expect(events[0].targetIds).toEqual([1, 2])
     expect(foe.hp).toBeLessThan(1000)
+    expect(foe2.hp).toBeLessThan(1000)
   })
 
   it('아군은 때리지 않는다', () => {
@@ -2125,8 +2127,9 @@ describe('simulate', () => {
     const foe = team([['martial_hero_1', 2, 0], ['huntress_1', 2, 1], ['wizard_pack', 2, 2]])
     const one = simulate({ boardA: team([['hero_knight_2', 1, 0]]), boardB: foe, seed: 4, data })
     const three = simulate({ boardA: team([['hero_knight_2', 3, 0]]), boardB: foe, seed: 4, data })
-    expect(three.survivorsB).toBeLessThan(one.survivorsB + 1)
+    // 3성은 더 오래 버티고, 적을 더 많이 죽인다.
     expect(three.ticks).toBeGreaterThan(one.ticks)
+    expect(three.survivorsB).toBeLessThan(one.survivorsB)
   })
 })
 ```
