@@ -3,9 +3,11 @@ import { buildBoard } from '../sim/hex.js'
 import { createRng } from '../sim/rng.js'
 import { castSkill } from '../sim/skills.js'
 import { effectiveStat, damageTakenMultiplier } from '../sim/modifiers.js'
+import { loadData } from '../sim/data.js'
 import combat from '../game/public/data/combat.json' with { type: 'json' }
 
 const board = buildBoard(combat.board)
+const data = await loadData()
 
 function mk(id, team, row, col, over = {}) {
   return {
@@ -85,6 +87,18 @@ describe('castSkill - single', () => {
     const guarded = run([{ stat: 'damageTakenPct', amount: -50, expiresAt: 999 }])
     expect(guarded).toBeLessThan(plain)
   })
+
+  it('스킬 피해는 대상의 mr 버프를 반영한다', () => {
+    const run = (buffs) => {
+      const caster = mk(0, 'A', 3, 3, { skill: { id: 's', type: 'single', params: { dmgPct: 100, hits: 1 } } })
+      const foe = mk(1, 'B', 2, 3, { hp: 100000, maxHp: 100000, buffs })
+      caster.targetId = foe.id
+      castSkill(ctx([caster, foe]), caster)
+      return 100000 - foe.hp
+    }
+    // mr 이 오르면 마법 피해가 줄어야 한다. 원시 stats.mr 을 읽으면 버프가 무시돼 같아진다.
+    expect(run([{ stat: 'mr', amount: 200, expiresAt: 999 }])).toBeLessThan(run([]))
+  })
 })
 
 describe('castSkill - aoe', () => {
@@ -118,6 +132,20 @@ describe('castSkill - aoe', () => {
     caster.targetId = high.id
     const events = castSkill(ctx([caster, high, low]), caster)
     expect(events[0].targetIds).toEqual([2, 7])
+  })
+
+  it('광역 피해도 대상의 mr 버프와 damageTakenPct 를 반영한다', () => {
+    const run = (buffs) => {
+      const caster = mk(0, 'A', 3, 3, { skill: { id: 'blast', type: 'aoe', params: { radius: 0, dmgPct: 200 } } })
+      const foe = mk(1, 'B', 2, 3, { hp: 100000, maxHp: 100000, buffs })
+      caster.targetId = foe.id
+      castSkill(ctx([caster, foe]), caster)
+      return 100000 - foe.hp
+    }
+    const plain = run([])
+    expect(plain).toBeGreaterThan(0)
+    expect(run([{ stat: 'mr', amount: 200, expiresAt: 999 }])).toBeLessThan(plain)
+    expect(run([{ stat: 'damageTakenPct', amount: -50, expiresAt: 999 }])).toBeLessThan(plain)
   })
 })
 
@@ -171,6 +199,11 @@ describe('castSkill - buff', () => {
     castSkill(ctx([caster]), caster)
     expect(caster.shield).toBe(120)
     expect(effectiveStat(caster, 'def')).toBe(caster.stats.def + 50)
+  })
+
+  it('mk2_bulwark 은 여전히 shieldAndDef 를 쓴다 (데이터 이름이 바뀌면 위 테스트가 헛돈다)', () => {
+    const king = data.units.units.find((u) => u.id === 'medieval_king_2')
+    expect(king.skill.params.stat).toBe('shieldAndDef')
   })
 })
 
