@@ -12,7 +12,9 @@
 
 - 스펙 단일소스: `docs/superpowers/specs/2026-08-31-reroll-royale-design.md`
 - 수치를 코드에 하드코딩하지 않는다. `game/public/data/*.json` 이 단일소스다.
-- `sim/` 의 어떤 파일도 `document`·`window`·`PIXI`·`fetch` 를 참조하지 않는다.
+- `sim/` 의 어떤 파일도 `document`·`window`·`PIXI` 를 참조하지 않는다. `fetch` 도 마찬가지인데
+  **`sim/data.js` 하나만 예외**다 — 브라우저 분기에서만 쓰고, Node 분기(`node:fs/promises`)가
+  항상 동작해야 한다. 데이터를 `import` 로 바꾸면 번들에 박혀 JSON 만 고쳐 배포하는 길이 막힌다.
 - `Math.random()` 과 `Date.now()` 를 `sim/` 안에서 호출하지 않는다. 난수는 `sim/rng.js` 만 쓴다.
 - 지속 상태(HP·shield·mana·틱 카운터·좌표)는 정수로 저장한다. 파생 계산에 부동소수를 써도 되지만 저장 직전 `Math.floor` 한다.
 - 모든 순회는 결정론적 순서를 갖는다. `Object.keys` 순서에 의존하지 않고 배열 인덱스 순으로 돈다.
@@ -2069,7 +2071,10 @@ Co-Authored-By: Claude Opus 5 <noreply@anthropic.com>"
   - `simulate({ boardA, boardB, seed, data }) => CombatResult`
     - `boardA` / `boardB` = `[{ unitId, star, tile }]` — `tile` 은 자기 진영 기준 0..21 인덱스
     - `CombatResult = { winner: 'A'|'B'|'draw', ticks: number, survivorsA: number, survivorsB: number, log: Event[] }`
-    - `Event = { tick, type, ... }` — 타입: `spawn` · `move` · `attack` · `skill_*` · `death` · `end`
+    - `Event = { tick, type, ... }` — 타입: `spawn` · `move` · `attack` · `skill_*` · `dot` · `death` · `end`
+    - 지속 피해도 반드시 `dot` 이벤트를 남긴다. 안 남기면 로그만으로 HP 를 복원할 수 없어
+      리플레이와 서버 검증이 어긋난다
+    - `attack.amount` 와 `dot.amount` 는 요청량이 아니라 `applyDamage` 가 돌려준 **실제 흡수량**이다
 
 - [ ] **Step 1: 실패하는 테스트 작성**
 
