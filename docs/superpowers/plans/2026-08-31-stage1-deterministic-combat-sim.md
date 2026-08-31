@@ -1280,9 +1280,14 @@ export function resolveStats(unit, star, combatCfg) {
   const mod = combatCfg.classModifier[unit.class]
   const starMult = combatCfg.starMultiplier[star - 1]
 
+  // 내림을 두 번 한다. 중복이 아니다 —
+  // 1성 스탯을 먼저 정수로 확정하고, 성급은 그 확정된 정수를 곱한다.
+  // 그래야 화면에 보이는 1성 스탯과 2·3성 값이 정확한 배수 관계가 된다.
+  // 한 번에 내리면 floor(650×1.35×1.8)=1579 인데
+  // 표시값 기준으로는 floor(877×1.8)=1578 이라 UI 와 시뮬이 어긋난다.
   const scale = (key) => {
-    const raw = base[key] * mod[key]
-    return Math.floor(STAR_SCALED.includes(key) ? raw * starMult : raw)
+    const raw = Math.floor(base[key] * mod[key])
+    return STAR_SCALED.includes(key) ? Math.floor(raw * starMult) : raw
   }
 
   return {
@@ -2594,4 +2599,5 @@ Co-Authored-By: Claude Opus 5 <noreply@anthropic.com>"
 | 암습 도약 (전투 시작 시 최후열 이동) | 시너지 효과 플래그(`leapToBackline`)는 데이터에 있고, 적용은 2단계 |
 | 불사 부활 · 왕국 부활 | `revive` 플래그는 데이터에 있고, 적용은 2단계 |
 | 사수 관통 · 검사 재공격 | 데이터에 있고, 적용은 2단계 |
+| **미적용 시너지 효과 키 (전수 목록)** | `applyTraitEffects` 가 처리하는 것은 `hp` · `def` · `allyDef` · `mr` · `power` · `range` · `manaStart` · `atkPct` · `attackSpeedPct` · `critChancePct` 뿐이다. `traits.json` 에 있으나 1단계가 무시하는 키: **전투 루프** — `reviveOne` · `revive` · `dodgePct` · `dodgeTicks` · `critTakenPct` · `regenPctPer5s` · `shieldPctMaxHp` · `shieldTicks` · `doubleStrikeChance` · `manaOnKill` · `deathBlastPct` · `deathBlastRadius` · `critDamagePct`. **스킬 계통** — `splashOnSkillPct` · `manaCostPct` · `aoeRadius`. **타겟팅/이동** — `pierceCount` · `piercePct` · `leapToBackline`. **경제/상점(1단계 범위 밖)** — `goldOnKillChance` · `shopGuaranteeSlot` · `priceDiscount` · `priceFloor`. `scope` 는 메타 태그라 소비 대상이 아니다. 2단계 착수 시 이 표를 체크리스트로 쓴다 |
 | 미적용 스킬 파라미터 | `evil_wizard_3.dmgPctMaxHp` · `evil_wizard_3.silenceTicks` · `fire_worm.lineLength` · `fire_worm.burnTickPct` · `evil_wizard_2.chainCount` · `huntress_1.pierceCount` · `martial_hero_2.releapOnKill` · `martial_hero_3.manaRefillOnKill` · `fantasy_warrior.stunTicks` · `mimic.pull` — 데이터에는 있으나 1단계 실행기가 무시한다. 2단계에서 실행기를 확장해 붙인다 |
