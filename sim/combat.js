@@ -27,6 +27,14 @@ function toFieldTile(board, localIndex, team, boardCfg) {
 }
 
 function buildCombatants(entries, team, data, board) {
+  const combatCfg = data.combat
+
+  // 존재 검사를 시너지 맵보다 먼저 돌린다. 뒤에 두면 아래 activeTraits 인자에서
+  // u.origin 을 먼저 건드려 없는 id 가 정체불명의 TypeError 로 터진다.
+  for (const e of entries) {
+    if (!unitById(data.units, e.unitId)) throw new Error(`없는 유닛 id: ${e.unitId}`)
+  }
+
   const traitMap = activeTraits(
     entries.map((e) => {
       const u = unitById(data.units, e.unitId)
@@ -37,7 +45,13 @@ function buildCombatants(entries, team, data, board) {
 
   return entries.map((e, i) => {
     const unit = unitById(data.units, e.unitId)
-    if (!unit) throw new Error(`없는 유닛 id: ${e.unitId}`)
+
+    // 성급이 범위 밖이면 starMultiplier[star-1] 이 undefined 라 모든 스탯이 NaN 이 되고,
+    // hp <= 0 이 영원히 거짓이 되어 아무도 죽지 않는 무적 전투가 조용히 만들어진다.
+    // CLI 의 parseComp 만으로는 부족하다 — 서버가 남의 스냅샷을 재실행하는 경로가 본선이다.
+    if (!Number.isInteger(e.star) || e.star < 1 || e.star > combatCfg.starMultiplier.length) {
+      throw new Error(`성급이 1~${combatCfg.starMultiplier.length} 정수가 아니다: ${e.unitId} star ${e.star}`)
+    }
 
     const effects = []
     for (const key of [unit.origin, unit.class]) {

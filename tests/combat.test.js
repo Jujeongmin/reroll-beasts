@@ -153,6 +153,20 @@ describe('simulate', () => {
     const clash = team([['rat', 1, 0], ['bat', 1, 0]])
     expect(() => simulate({ boardA: clash, boardB: weakSide, seed: 1, data })).toThrow(/겹친/)
   })
+
+  it('성급이 범위를 벗어나면 조용히 무적이 되지 않고 터진다', () => {
+    for (const star of [0, -1, 4]) {
+      expect(() => simulate({ boardA: team([['rat', star, 0]]), boardB: weakSide, seed: 1, data })).toThrow(/성급/)
+    }
+  })
+
+  it('성급이 정수가 아니면 터진다', () => {
+    expect(() => simulate({ boardA: team([['rat', 1.5, 0]]), boardB: weakSide, seed: 1, data })).toThrow(/성급/)
+  })
+
+  it('없는 유닛 id 는 명확한 메시지로 터진다', () => {
+    expect(() => simulate({ boardA: team([['nope', 1, 0]]), boardB: weakSide, seed: 1, data })).toThrow(/없는 유닛 id/)
+  })
 })
 
 describe('골든 로그', () => {
