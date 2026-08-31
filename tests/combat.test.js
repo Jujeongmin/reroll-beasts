@@ -3,7 +3,8 @@ import { readFileSync, writeFileSync } from 'node:fs'
 import { fileURLToPath } from 'node:url'
 import { dirname, join } from 'node:path'
 import { loadData } from '../sim/data.js'
-import { simulate } from '../sim/combat.js'
+import { simulate, toFieldTile, resolveTimeout } from '../sim/combat.js'
+import { buildBoard } from '../sim/hex.js'
 
 const data = await loadData()
 
@@ -133,16 +134,19 @@ describe('simulate', () => {
     expect(r.log[r.log.length - 1]).toEqual({ tick: data.combat.maxTicks, type: 'end', winner: 'draw' })
   })
 
-  it('maxTicks 도달 시 생존자 수가 다르면 더 많은 쪽이 이긴다 (동점 타이브레이크 회귀 방지)', () => {
-    // 3성 수호자 거울전을 2v2 로 벌리면 서로 못 죽이면서도 한쪽이 하나 먼저 죽어
-    // 생존자 수가 갈린다 — a === b 인 무승부 경로만 타는 기존 maxTicks 테스트로는
-    // finish(a === b ? 'draw' : a > b ? 'A' : 'B') 의 부등호 방향이 검증되지 않는다.
-    const wall2 = team([['hero_knight_1', 3, 0], ['hero_knight_1', 3, 1]])
-    const r = simulate({ boardA: wall2, boardB: wall2, seed: 0, data })
+  it('maxTicks 에 도달하면 그 틱으로 끝나고 생존자 수 규칙을 따른다', () => {
+    const wall = team([['hero_knight_1', 3, 0], ['hero_knight_1', 3, 1]])
+    const r = simulate({ boardA: wall, boardB: wall, seed: 11, data })
+
+    // 전제 — 제한 틱에 실제로 도달해야 이 테스트가 타임아웃 분기를 지난다.
     expect(r.ticks).toBe(data.combat.maxTicks)
-    expect(r.survivorsA).not.toBe(r.survivorsB)
-    expect(r.survivorsB).toBeGreaterThan(r.survivorsA)
-    expect(r.winner).toBe('B')
+
+    // 결과는 생존자 수 규칙과 일치해야 한다. 대진이 바뀌어 생존자 수가
+    // 달라지더라도 규칙과의 일치는 유지된다.
+    expect(r.winner).toBe(resolveTimeout(r.survivorsA, r.survivorsB))
+    expect(r.log[r.log.length - 1]).toEqual({
+      tick: data.combat.maxTicks, type: 'end', winner: r.winner,
+    })
   })
 
   it('진영 범위를 벗어난 타일은 조용히 무시하지 않고 터진다', () => {
@@ -166,6 +170,20 @@ describe('simulate', () => {
 
   it('없는 유닛 id 는 명확한 메시지로 터진다', () => {
     expect(() => simulate({ boardA: team([['nope', 1, 0]]), boardB: weakSide, seed: 1, data })).toThrow(/없는 유닛 id/)
+  })
+
+  it('로컬 타일 인덱스는 양 팀에서 거울 대칭이다 (스냅샷 계약)', () => {
+    const board = buildBoard(data.combat.board)
+    for (let local = 0; local < 22; local++) {
+      const a = toFieldTile(board, local, 'A', data.combat.board)
+      const b = toFieldTile(board, local, 'B', data.combat.board)
+      expect(a).toBeGreaterThanOrEqual(0)
+      expect(b).toBeGreaterThanOrEqual(0)
+      const ta = board.tiles[a]
+      const tb = board.tiles[b]
+      expect(tb.row).toBe(5 - ta.row)
+      expect(tb.col).toBe(ta.col)
+    }
   })
 })
 
@@ -196,5 +214,19 @@ describe('골든 로그 — 버프 로스터', () => {
 
     const golden = JSON.parse(readFileSync(BUFF_GOLDEN_PATH, 'utf8'))
     expect(actual).toEqual(golden)
+  })
+})
+
+describe('resolveTimeout', () => {
+  it('생존자가 많은 쪽이 이긴다', () => {
+    expect(resolveTimeout(3, 1)).toBe('A')
+    expect(resolveTimeout(1, 3)).toBe('B')
+    expect(resolveTimeout(1, 0)).toBe('A')
+    expect(resolveTimeout(0, 1)).toBe('B')
+  })
+
+  it('생존자가 같으면 무승부다', () => {
+    expect(resolveTimeout(2, 2)).toBe('draw')
+    expect(resolveTimeout(0, 0)).toBe('draw')
   })
 })

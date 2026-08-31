@@ -14,9 +14,13 @@ import { castSkill } from './skills.js'
 import { effectiveStat, damageTakenMultiplier } from './modifiers.js'
 
 // 자기 진영 0..21 → 전장 타일 인덱스.
-// A 팀은 아래 3행(3,4,5), B 팀은 위 3행을 좌우 반전 없이 그대로 쓴다.
-function toFieldTile(board, localIndex, team, boardCfg) {
-  const rows = team === 'A' ? boardCfg.allyRows : boardCfg.enemyRows
+export function toFieldTile(board, localIndex, team, boardCfg) {
+  // 로컬 인덱스 0..21 은 **양 팀 모두 앞줄부터** 센다.
+  // A 의 앞줄은 행 3, B 의 앞줄은 행 2 — 보드가 행 r ↔ 5-r 로 대칭이므로
+  // B 는 enemyRows 를 뒤집어 순회해야 같은 인덱스가 같은 자리를 뜻한다.
+  // 이걸 안 뒤집으면 A 로 저장한 스냅샷이 B 로 불러올 때 전후가 뒤집혀
+  // 탱커가 뒷줄, 딜러가 앞줄에 서고 비동기 PvP 가 성립하지 않는다.
+  const rows = team === 'A' ? boardCfg.allyRows : [...boardCfg.enemyRows].reverse()
   let remain = localIndex
   for (const row of rows) {
     const width = boardCfg.rows[row]
@@ -24,6 +28,14 @@ function toFieldTile(board, localIndex, team, boardCfg) {
     remain -= width
   }
   return -1
+}
+
+// 제한 틱에 도달했을 때의 승패 규칙. 생존자가 많은 쪽이 이기고, 같으면 무승부다.
+// 인라인 삼항으로 두면 이 분기에 도달하는 대진을 찾아야만 시험할 수 있어
+// 밸런스 수치가 바뀔 때마다 테스트가 조용히 무의미해진다. 규칙만 떼어 고정한다.
+export function resolveTimeout(survivorsA, survivorsB) {
+  if (survivorsA === survivorsB) return 'draw'
+  return survivorsA > survivorsB ? 'A' : 'B'
 }
 
 function buildCombatants(entries, team, data, board) {
@@ -238,5 +250,5 @@ export function simulate({ boardA, boardB, seed, data }) {
   tick = cfg.maxTicks
   const a = aliveCount('A')
   const b = aliveCount('B')
-  return finish(a === b ? 'draw' : a > b ? 'A' : 'B')
+  return finish(resolveTimeout(a, b))
 }
