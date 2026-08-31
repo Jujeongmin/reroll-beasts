@@ -48,6 +48,13 @@ describe('buildBoard', () => {
     }
   })
 
+  it('인접 목록은 타일 인덱스 오름차순이다 (이동 타이브레이크의 기반)', () => {
+    for (let a = 0; a < board.tileCount; a++) {
+      const list = board.neighbors[a]
+      expect(list).toEqual([...list].sort((x, y) => x - y))
+    }
+  })
+
   it('거리는 대칭이고 자기 자신은 0 이다', () => {
     for (let a = 0; a < board.tileCount; a++) {
       expect(board.dist[a][a]).toBe(0)
