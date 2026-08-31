@@ -1,0 +1,191 @@
+{
+  "_note": [
+    "유닛 26종 → 원본 스프라이트시트 매핑. 빌드 입력이지 게임 규칙이 아니다.",
+    "(게임 규칙은 game/public/data/*.json 이다)",
+    "",
+    "frame 은 tools/survey-packs.mjs 로 실측하고 작가 페이지 프레임 수와 대조한 값이다.",
+    "대부분 정사각이지만 셋은 아니다 — medieval-warrior-pack 184x137,",
+    "medieval-king-pack-2 160x111, wizard-pack 231x190.",
+    "",
+    "anims 의 키는 우리 코드가 요구하는 이름이고, 값은 원본 파일명이다.",
+    "팩마다 이름이 제각각이라(Attack1 / Attack_1 / attack_bite,",
+    "Take Hit / Get Hit / hurt) 자동으로 못 알아낸다. 그래서 손으로 적는다.",
+    "",
+    "frames 는 검증용이다. tools/verify-sprite-map.mjs 가 실제 시트 폭과 대조해",
+    "어긋나면 터진다 — 팩이 갱신되면 조용히 깨지는 걸 막는다."
+  ],
+
+  "units": {
+    "medieval_warrior_1": {
+      "pack": "medieval-warrior-pack", "dir": "Medieval Warrior Pack",
+      "frame": { "w": 184, "h": 137 },
+      "anims": { "idle": "Idle.png", "run": "Run.png", "attack1": "Attack1.png", "attack2": "Attack2.png", "hit": "Hit.png", "death": "Death.png", "jump": "Jump.png" },
+      "frames": { "idle": 6, "run": 8, "attack1": 4, "attack2": 4, "hit": 3, "death": 9, "jump": 2 }
+    },
+    "medieval_warrior_2": {
+      "pack": "medieval-warrior-pack-2", "dir": "Medieval Warrior Pack 2/Sprites",
+      "frame": { "w": 150, "h": 150 },
+      "anims": { "idle": "Idle.png", "run": "Run.png", "attack1": "Attack1.png", "attack2": "Attack2.png", "attack3": "Attack3.png", "hit": "Take Hit.png", "death": "Death.png", "jump": "Jump.png" },
+      "frames": { "idle": 8, "run": 8, "attack1": 4, "attack2": 4, "attack3": 4, "hit": 4, "death": 6, "jump": 2 }
+    },
+    "medieval_warrior_3": {
+      "pack": "medieval-warrior-pack-3", "dir": "Medieval Warrior Pack 3/Sprites",
+      "frame": { "w": 135, "h": 135 },
+      "anims": { "idle": "Idle.png", "run": "Run.png", "attack1": "Attack1.png", "attack2": "Attack2.png", "attack3": "Attack3.png", "hit": "Get Hit.png", "death": "Death.png", "jump": "Jump.png" },
+      "frames": { "idle": 10, "run": 6, "attack1": 4, "attack2": 4, "attack3": 5, "hit": 3, "death": 9, "jump": 2 }
+    },
+    "hero_knight_1": {
+      "pack": "hero-knight", "dir": "Hero Knight/Sprites",
+      "frame": { "w": 180, "h": 180 },
+      "anims": { "idle": "Idle.png", "run": "Run.png", "attack1": "Attack1.png", "attack2": "Attack2.png", "hit": "Take Hit.png", "death": "Death.png", "jump": "Jump.png" },
+      "frames": { "idle": 11, "run": 8, "attack1": 7, "attack2": 7, "hit": 4, "death": 11, "jump": 3 }
+    },
+    "hero_knight_2": {
+      "pack": "hero-knight-2", "dir": "Hero Knight 2/Sprites",
+      "frame": { "w": 140, "h": 140 },
+      "anims": { "idle": "Idle.png", "run": "Run.png", "attack1": "Attack.png", "hit": "Take Hit.png", "death": "Death.png", "jump": "Jump.png" },
+      "frames": { "idle": 11, "run": 8, "attack1": 6, "hit": 4, "death": 9, "jump": 4 }
+    },
+    "martial_hero_1": {
+      "pack": "martial-hero", "dir": "Martial Hero/Sprites",
+      "frame": { "w": 200, "h": 200 },
+      "anims": { "idle": "Idle.png", "run": "Run.png", "attack1": "Attack1.png", "attack2": "Attack2.png", "hit": "Take Hit.png", "death": "Death.png", "jump": "Jump.png" },
+      "frames": { "idle": 8, "run": 8, "attack1": 6, "attack2": 6, "hit": 4, "death": 6, "jump": 2 }
+    },
+    "martial_hero_2": {
+      "pack": "martial-hero-2", "dir": "Martial Hero 2/Sprites",
+      "frame": { "w": 200, "h": 200 },
+      "anims": { "idle": "Idle.png", "run": "Run.png", "attack1": "Attack1.png", "attack2": "Attack2.png", "hit": "Take hit.png", "death": "Death.png", "jump": "Jump.png" },
+      "frames": { "idle": 4, "run": 8, "attack1": 4, "attack2": 4, "hit": 3, "death": 7, "jump": 2 }
+    },
+    "martial_hero_3": {
+      "pack": "martial-hero-3", "dir": "Martial Hero 3/Sprite",
+      "frame": { "w": 126, "h": 126 },
+      "anims": { "idle": "Idle.png", "run": "Run.png", "attack1": "Attack1.png", "attack2": "Attack2.png", "attack3": "Attack3.png", "hit": "Take Hit.png", "death": "Death.png", "jump": "Going Up.png" },
+      "frames": { "idle": 10, "run": 8, "attack1": 7, "attack2": 6, "attack3": 9, "hit": 3, "death": 11, "jump": 3 }
+    },
+    "huntress_1": {
+      "pack": "huntress", "dir": "Huntress/Sprites",
+      "frame": { "w": 150, "h": 150 },
+      "anims": { "idle": "Idle.png", "run": "Run.png", "attack1": "Attack1.png", "attack2": "Attack2.png", "attack3": "Attack3.png", "hit": "Take hit.png", "death": "Death.png", "jump": "Jump.png" },
+      "frames": { "idle": 8, "run": 8, "attack1": 5, "attack2": 5, "attack3": 7, "hit": 3, "death": 8, "jump": 2 }
+    },
+    "huntress_2": {
+      "pack": "huntress-2", "dir": "Huntress 2/Sprites/Character",
+      "frame": { "w": 100, "h": 100 },
+      "anims": { "idle": "Idle.png", "run": "Run.png", "attack1": "Attack.png", "hit": "Get Hit.png", "death": "Death.png", "jump": "Jump.png" },
+      "frames": { "idle": 10, "run": 8, "attack1": 6, "hit": 3, "death": 10, "jump": 2 }
+    },
+    "wizard_pack": {
+      "pack": "wizard-pack", "dir": "Wizard Pack",
+      "frame": { "w": 231, "h": 190 },
+      "anims": { "idle": "Idle.png", "run": "Run.png", "attack1": "Attack1.png", "attack2": "Attack2.png", "hit": "Hit.png", "death": "Death.png", "jump": "Jump.png" },
+      "frames": { "idle": 6, "run": 8, "attack1": 8, "attack2": 8, "hit": 4, "death": 7, "jump": 2 }
+    },
+    "evil_wizard_1": {
+      "pack": "evil-wizard", "dir": "Evil Wizard/Sprites",
+      "frame": { "w": 150, "h": 150 },
+      "anims": { "idle": "Idle.png", "run": "Move.png", "attack1": "Attack.png", "hit": "Take Hit.png", "death": "Death.png" },
+      "frames": { "idle": 8, "run": 8, "attack1": 8, "hit": 4, "death": 5 },
+      "note": "이 팩엔 Jump 가 없다. 암습 도약 연출은 다른 수단이 필요하다."
+    },
+    "evil_wizard_2": {
+      "pack": "evil-wizard-2", "dir": "EVil Wizard 2/Sprites",
+      "frame": { "w": 250, "h": 250 },
+      "anims": { "idle": "Idle.png", "run": "Run.png", "attack1": "Attack1.png", "attack2": "Attack2.png", "hit": "Take hit.png", "death": "Death.png", "jump": "Jump.png" },
+      "frames": { "idle": 8, "run": 8, "attack1": 8, "attack2": 8, "hit": 3, "death": 7, "jump": 2 }
+    },
+    "evil_wizard_3": {
+      "pack": "evil-wizard-3", "dir": "Evil Wizard 3/Sprites",
+      "frame": { "w": 140, "h": 140 },
+      "anims": { "idle": "Idle.png", "run": "Run.png", "attack1": "Attack.png", "hit": "Get hit.png", "death": "Death.png", "jump": "Jump.png" },
+      "frames": { "idle": 10, "run": 8, "attack1": 13, "hit": 3, "death": 18, "jump": 3 }
+    },
+    "fantasy_warrior": {
+      "pack": "fantasy-warrior", "dir": "Fantasy Warrior/Sprites",
+      "frame": { "w": 162, "h": 162 },
+      "anims": { "idle": "Idle.png", "run": "Run.png", "attack1": "Attack1.png", "attack2": "Attack2.png", "attack3": "Attack3.png", "hit": "Take hit.png", "death": "Death.png", "jump": "Jump.png" },
+      "frames": { "idle": 10, "run": 8, "attack1": 7, "attack2": 7, "attack3": 8, "hit": 3, "death": 7, "jump": 3 }
+    },
+    "medieval_king_1": {
+      "pack": "medieval-king-pack", "dir": "Medieval King Pack",
+      "frame": { "w": 155, "h": 155 },
+      "anims": { "idle": "Idle.png", "run": "Run.png", "attack1": "Attack_1.png", "attack2": "Attack_2.png", "hit": "Hit.png", "death": "Death.png", "jump": "Jump.png" },
+      "frames": { "idle": 6, "run": 8, "attack1": 6, "attack2": 6, "hit": 4, "death": 11, "jump": 2 }
+    },
+    "medieval_king_2": {
+      "pack": "medieval-king-pack-2", "dir": "Medieval King Pack 2/Sprites",
+      "frame": { "w": 160, "h": 111 },
+      "anims": { "idle": "Idle.png", "run": "Run.png", "attack1": "Attack1.png", "attack2": "Attack2.png", "attack3": "Attack3.png", "hit": "Take Hit.png", "death": "Death.png", "jump": "Jump.png" },
+      "frames": { "idle": 8, "run": 8, "attack1": 4, "attack2": 4, "attack3": 4, "hit": 4, "death": 6, "jump": 2 }
+    },
+
+    "skeleton": {
+      "pack": "monsters-creatures-fantasy", "dir": "Monsters_Creatures_Fantasy/Skeleton",
+      "frame": { "w": 150, "h": 150 },
+      "anims": { "idle": "Idle.png", "run": "Walk.png", "attack1": "Attack.png", "hit": "Take Hit.png", "death": "Death.png", "guard": "Shield.png" },
+      "frames": { "idle": 4, "run": 4, "attack1": 8, "hit": 4, "death": 4, "guard": 4 },
+      "note": "Shield 를 guard 로 쓴다 — skeleton_guard 스킬(3초간 피해 -50%) 연출에 그대로 맞는다."
+    },
+    "goblin": {
+      "pack": "monsters-creatures-fantasy", "dir": "Monsters_Creatures_Fantasy/Goblin",
+      "frame": { "w": 150, "h": 150 },
+      "anims": { "idle": "Idle.png", "run": "Run.png", "attack1": "Attack.png", "hit": "Take Hit.png", "death": "Death.png" },
+      "frames": { "idle": 4, "run": 8, "attack1": 8, "hit": 4, "death": 4 }
+    },
+    "mushroom": {
+      "pack": "monsters-creatures-fantasy", "dir": "Monsters_Creatures_Fantasy/Mushroom",
+      "frame": { "w": 150, "h": 150 },
+      "anims": { "idle": "Idle.png", "run": "Run.png", "attack1": "Attack.png", "hit": "Take Hit.png", "death": "Death.png" },
+      "frames": { "idle": 4, "run": 8, "attack1": 8, "hit": 4, "death": 4 }
+    },
+    "flying_eye": {
+      "pack": "monsters-creatures-fantasy", "dir": "Monsters_Creatures_Fantasy/Flying eye",
+      "frame": { "w": 150, "h": 150 },
+      "anims": { "idle": "Flight.png", "run": "Flight.png", "attack1": "Attack.png", "hit": "Take Hit.png", "death": "Death.png" },
+      "frames": { "idle": 8, "run": 8, "attack1": 8, "hit": 4, "death": 4 },
+      "note": "공중 유닛이라 Idle·Run 이 따로 없다. Flight 를 둘 다에 쓴다."
+    },
+
+    "rat": {
+      "pack": "monsters-creatures-fantasy-2", "dir": "Monsters Creatures Fantasy 2/Rat",
+      "frame": { "w": 70, "h": 70 },
+      "anims": { "idle": "idle.png", "run": "run.png", "attack1": "attack_bite.png", "hit": "hurt.png", "death": "rat-death.png" },
+      "frames": { "idle": 10, "run": 8, "attack1": 12, "hit": 3, "death": 6 }
+    },
+    "bat": {
+      "pack": "monsters-creatures-fantasy-2", "dir": "Monsters Creatures Fantasy 2/Bat",
+      "frame": { "w": 87, "h": 87 },
+      "anims": { "idle": "fly.png", "run": "fly.png", "attack1": "attack.png", "hit": "hurt.png", "death": "death.png" },
+      "frames": { "idle": 11, "run": 11, "attack1": 11, "hit": 3, "death": 4 },
+      "note": "공중 유닛. fly 를 Idle·Run 둘 다에 쓴다."
+    },
+    "slime": {
+      "pack": "monsters-creatures-fantasy-2", "dir": "Monsters Creatures Fantasy 2/Slime",
+      "frame": { "w": 156, "h": 156 },
+      "anims": { "idle": "idle.png", "run": "walk.png", "attack1": "attack.png", "hit": "hurt.png", "death": "death.png" },
+      "frames": { "idle": 14, "run": 6, "attack1": 19, "hit": 3, "death": 11 }
+    },
+    "mimic": {
+      "pack": "monsters-creatures-fantasy-2", "dir": "Monsters Creatures Fantasy 2/Mimic",
+      "frame": { "w": 146, "h": 146 },
+      "anims": { "idle": "idle_transformed.png", "run": "walk.png", "attack1": "attack_1.png", "attack2": "attack_2.png", "hit": "hurt.png", "death": "death.png" },
+      "frames": { "idle": 9, "run": 6, "attack1": 14, "attack2": 13, "hit": 3, "death": 6 },
+      "note": "변신 후 상태를 기본으로 쓴다. Idle_closed·opening·transform 은 2단계 등장 연출 후보."
+    },
+    "fire_worm": {
+      "pack": "fire-worm", "dir": "Fire Worm/Sprites/Worm",
+      "frame": { "w": 90, "h": 90 },
+      "anims": { "idle": "Idle.png", "run": "Walk.png", "attack1": "Attack.png", "hit": "Get Hit.png", "death": "Death.png" },
+      "frames": { "idle": 9, "run": 9, "attack1": 16, "hit": 3, "death": 8 }
+    }
+  },
+
+  "projectiles": {
+    "_note": "2단계 투사체 연출용. 지금은 안 쓰지만 어디 있는지 남겨둔다.",
+    "huntress_spear": { "pack": "huntress", "dir": "Huntress/Sprites", "frame": { "w": 20, "h": 20 }, "anims": { "move": "Spear move.png", "static": "Spear.png" } },
+    "huntress2_arrow": { "pack": "huntress-2", "dir": "Huntress 2/Sprites/Arrow", "frame": { "w": 24, "h": 5 }, "anims": { "move": "Move.png", "static": "Static.png" } },
+    "evil_wizard_3_bolt": { "pack": "evil-wizard-3", "dir": "Evil Wizard 3/Sprites/Projectile", "frame": { "w": 50, "h": 50 }, "anims": { "move": "Moving.png", "explode": "Explode.png" } },
+    "fire_worm_ball": { "pack": "fire-worm", "dir": "Fire Worm/Sprites/Fire Ball", "frame": { "w": 46, "h": 46 }, "anims": { "move": "Move.png", "explode": "Explosion.png" } }
+  }
+}
