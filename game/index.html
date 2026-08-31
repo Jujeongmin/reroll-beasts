@@ -1,0 +1,103 @@
+<!doctype html>
+<html lang="ko">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover, user-scalable=no" />
+<title>Reroll Royale — 전투 리플레이</title>
+<style>
+  /* 가로형 모바일. 세로로 들면 회전 안내를 띄운다 */
+  :root {
+    --bg: #14121a;
+    --panel: #1e1b26;
+    --line: #322c40;
+    --ink: #e8e4f0;
+    --dim: #8d85a0;
+    --team-a: #6fa8ff;
+    --team-b: #ff7a6f;
+  }
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  html, body { height: 100%; overflow: hidden; }
+  body {
+    background: var(--bg);
+    color: var(--ink);
+    font: 13px/1.4 system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+    display: flex;
+    flex-direction: column;
+    -webkit-font-smoothing: antialiased;
+  }
+  /* 스크롤바는 전역으로 감춘다 — OS 기본 막대가 화면 계산을 흐린다 */
+  ::-webkit-scrollbar { display: none; }
+
+  #stage { flex: 1; min-height: 0; position: relative; overflow: hidden; }
+  /* 캔버스 크기는 Pixi 의 autoDensity 가 잡는다. 여기서 100% 로 강제하면
+     그리기 버퍼와 표시 크기가 어긋나 좌표가 화면 밖으로 나간다. */
+  #stage canvas { display: block; }
+
+  #hud {
+    display: flex; align-items: center; gap: 10px;
+    padding: 6px 10px;
+    background: var(--panel);
+    border-bottom: 1px solid var(--line);
+    font-variant-numeric: tabular-nums;
+  }
+  #hud .grow { flex: 1; }
+  #hud b { font-weight: 600; }
+  .teamA { color: var(--team-a); }
+  .teamB { color: var(--team-b); }
+
+  #bar {
+    display: flex; align-items: center; gap: 8px;
+    padding: 6px 10px;
+    background: var(--panel);
+    border-top: 1px solid var(--line);
+  }
+  button {
+    background: #2a2534; color: var(--ink);
+    border: 1px solid var(--line); border-radius: 6px;
+    padding: 5px 12px; font: inherit; cursor: pointer;
+  }
+  button:hover { background: #342d42; }
+  button:active { transform: translateY(1px); }
+  input[type=range] { flex: 1; accent-color: var(--team-a); }
+  #tick { color: var(--dim); min-width: 108px; text-align: right; }
+
+  #rotate {
+    display: none;
+    position: fixed; inset: 0; z-index: 10;
+    background: var(--bg); color: var(--dim);
+    align-items: center; justify-content: center; text-align: center;
+    padding: 24px;
+  }
+  @media (orientation: portrait) {
+    #rotate { display: flex; }
+  }
+
+  #boot {
+    position: absolute; inset: 0;
+    display: flex; align-items: center; justify-content: center;
+    color: var(--dim);
+  }
+</style>
+</head>
+<body>
+  <div id="hud">
+    <span id="matchup">불러오는 중…</span>
+    <span class="grow"></span>
+    <span id="alive"></span>
+  </div>
+
+  <div id="stage"><div id="boot">전투 계산 중…</div></div>
+
+  <div id="bar">
+    <button id="play">일시정지</button>
+    <button id="restart">처음부터</button>
+    <input id="scrub" type="range" min="0" max="1000" value="0" />
+    <span id="tick">0 / 0</span>
+    <button id="speed">1x</button>
+  </div>
+
+  <div id="rotate">가로로 돌려주세요</div>
+
+  <script type="module" src="/src/replay.js"></script>
+</body>
+</html>

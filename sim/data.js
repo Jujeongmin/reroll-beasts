@@ -7,10 +7,15 @@ const FILES = ['combat', 'units', 'traits', 'shop']
 const isNode =
   typeof process !== 'undefined' && process.versions != null && process.versions.node != null
 
+// 번들러가 이 import 들을 **정적으로 분석하지 못하게** 지정자를 변수로 넘긴다.
+// 그대로 두면 Vite 가 node:fs/promises 를 브라우저 번들에 externalize 하면서
+// 경고를 내고, 그 자리에 던지는 스텁이 박힌다. 이 분기는 Node 에서만 도는데도.
+const nodeImport = (specifier) => import(/* @vite-ignore */ specifier)
+
 async function readNode(name) {
-  const { readFile } = await import('node:fs/promises')
-  const { fileURLToPath } = await import('node:url')
-  const { dirname, join } = await import('node:path')
+  const { readFile } = await nodeImport('node:fs/promises')
+  const { fileURLToPath } = await nodeImport('node:url')
+  const { dirname, join } = await nodeImport('node:path')
   const here = dirname(fileURLToPath(import.meta.url))
   const path = join(here, '..', 'game', 'public', 'data', `${name}.json`)
   return JSON.parse(await readFile(path, 'utf8'))
