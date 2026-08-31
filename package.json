@@ -7,7 +7,8 @@
     "test": "vitest run",
     "test:watch": "vitest",
     "validate": "node tools/validate.mjs",
-    "check": "npm run validate && npm test"
+    "check": "npm run validate && npm test",
+    "sim": "node sim/run.mjs"
   },
   "devDependencies": {
     "vitest": "^2.1.0"
