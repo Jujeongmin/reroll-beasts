@@ -1,0 +1,38 @@
+{
+  "tickRate": 30,
+  "maxTicks": 1800,
+  "starMultiplier": [1.0, 1.8, 3.24],
+  "board": {
+    "rows": [7, 8, 7, 7, 8, 7],
+    "rowOffset": [0.5, 0, 0.5, 0.5, 0, 0.5],
+    "rowHeight": 0.866,
+    "adjacencyThreshold": 1.05,
+    "enemyRows": [0, 1, 2],
+    "allyRows": [3, 4, 5]
+  },
+  "tierBase": {
+    "1": { "hp": 500, "atk": 40, "def": 20, "mr": 20, "power": 30, "attackInterval": 50, "manaStart": 30 },
+    "2": { "hp": 650, "atk": 50, "def": 25, "mr": 20, "power": 40, "attackInterval": 47, "manaStart": 25 },
+    "3": { "hp": 800, "atk": 62, "def": 30, "mr": 25, "power": 52, "attackInterval": 44, "manaStart": 20 },
+    "4": { "hp": 950, "atk": 75, "def": 35, "mr": 25, "power": 66, "attackInterval": 41, "manaStart": 15 },
+    "5": { "hp": 1100, "atk": 90, "def": 40, "mr": 30, "power": 82, "attackInterval": 38, "manaStart": 10 }
+  },
+  "classModifier": {
+    "guardian": { "hp": 1.35, "atk": 0.75, "def": 1.5, "mr": 1.2, "power": 0.8, "attackInterval": 1.1, "range": 1, "critChance": 0.05 },
+    "blade":    { "hp": 1.0,  "atk": 1.15, "def": 1.0, "mr": 1.0, "power": 0.8, "attackInterval": 0.95, "range": 1, "critChance": 0.1 },
+    "ranger":   { "hp": 0.8,  "atk": 1.1,  "def": 0.7, "mr": 0.9, "power": 0.9, "attackInterval": 0.85, "range": 3, "critChance": 0.1 },
+    "mage":     { "hp": 0.8,  "atk": 0.7,  "def": 0.7, "mr": 1.1, "power": 1.4, "attackInterval": 1.05, "range": 3, "critChance": 0.05 },
+    "assassin": { "hp": 0.75, "atk": 1.25, "def": 0.7, "mr": 0.9, "power": 0.9, "attackInterval": 0.9, "range": 1, "critChance": 0.2 },
+    "undying":  { "hp": 1.15, "atk": 0.9,  "def": 1.1, "mr": 1.1, "power": 1.0, "attackInterval": 1.05, "range": 1, "critChance": 0.05 }
+  },
+  "mana": {
+    "perAttack": 10,
+    "onHitPercent": 1,
+    "onHitMax": 20,
+    "full": 100
+  },
+  "damage": {
+    "defK": 100,
+    "critMultiplier": 1.5
+  }
+}
