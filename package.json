@@ -9,9 +9,10 @@
     "validate": "node tools/validate.mjs",
     "check": "npm run validate && npm test",
     "sim": "node sim/run.mjs",
-    "art": "node tools/check-art.mjs && node tools/verify-sprite-map.mjs"
+    "art": "node tools/check-art.mjs && node tools/verify-sprite-map.mjs && node tools/build-assets.mjs"
   },
   "devDependencies": {
+    "pngjs": "^7.0.0",
     "vitest": "^2.1.0"
   }
 }
