@@ -38,9 +38,20 @@ describe('stepToward', () => {
   it('여러 후보가 같은 거리면 타일 인덱스가 작은 쪽을 고른다 (결정론)', () => {
     const self = { id: 0, tile: at(5, 3) }
     const target = { id: 1, tile: at(0, 3) }
-    const a = stepToward(board, self, target, new Map())
-    const b = stepToward(board, self, target, new Map())
-    expect(a).toBe(b)
+
+    // 전제 검증 — 거리를 줄이는 후보가 둘 이상이고 서로 거리가 같아야
+    // 타이브레이크가 실제로 시험된다. 전제가 깨지면 이 테스트는 무의미하다.
+    const curDist = board.dist[self.tile][target.tile]
+    const improving = board.neighbors[self.tile].filter(
+      (nb) => board.dist[nb][target.tile] < curDist,
+    )
+    const bestDist = Math.min(...improving.map((nb) => board.dist[nb][target.tile]))
+    const tied = improving.filter((nb) => board.dist[nb][target.tile] === bestDist)
+    expect(tied.length).toBeGreaterThan(1)
+
+    // 동률이면 타일 인덱스 최소값. 비교가 <= 로 바뀌면 마지막 동률 후보가
+    // 선택되므로 이 단언이 깨진다.
+    expect(stepToward(board, self, target, new Map())).toBe(Math.min(...tied))
   })
 
   it('자기 타일은 점유로 쳐도 무시한다', () => {
