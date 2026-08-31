@@ -52,7 +52,7 @@ describe('applyDamage', () => {
 
   it('HP 가 0 이하가 되면 사망 처리한다', () => {
     const v = { hp: 10, shield: 0, alive: true }
-    expect(applyDamage(v, 30)).toEqual({ dealt: 30, died: true })
+    expect(applyDamage(v, 30)).toEqual({ dealt: 10, died: true })
     expect(v.hp).toBe(0)
     expect(v.alive).toBe(false)
   })
@@ -66,5 +66,20 @@ describe('applyDamage', () => {
     const v = { hp: 5, shield: 0, alive: true }
     applyDamage(v, 999)
     expect(v.hp).toBe(0)
+  })
+
+  it('dealt 는 과잉 피해를 잘라낸 실제 흡수량이다', () => {
+    const v = { hp: 50, shield: 0, alive: true }
+    expect(applyDamage(v, 1000).dealt).toBe(50)
+  })
+
+  it('보호막이 막은 몫도 흡수량에 포함된다', () => {
+    const v = { hp: 100, shield: 20, alive: true }
+    expect(applyDamage(v, 50).dealt).toBe(50)
+  })
+
+  it('보호막과 HP 를 합쳐도 모자라면 그 합만 흡수한다', () => {
+    const v = { hp: 30, shield: 20, alive: true }
+    expect(applyDamage(v, 500)).toEqual({ dealt: 50, died: true })
   })
 })

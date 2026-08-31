@@ -1675,9 +1675,24 @@ describe('applyDamage', () => {
 
   it('HP 가 0 이하가 되면 사망 처리한다', () => {
     const v = { hp: 10, shield: 0, alive: true }
-    expect(applyDamage(v, 30)).toEqual({ dealt: 30, died: true })
+    expect(applyDamage(v, 30)).toEqual({ dealt: 10, died: true })
     expect(v.hp).toBe(0)
     expect(v.alive).toBe(false)
+  })
+
+  it('dealt 는 과잉 피해를 잘라낸 실제 흡수량이다', () => {
+    const v = { hp: 50, shield: 0, alive: true }
+    expect(applyDamage(v, 1000).dealt).toBe(50)
+  })
+
+  it('보호막이 막은 몫도 흡수량에 포함된다', () => {
+    const v = { hp: 100, shield: 20, alive: true }
+    expect(applyDamage(v, 50).dealt).toBe(50)
+  })
+
+  it('보호막과 HP 를 합쳐도 모자라면 그 합만 흡수한다', () => {
+    const v = { hp: 30, shield: 20, alive: true }
+    expect(applyDamage(v, 500)).toEqual({ dealt: 50, died: true })
   })
 
   it('이미 죽은 대상에는 0 을 넣는다', () => {
@@ -1714,17 +1729,27 @@ export function magicDamage(power, mr, defK) {
   return Math.max(1, Math.floor((power * defK) / (defK + Math.max(0, mr))))
 }
 
+// dealt 는 요청된 피해량이 아니라 **실제로 흡수된 양**이다.
+// 흡혈과 마나 획득이 이 값을 곱하므로, 과잉 피해를 그대로 돌려주면
+// HP 50 남은 적을 1000 으로 마무리한 흡혈 유닛이 500 을 회복한다.
+// 보호막이 막은 몫은 흡수에 포함한다 — 실제로 들어간 피해다.
 export function applyDamage(victim, amount) {
   if (!victim.alive) return { dealt: 0, died: false }
 
   let remaining = amount
+  let absorbed = 0
+
   if (victim.shield > 0) {
-    const absorbed = Math.min(victim.shield, remaining)
-    victim.shield -= absorbed
-    remaining -= absorbed
+    const byShield = Math.min(victim.shield, remaining)
+    victim.shield -= byShield
+    remaining -= byShield
+    absorbed += byShield
   }
 
-  victim.hp -= remaining
+  const byHp = Math.min(victim.hp, remaining)
+  victim.hp -= byHp
+  absorbed += byHp
+
   let died = false
   if (victim.hp <= 0) {
     victim.hp = 0
@@ -1732,7 +1757,7 @@ export function applyDamage(victim, amount) {
     died = true
   }
 
-  return { dealt: amount, died }
+  return { dealt: absorbed, died }
 }
 ```
 

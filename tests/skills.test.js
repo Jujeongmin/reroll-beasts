@@ -57,6 +57,20 @@ describe('castSkill - single', () => {
     caster.targetId = null
     expect(castSkill(ctx([caster]), caster)).toEqual([])
   })
+
+  it('흡혈은 과잉 피해가 아니라 실제 흡수량 기준이다', () => {
+    const caster = mk(0, 'A', 3, 3, {
+      hp: 100,
+      maxHp: 10000,
+      skill: { id: 'drain', type: 'single', params: { dmgPct: 100, hits: 1, lifestealPct: 50 } },
+    })
+    caster.stats.power = 100000
+    const foe = mk(1, 'B', 2, 3, { hp: 40, maxHp: 40 })
+    caster.targetId = foe.id
+    castSkill(ctx([caster, foe]), caster)
+    // 적 HP 40 만 흡수됐으므로 회복은 20 이다. 요청량 기준이면 수만이 회복된다.
+    expect(caster.hp).toBe(120)
+  })
 })
 
 describe('castSkill - aoe', () => {
