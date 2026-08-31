@@ -81,6 +81,16 @@ describe('castSkill - aoe', () => {
     castSkill(ctx([caster, foe, mate]), caster)
     expect(mate.hp).toBe(1000)
   })
+
+  it('광역 대상 목록은 id 오름차순이다 (배열 순서 아님)', () => {
+    const caster = mk(0, 'A', 3, 3, { skill: { id: 'blast', type: 'aoe', params: { radius: 3, dmgPct: 200 } } })
+    // 배열에는 큰 id 를 먼저 넣는다. 정렬이 없으면 이 순서가 그대로 나온다.
+    const high = mk(7, 'B', 2, 3)
+    const low = mk(2, 'B', 2, 4)
+    caster.targetId = high.id
+    const events = castSkill(ctx([caster, high, low]), caster)
+    expect(events[0].targetIds).toEqual([2, 7])
+  })
 })
 
 describe('castSkill - buff', () => {
@@ -112,6 +122,15 @@ describe('castSkill - buff', () => {
     castSkill(ctx([caster, mate, foe]), caster)
     expect(mate.buffs).toHaveLength(1)
     expect(foe.buffs).toHaveLength(0)
+  })
+
+  it('아군 전체 버프 대상 목록은 id 오름차순이다 (배열 순서 아님)', () => {
+    const caster = mk(6, 'A', 3, 3, {
+      skill: { id: 'rally', type: 'buff', params: { target: 'allies', stat: 'atkPct', amount: 20, durationTicks: 150 } },
+    })
+    const mate = mk(1, 'A', 3, 4)
+    const events = castSkill(ctx([caster, mate]), caster)
+    expect(events[0].targetIds).toEqual([1, 6])
   })
 })
 
