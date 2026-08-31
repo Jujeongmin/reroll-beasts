@@ -900,6 +900,7 @@ Expected: FAIL — `Failed to load ../tools/validate.mjs`
 // 데이터 불변식 검사. 밸런스를 만졌으면 반드시 돌린다.
 // 스펙 §12.4 의 8개 불변식을 검사하고, 위반 메시지 배열을 되돌린다.
 
+import { pathToFileURL } from 'node:url'
 import { loadData } from '../sim/data.js'
 
 const SKILL_TYPES = new Set(['single', 'aoe', 'buff', 'summon'])
@@ -977,7 +978,10 @@ export function validate(data) {
   return errors
 }
 
-const isMain = import.meta.url === `file://${process.argv[1]?.replace(/\\/g, '/')}`
+// Windows 에서 import.meta.url 은 file:///C:/... (슬래시 3개)로 렌더된다.
+// 문자열을 손으로 조립하면 슬래시 수가 어긋나 가드가 영영 거짓이 되고,
+// CLI 가 아무것도 안 하면서 exit 0 으로 통과한 척한다. pathToFileURL 로 정규화한다.
+const isMain = import.meta.url === pathToFileURL(process.argv[1] ?? '').href
 if (isMain) {
   const data = await loadData()
   const errors = validate(data)
@@ -2474,6 +2478,7 @@ Expected: FAIL — `Failed to load ../sim/run.mjs`
 // 사용:
 //   node sim/run.mjs "hero_knight_1:2:0,huntress_1:1:5" "martial_hero_1:2:0" 200
 
+import { pathToFileURL } from 'node:url'
 import { loadData } from './data.js'
 import { simulate } from './combat.js'
 
@@ -2512,7 +2517,10 @@ export function matchup(boardA, boardB, trials, data) {
   }
 }
 
-const isMain = import.meta.url === `file://${process.argv[1]?.replace(/\\/g, '/')}`
+// Windows 에서 import.meta.url 은 file:///C:/... (슬래시 3개)로 렌더된다.
+// 문자열을 손으로 조립하면 슬래시 수가 어긋나 가드가 영영 거짓이 되고,
+// CLI 가 아무것도 안 하면서 exit 0 으로 통과한 척한다. pathToFileURL 로 정규화한다.
+const isMain = import.meta.url === pathToFileURL(process.argv[1] ?? '').href
 if (isMain) {
   const [compA, compB, trialsArg] = process.argv.slice(2)
   if (!compA || !compB) {
