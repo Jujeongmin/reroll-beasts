@@ -46,10 +46,13 @@ describe('createRng', () => {
     for (let i = 0; i < 50; i++) expect(arr).toContain(r.pick(arr))
   })
 
-  it('state() 로 재개하면 같은 수열이 이어진다', () => {
-    const a = createRng(555)
-    a.nextU32(); a.nextU32()
-    const resumed = createRng(a.state())
-    expect(resumed.nextU32()).toBe(createRng(a.state()).nextU32())
+  it('state() 로 재개하면 원본 수열이 이어진다', () => {
+    const original = createRng(555)
+    original.nextU32()
+    original.nextU32()
+    const saved = original.state()
+    const expectedNext = original.nextU32()   // 원본이 이어서 낸 값
+    const resumed = createRng(saved)
+    expect(resumed.nextU32()).toBe(expectedNext)
   })
 })
