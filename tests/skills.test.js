@@ -2,6 +2,7 @@ import { describe, it, expect } from 'vitest'
 import { buildBoard } from '../sim/hex.js'
 import { createRng } from '../sim/rng.js'
 import { castSkill } from '../sim/skills.js'
+import { effectiveStat, damageTakenMultiplier } from '../sim/modifiers.js'
 import combat from '../game/public/data/combat.json' with { type: 'json' }
 
 const board = buildBoard(combat.board)
@@ -26,7 +27,7 @@ function mk(id, team, row, col, over = {}) {
 
 function ctx(all) {
   const occupied = new Map(all.filter((u) => u.alive).map((u) => [u.tile, u.id]))
-  return { board, all, occupied, rng: createRng(1), combatCfg: combat, tick: 0 }
+  return { board, all, occupied, rng: createRng(1), combatCfg: combat, tick: 0, effectiveStat, damageTakenMultiplier }
 }
 
 describe('castSkill - single', () => {
@@ -70,6 +71,19 @@ describe('castSkill - single', () => {
     castSkill(ctx([caster, foe]), caster)
     // 적 HP 40 만 흡수됐으므로 회복은 20 이다. 요청량 기준이면 수만이 회복된다.
     expect(caster.hp).toBe(120)
+  })
+
+  it('스킬 피해도 damageTakenPct 를 받는다', () => {
+    const run = (buffs) => {
+      const caster = mk(0, 'A', 3, 3, { skill: { id: 's', type: 'single', params: { dmgPct: 100, hits: 1 } } })
+      const foe = mk(1, 'B', 2, 3, { hp: 100000, maxHp: 100000, buffs })
+      caster.targetId = foe.id
+      castSkill(ctx([caster, foe]), caster)
+      return 100000 - foe.hp
+    }
+    const plain = run([])
+    const guarded = run([{ stat: 'damageTakenPct', amount: -50, expiresAt: 999 }])
+    expect(guarded).toBeLessThan(plain)
   })
 })
 
@@ -146,6 +160,18 @@ describe('castSkill - buff', () => {
     const events = castSkill(ctx([caster, mate]), caster)
     expect(events[0].targetIds).toEqual([1, 6])
   })
+
+  it('shieldAndDef 는 보호막과 방어력을 둘 다 준다', () => {
+    const caster = mk(0, 'A', 3, 3, {
+      skill: {
+        id: 'bulwark', type: 'buff',
+        params: { target: 'self', stat: 'shieldAndDef', amountPctMaxHp: 12, amount: 50, durationTicks: 240 },
+      },
+    })
+    castSkill(ctx([caster]), caster)
+    expect(caster.shield).toBe(120)
+    expect(effectiveStat(caster, 'def')).toBe(caster.stats.def + 50)
+  })
 })
 
 describe('castSkill - summon', () => {
@@ -169,5 +195,15 @@ describe('castSkill 결정론', () => {
     const a = build()
     const b = build()
     expect(castSkill(ctx(a.all), a.caster)).toEqual(castSkill(ctx(b.all), b.caster))
+  })
+})
+
+describe('castSkill ctx 검증', () => {
+  it('ctx 에 수정자 함수가 없으면 조용히 넘어가지 않고 터진다', () => {
+    const caster = mk(0, 'A', 3, 3)
+    const foe = mk(1, 'B', 2, 3)
+    caster.targetId = foe.id
+    const bare = { board, all: [caster, foe], occupied: new Map(), rng: createRng(1), combatCfg: combat, tick: 0 }
+    expect(() => castSkill(bare, caster)).toThrow(/effectiveStat/)
   })
 })

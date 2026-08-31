@@ -26,9 +26,9 @@ function castSingle(ctx, caster) {
   for (let i = 0; i < hits; i++) {
     if (!target.alive) break
     const raw = Math.floor((caster.stats.power * (p.dmgPct ?? 100)) / 100)
-    const baseMr = ctx.effectiveStat ? ctx.effectiveStat(target, 'mr') : target.stats.mr
+    const baseMr = ctx.effectiveStat(target, 'mr')
     const mr = p.defIgnorePct ? Math.floor(baseMr * (1 - p.defIgnorePct / 100)) : baseMr
-    const mult = ctx.damageTakenMultiplier ? ctx.damageTakenMultiplier(target) : 1
+    const mult = ctx.damageTakenMultiplier(target)
     const dmg = Math.floor(magicDamage(raw, mr, defK) * mult)
     const { dealt } = applyDamage(target, dmg)
     total += dealt
@@ -56,8 +56,8 @@ function castAoe(ctx, caster) {
   const ids = []
   for (const v of victims) {
     if (raw > 0) {
-      const vMr = ctx.effectiveStat ? ctx.effectiveStat(v, 'mr') : v.stats.mr
-      const vMult = ctx.damageTakenMultiplier ? ctx.damageTakenMultiplier(v) : 1
+      const vMr = ctx.effectiveStat(v, 'mr')
+      const vMult = ctx.damageTakenMultiplier(v)
       const { dealt } = applyDamage(v, Math.floor(magicDamage(raw, vMr, defK) * vMult))
       total += dealt
     }
@@ -118,5 +118,10 @@ const EXECUTORS = {
 export function castSkill(ctx, caster) {
   const exec = EXECUTORS[caster.skill.type]
   if (!exec) throw new Error(`알 수 없는 스킬 타입: ${caster.skill.type}`)
+  // 폴백을 두면 호출자가 ctx 키를 빠뜨렸을 때 조용히 버프·피해감소를 무시한
+  // 옛 동작으로 되돌아간다. 틀리게 통과하느니 크게 터지는 편이 낫다.
+  if (!ctx.effectiveStat || !ctx.damageTakenMultiplier) {
+    throw new Error('castSkill ctx 에 effectiveStat 과 damageTakenMultiplier 가 필요하다')
+  }
   return exec(ctx, caster)
 }

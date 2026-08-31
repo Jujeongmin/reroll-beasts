@@ -113,6 +113,15 @@ describe('simulate', () => {
     expect(r.winner).toBe('draw')
     expect(r.log[r.log.length - 1]).toEqual({ tick: data.combat.maxTicks, type: 'end', winner: 'draw' })
   })
+
+  it('진영 범위를 벗어난 타일은 조용히 무시하지 않고 터진다', () => {
+    expect(() => simulate({ boardA: team([['rat', 1, 22]]), boardB: weakSide, seed: 1, data })).toThrow(/범위/)
+  })
+
+  it('같은 진영에 타일이 겹치면 터진다', () => {
+    const clash = team([['rat', 1, 0], ['bat', 1, 0]])
+    expect(() => simulate({ boardA: clash, boardB: weakSide, seed: 1, data })).toThrow(/겹친/)
+  })
 })
 
 describe('골든 로그', () => {
@@ -121,6 +130,7 @@ describe('골든 로그', () => {
     const actual = { winner: result.winner, ticks: result.ticks, log: result.log }
 
     if (process.env.REGEN_GOLDEN) {
+      if (process.env.CI) throw new Error('CI 에서는 골든 로그를 재생성할 수 없다')
       writeFileSync(GOLDEN_PATH, JSON.stringify(actual, null, 2) + '\n')
     }
 

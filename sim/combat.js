@@ -11,6 +11,7 @@ import { findTarget } from './targeting.js'
 import { stepToward } from './movement.js'
 import { physicalDamage, applyDamage } from './damage.js'
 import { castSkill } from './skills.js'
+import { effectiveStat, damageTakenMultiplier } from './modifiers.js'
 
 // 자기 진영 0..21 → 전장 타일 인덱스.
 // A 팀은 아래 3행(3,4,5), B 팀은 위 3행을 좌우 반전 없이 그대로 쓴다.
@@ -71,23 +72,6 @@ function buildCombatants(entries, team, data, board) {
       stats,
     }
   })
-}
-
-export function effectiveStat(c, key) {
-  let value = c.stats[key]
-  let pct = 0
-  for (const b of c.buffs) {
-    if (b.stat === key) value += b.amount
-    if (b.stat === `${key}Pct`) pct += b.amount
-  }
-  if (pct !== 0) value = Math.floor(value * (1 + pct / 100))
-  return value
-}
-
-export function damageTakenMultiplier(c) {
-  let pct = 0
-  for (const b of c.buffs) if (b.stat === 'damageTakenPct') pct += b.amount
-  return 1 + pct / 100
 }
 
 export function simulate({ boardA, boardB, seed, data }) {
