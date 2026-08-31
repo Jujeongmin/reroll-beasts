@@ -99,6 +99,20 @@ describe('castSkill - single', () => {
     // mr 이 오르면 마법 피해가 줄어야 한다. 원시 stats.mr 을 읽으면 버프가 무시돼 같아진다.
     expect(run([{ stat: 'mr', amount: 200, expiresAt: 999 }])).toBeLessThan(run([]))
   })
+
+  it('defIgnorePct 는 대상의 마법 저항을 실제로 깎는다', () => {
+    const run = (params) => {
+      const caster = mk(0, 'A', 3, 3, { skill: { id: 's', type: 'single', params } })
+      const foe = mk(1, 'B', 2, 3, { hp: 100000, maxHp: 100000 })
+      caster.targetId = foe.id
+      castSkill(ctx([caster, foe]), caster)
+      return 100000 - foe.hp
+    }
+    const plain = run({ dmgPct: 100, hits: 1 })
+    const ignoring = run({ dmgPct: 100, hits: 1, defIgnorePct: 30 })
+    expect(plain).toBeGreaterThan(0)
+    expect(ignoring).toBeGreaterThan(plain)
+  })
 })
 
 describe('castSkill - aoe', () => {

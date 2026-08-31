@@ -23,6 +23,25 @@ const GOLDEN_A = team([['bat', 2, 0], ['hero_knight_1', 2, 8]])
 const GOLDEN_B = team([['rat', 2, 0], ['mushroom', 2, 8]])
 const GOLDEN_SEED = 20260831
 
+const BUFF_GOLDEN_PATH = join(HERE, 'fixtures', 'combat-golden-buffs.json')
+
+// 두 번째 골든. 첫 골든의 로스터는 스탯 버프를 하나도 주지 않아
+// combat.js 의 effectiveStat·damageTakenMultiplier 호출부가 전부 무방비였다.
+// 여기 A팀은 네 유닛이 모두 버프를 시전한다 — 공격력·방어력·피해감소.
+const BUFF_A = team([
+  ['medieval_king_1', 2, 0],
+  ['skeleton', 2, 1],
+  ['medieval_king_2', 2, 2],
+  ['medieval_warrior_1', 2, 3],
+])
+const BUFF_B = team([
+  ['martial_hero_1', 2, 0],
+  ['huntress_1', 2, 1],
+  ['rat', 2, 2],
+  ['bat', 2, 3],
+])
+const BUFF_SEED = 20260901
+
 describe('simulate', () => {
   it('결과 객체 형태를 지킨다', () => {
     const r = simulate({ boardA: weakSide, boardB: weakSide, seed: 1, data })
@@ -135,6 +154,21 @@ describe('골든 로그', () => {
     }
 
     const golden = JSON.parse(readFileSync(GOLDEN_PATH, 'utf8'))
+    expect(actual).toEqual(golden)
+  })
+})
+
+describe('골든 로그 — 버프 로스터', () => {
+  it('버프가 걸린 전투의 로그가 바뀌지 않는다', () => {
+    const result = simulate({ boardA: BUFF_A, boardB: BUFF_B, seed: BUFF_SEED, data })
+    const actual = { winner: result.winner, ticks: result.ticks, log: result.log }
+
+    if (process.env.REGEN_GOLDEN) {
+      if (process.env.CI) throw new Error('CI 에서는 골든 로그를 재생성할 수 없다')
+      writeFileSync(BUFF_GOLDEN_PATH, JSON.stringify(actual, null, 2) + '\n')
+    }
+
+    const golden = JSON.parse(readFileSync(BUFF_GOLDEN_PATH, 'utf8'))
     expect(actual).toEqual(golden)
   })
 })
