@@ -132,6 +132,9 @@ export async function createScene({
   pitchDeg = 42,
   phase = 'battle',
   benchSlots = 0,
+  // 화면 아래쪽에 비워 둘 픽셀. 정보 줄(확률·골드·연승)이 판 위에 떠 있으므로,
+  // 그만큼을 비워 두지 않으면 대기석이 그 밑에 깔린다.
+  bottomInset = 0,
   // 직업별 크기 배율. 마법사는 작고 탱커는 크다 — 규칙은 combat.json 이 갖고
   // 여기는 값만 받는다. scene3d 가 유닛 데이터를 알 필요는 없다.
   scaleOf = () => 1,
@@ -724,6 +727,11 @@ export async function createScene({
     // 그리기 버퍼 크기(=2배)로 표시되고 좌상단 1/4 만 보인다.
     renderer.setSize(w, h)
     camera.aspect = w / h
+    // 프러스텀을 아래로 민다. 그림이 그만큼 위로 올라가 아래쪽에 빈 띠가 생긴다.
+    // 프레이밍은 이 상태로 재므로 (fitCamera 가 지금 카메라로 투영한다)
+    // 대기석은 그 띠 위에 정확히 얹힌다.
+    if (bottomInset > 0) camera.setViewOffset(w, h, 0, bottomInset, w, h)
+    else camera.clearViewOffset()
     camera.updateProjectionMatrix()
 
     const dist = fitCamera()

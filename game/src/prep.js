@@ -73,6 +73,8 @@ export async function createPrep({ data, run, onFight }) {
     pitchDeg: 46,
     phase: 'prep',
     benchSlots: data.economy.benchSlots,
+    // 정보 줄 높이(36) + 여유. 이만큼 아래를 비워야 대기석이 그 밑에 안 깔린다.
+    bottomInset: 46,
     scaleOf: (id) => data.combat.classScale[unitById(data.units, id)?.class] ?? 1,
   })
   const thumbs = createThumbnailer()
@@ -356,14 +358,16 @@ export async function createPrep({ data, run, onFight }) {
     const s = run.state
     const n = s.streak ?? 0
     const bonus = streakBonus(n, data.economy)
-    el.streak.className = n < 2 ? '' : run.lastWon ? 'win' : 'lose'
+    el.streak.className = n < 2 ? 'none' : run.lastWon ? 'win' : 'lose'
     if (n < 2) {
-      el.streak.innerHTML = '<span>연승 없음</span>'
+      // 자리는 min-width 로 남긴다 — 연승이 붙는 순간 골드가 옆으로 밀리면
+      // 눈이 매번 골드를 다시 찾아야 한다.
+      el.streak.innerHTML = ''
       return
     }
     el.streak.innerHTML =
-      `<span>${run.lastWon ? '연승' : '연패'}</span><b>${n}</b>` +
-      (bonus > 0 ? `<span style="color:var(--gold)">+${bonus}</span>` : '')
+      `<b>${n}</b><span>${run.lastWon ? '연승' : '연패'}</span>` +
+      (bonus > 0 ? `<span class="bn">+${bonus}</span>` : '')
   }
 
   // 지금 레벨에서 무엇이 나오는지. 이게 없으면 "레벨업 vs 리롤" 판단을 못 한다.
@@ -372,10 +376,13 @@ export async function createPrep({ data, run, onFight }) {
     el.odds.replaceChildren(
       ...odds.map((pct, i) => {
         const d = document.createElement('span')
-        d.textContent = String(pct)
+        // 색 점 + 숫자. 색칠된 네모에 숫자를 넣으면 다섯 개가 알록달록한 블록
+        // 줄이 되어 상점 카드보다 확률표가 눈에 먼저 든다 — 참고용 숫자인데.
+        // 점은 색만 나르고 숫자는 배경 없이 읽힌다.
+        d.innerHTML = `<i></i>${pct}%`
         d.style.setProperty('--oc', TIER_COLOR[i])
         if (pct === 0) d.classList.add('zero')
-        d.title = `T${i + 1} ${pct}%`
+        d.title = `${i + 1}티어 ${pct}%`
         return d
       }),
     )

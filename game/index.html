@@ -28,7 +28,7 @@
     --plate: #12101ce8;
     --edge: #ffffff1c;
 
-    --shopH: 116px;
+    --shopH: 100px;
     /* 비스듬한 판의 기울기. 한 곳에서 정해야 좌우가 대칭으로 보인다. */
     --skew: 9px;
   }
@@ -138,7 +138,7 @@
   /* ── 좌측: 시너지 ──────────────────────────────────── */
   #traits {
     position: absolute; left: 6px; top: 84px; width: 158px;
-    max-height: calc(100% - 136px);
+    max-height: calc(100% - 124px);
     display: flex; flex-direction: column; gap: 2px; z-index: 4;
     overflow-y: auto; pointer-events: none;
   }
@@ -174,7 +174,7 @@
   /* 8칸이 무대 높이를 나눠 갖는다. 칸 높이를 박아 두면 하단 UI 를 키울 때마다
      아래쪽 등수가 잘려 나간다 (26×8+틈 = 215 > 무대 176). */
   #lobby {
-    position: absolute; right: 6px; top: 8px; bottom: 54px; width: 158px; z-index: 4;
+    position: absolute; right: 6px; top: 8px; bottom: 42px; width: 158px; z-index: 4;
     display: flex; flex-direction: column; gap: 1px;
   }
   .seat {
@@ -306,26 +306,30 @@
      바로 뒤에 있는 대기석을 가린다. 값 넷을 앉히자고 판을 잘라 먹는 셈이다.
      바탕은 투명, 글자만 뜬다 — 아래쪽에 옅은 그늘만 깔아 3D 위에서도 읽히게. */
   #hudbar {
-    position: absolute; left: 6px; right: 6px; bottom: 0; height: 48px; z-index: 6;
+    position: absolute; left: 6px; right: 6px; bottom: 0; height: 36px; z-index: 6;
     display: grid; grid-template-columns: 1fr auto 1fr; align-items: center; gap: 8px;
     pointer-events: none;
   }
   #hudbar::before {
-    content: ''; position: absolute; left: -6px; right: -6px; bottom: 0; height: 68px;
+    content: ''; position: absolute; left: -6px; right: -6px; bottom: 0; height: 44px;
     z-index: -1; pointer-events: none;
-    background: linear-gradient(180deg, #0b0f1e00, #0b0f1e5c 55%, #0b0f1e9e);
+    background: linear-gradient(180deg, #0b0f1e00, #0b0f1e47 60%, #0b0f1e7d);
   }
   /* 누를 수 있는 것만 포인터를 받는다 — 나머지는 뒤의 판을 그대로 집게 둔다. */
   #lock { pointer-events: auto; }
   #hudL { display: flex; align-items: center; gap: 6px; justify-self: start; }
   #hudR { display: flex; align-items: center; gap: 6px; justify-self: end; }
+  /* 확률 · 골드 · 연승은 **한 덩어리**로 가운데. 같은 질문("지금 뭘 살 수 있나")에
+     답하는 값들이라 눈이 한 번만 가야 한다. */
+  #hudC { display: flex; align-items: center; gap: 9px; justify-self: center; }
+  #hudC .sep { width: 1px; height: 16px; background: #ffffff2e; }
 
   /* 레벨 · 확률 · 골드 · 연패는 **틀 없이** 둔다.
      각자 9-슬라이스 판을 두르면 한 줄에 상자가 넷 늘어서서, 값이 아니라
      상자들이 먼저 읽힌다. 값 자체가 크고 색이 다르므로 틀이 없어도 갈린다.
      테두리가 필요한 건 **누를 수 있는 것**(잠금 버튼)뿐이다. */
   #lvbox {
-    display: flex; align-items: center; gap: 8px; height: 42px; padding: 0 8px;
+    display: flex; align-items: center; gap: 7px; height: 36px; padding: 0 4px;
   }
   #lvl {
     font-size: 17px; font-weight: 800; color: #fff2d8; line-height: 24px; white-space: nowrap;
@@ -343,43 +347,54 @@
   #xptext::before { content: 'XP '; font-size: 10px; color: #b3a894; font-weight: 600; }
 
   /* 티어 확률. 참고용 숫자다 — 크게 잡으면 상점 카드보다 눈에 먼저 든다. */
-  #odds { display: flex; gap: 2px; }
+  /* 색은 점이 나르고 숫자는 배경 없이 읽힌다. */
+  #odds { display: flex; align-items: center; gap: 7px; }
   #odds span {
-    width: 32px; height: 26px;
-    display: flex; align-items: center; justify-content: center;
-    border-radius: 4px; font-size: 12px; font-weight: 800;
-    font-variant-numeric: tabular-nums; color: #12100c; background: var(--oc);
+    display: flex; align-items: center; gap: 3px;
+    font-size: 12px; line-height: 16px; font-weight: 800;
+    font-variant-numeric: tabular-nums; color: #efe6d2;
+    text-shadow: 0 1px 2px #000, 0 0 4px #0009;
   }
-  /* 0% 는 배경도 지운다 — 색칠된 빈 칸이 네 개 있으면 있는 확률이 안 보인다. */
-  #odds span.zero { color: #6f6857; background: none; box-shadow: inset 0 0 0 1px #ffffff1a; }
+  #odds span i {
+    width: 8px; height: 8px; border-radius: 50%; flex: none; background: var(--oc);
+    box-shadow: 0 0 0 1px #00000066, 0 0 5px color-mix(in srgb, var(--oc) 70%, transparent);
+  }
+  #odds span.zero { color: #7c7360; }
+  #odds span.zero i { background: none; box-shadow: inset 0 0 0 1px #ffffff2e; }
 
   #gold {
-    /* 22px 글자에 24px 줄상자면 2px 모자란다. */
-    line-height: 28px;
-    display: flex; align-items: center; gap: 6px; height: 42px; padding: 0 12px;
-    font-size: 22px; font-weight: 800; color: #ffe08a; font-variant-numeric: tabular-nums;
+    line-height: 26px;
+    display: flex; align-items: center; gap: 5px;
+    font-size: 20px; font-weight: 800; color: #ffe08a; font-variant-numeric: tabular-nums;
     text-shadow: 0 1px 2px #000, 0 0 6px #0009;
   }
   #gold::before {
-    content: ''; width: 17px; height: 17px; border-radius: 50%; flex: none;
+    content: ''; width: 15px; height: 15px; border-radius: 50%; flex: none;
     background: radial-gradient(circle at 35% 30%, #ffe9a8, #c9932c);
   }
 
   /* 연승·연패. 다음 라운드 수입이 이걸로 갈리는데 화면에 없었다. */
+  /* 연승·연패. 다음 라운드 수입이 여기서 갈린다.
+     min-width 를 주는 이유: 연승이 붙는 순간 골드가 옆으로 밀리면
+     눈이 매번 골드를 다시 찾아야 한다. */
   #streak {
-    line-height: 16px;
-    display: flex; align-items: center; gap: 5px; height: 42px; padding: 0 10px;
-    font-size: 12px; font-weight: 700; white-space: nowrap; color: #d8cfbc;
+    display: flex; align-items: center; gap: 3px; min-width: 54px;
+    font-size: 12px; line-height: 16px; font-weight: 700; white-space: nowrap;
     text-shadow: 0 1px 2px #000, 0 0 4px #0009;
   }
-  #streak b { font-variant-numeric: tabular-nums; font-size: 14px; }
-  #streak.win b { color: #8ff0bb; }
-  #streak.lose b { color: #ffa8b3; }
+  #streak::before { font-size: 10px; }
+  #streak.none::before { content: ''; }
+  #streak.win { color: #8ff0bb; }
+  #streak.win::before { content: '\25B2'; }
+  #streak.lose { color: #ffa8b3; }
+  #streak.lose::before { content: '\25BC'; }
+  #streak b { font-variant-numeric: tabular-nums; font-size: 15px; font-weight: 800; }
+  #streak .bn { color: var(--gold); }
 
   #lock {
     line-height: 16px;
     display: flex; align-items: center; justify-content: center; gap: 5px;
-    width: 88px; height: 42px;
+    width: 80px; height: 32px;
     border-style: solid; border-width: 6px; border-image-slice: 6 fill;
     border-image-repeat: repeat; border-image-source: url('/assets/ui/button.png');
     image-rendering: pixelated;
@@ -579,11 +594,14 @@
             <span id="lvl">3</span>
             <span id="xprow"><span id="xpbar"><i></i></span><span id="xptext">0/2</span></span>
           </div>
-          <div id="odds"></div>
         </div>
-        <div id="gold"><span id="goldval">0</span></div>
+        <div id="hudC">
+          <div id="odds"></div>
+          <span class="sep"></span>
+          <div id="gold"><span id="goldval">0</span></div>
+          <div id="streak" class="none"></div>
+        </div>
         <div id="hudR">
-          <div id="streak"></div>
           <button id="lock"><b>잠금</b><span class="st">해제</span></button>
         </div>
       </div>
