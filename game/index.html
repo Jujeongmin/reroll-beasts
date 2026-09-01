@@ -467,11 +467,11 @@
   #odds { display: flex; gap: 6px; padding: 0 3px; }
   #odds span {
     display: flex; align-items: center; gap: 3px;
-    font-size: 12px; line-height: 18px; font-weight: 800;
+    font-size: 12px; line-height: 12px; font-weight: 800;
     font-variant-numeric: tabular-nums; color: #f0e6cf; text-shadow: 0 1px 2px #0009;
   }
   #odds span i {
-    width: 11px; height: 11px; flex: none; background: var(--oc);
+    width: 12px; height: 12px; flex: none; background: var(--oc);
     -webkit-mask: url('/assets/ui/gem.png') center / contain no-repeat;
     mask: url('/assets/ui/gem.png') center / contain no-repeat;
   }
@@ -539,9 +539,8 @@
 
   #sidebtns { width: 138px; flex: none; display: flex; flex-direction: column; gap: 6px; }
   .btn {
-    position: relative;
     flex: 1; line-height: 1;
-    display: flex; align-items: center; justify-content: center; gap: 6px;
+    display: flex; align-items: center; justify-content: center; gap: 5px;
     /* fill 을 안 쓴다. button.png 은 테두리 6px 이 밝은 갈색(197,135,71)이고
        가운데가 어두운 갈색(163,112,58)이다 — 원본의 입체감인데, 넓은 버튼에
        늘리면 그 면이 "반투명 검정 네모"로 읽힌다. 안쪽은 테두리 색으로 채운다. */
@@ -565,10 +564,10 @@
   /* 단축키 표시. 버튼을 누르러 가는 손이 키를 배우게 하는 가장 싼 방법이다 —
      따로 도움말을 두면 아무도 안 연다. */
   .btn .kb {
-    position: absolute; left: 3px; top: 2px;
-    min-width: 12px; height: 12px; padding: 0 2px; border-radius: 3px;
+    /* 흐름 안에 둔다. 절대 배치로 얹으면 가운데 정렬된 글자 위에 겹친다. */
+    flex: none; min-width: 13px; height: 13px; padding: 0 2px; border-radius: 3px;
     background: #efe3c4; color: #4a3a1c;
-    font-size: 9px; line-height: 12px; font-weight: 800; text-align: center;
+    font-size: 9px; line-height: 13px; font-weight: 800; text-align: center;
   }
   .btn:disabled .kb { opacity: .45; }
   .btn:active { transform: translateY(1px); }
