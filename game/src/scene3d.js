@@ -435,6 +435,7 @@ export async function createScene({
   // 대신 세 겹: 넓은 잔디 평면 → 판을 두르는 물띠 → 무리 지은 나무·바위.
   const decorRng = createRng(0x5eed)
   const surroundGroup = new THREE.Group()
+  surroundGroup.name = 'surround'
 
   // 바깥 반경. 카메라가 담는 것보다 넉넉히 잡아 가장자리가 안개에 녹게 둔다.
   const OUT_X = arena.w * 5.5
@@ -452,7 +453,8 @@ export async function createScene({
   groundTex.repeat.set(18, 18)
   const groundMat = new THREE.MeshStandardMaterial({
     map: groundTex,
-    color: 0x86a855,
+    // 채도가 높으면 회색 돌마당이 그 위에 붕 뜬다. 한 단계 죽인 풀색.
+    color: 0x74884c,
     roughness: 1,
   })
   const ground = new THREE.Mesh(new THREE.PlaneGeometry(OUT_X, OUT_Z), groundMat)
@@ -468,8 +470,15 @@ export async function createScene({
   // 울타리가 두르는 **마당**. 이 안은 전부 돌이고 나무는 안 자란다 —
   // 울타리 안에 숲이 있으면 마당이 아니라 그냥 들판이다.
   // 울타리를 세우는 쪽(랜드마크)도 같은 값을 써야 돌 경계와 울타리가 맞물린다.
-  const PLAZA_X = arena.w / 2 + spacing.stepX * 2.9
-  const PLAZA_Z = arena.d / 2 + spacing.stepZ * 2.2
+  // 좌우는 **판** 끝을 기준으로, 앞뒤는 **대기석** 끝을 기준으로 잰다.
+  // 둘 다 판 기준으로 재면 대기석이 앞뒤 여백을 2칸쯤 먹어, 옆은 2칸 여유인데
+  // 앞뒤는 0.7칸만 남아 울타리가 대기석에 붙어 보인다 (실측 화면 16px).
+  //
+  // 대기석 깊이는 벤치 블록이 정하지만 여기서 먼저 필요하므로 같은 식으로 잰다:
+  //   칸(0.74) + 틈(0.1)×1.5 + 반 칸 = 판 끝에서 약 1.3칸.
+  const BENCH_OUT = spacing.stepZ * 1.3
+  const PLAZA_X = arena.w / 2 + spacing.stepX * 1.95
+  const PLAZA_Z = arena.d / 2 + BENCH_OUT + spacing.stepZ * 1.6
   /** 울타리 안인가. 나무·랜드마크가 여기 들어오면 안 된다. */
   const inPlaza = (x, z, pad = 0) =>
     Math.abs(x - arena.cx) <= PLAZA_X + pad && Math.abs(z - arena.cz) <= PLAZA_Z + pad
@@ -765,6 +774,8 @@ export async function createScene({
     const pick = (list, i) => (list.length > 0 ? list[i % list.length].scene : null)
 
     const markGroup = new THREE.Group()
+    // 이름을 붙여 둔다 — 씬을 뒤질 때 어느 묶음인지 바로 찾는다.
+    markGroup.name = 'landmarks'
     const rng = createRng(0xb00c)
 
     /** 하나 세운다. 마당 안이나 대기석과 겹치면 버린다. */
@@ -868,13 +879,21 @@ export async function createScene({
       }
     }
 
-    // 소품. 대기석 옆과 울타리 안쪽에 흩는다 — 사람이 쓰는 자리로 보인다.
-    for (let i = 0; i < 14; i++) {
+    // 소품. **마당 네 변을 따라** 흩는다. 좌우에만 두면 앞뒤가 텅 비어
+    // "쓰는 마당"이 아니라 "안 쓰는 공터"로 보인다.
+    for (let i = 0; i < 22; i++) {
       const proto = pick(props, rng.int(Math.max(1, props.length)))
-      const sx = rng.int(2) === 0 ? -1 : 1
-      // 마당 안, 판과 울타리 사이에 둔다.
-      const x = arena.cx + sx * (halfX + spacing.stepX * (0.7 + rng.int(150) / 100))
-      const z = arena.cz + (rng.int(2000) / 1000 - 1) * halfZ * 1.05
+      // 판과 울타리 사이 띠 안에서만 고른다 — 판 위에는 못 놓는다.
+      const onSide = i % 2 === 0
+      const sgn = rng.int(2) === 0 ? -1 : 1
+      const gapX = spacing.stepX * (0.55 + rng.int(110) / 100)
+      const gapZ = spacing.stepZ * (0.5 + rng.int(90) / 100)
+      const x = onSide
+        ? arena.cx + sgn * (halfX + gapX)
+        : arena.cx + (rng.int(2000) / 1000 - 1) * halfX * 0.95
+      const z = onSide
+        ? arena.cz + (rng.int(2000) / 1000 - 1) * halfZ * 1.0
+        : arena.cz + sgn * (halfZ + gapZ)
       place(proto, x, z, { scale: KIT * 1.1, faceIn: false, allowPlaza: true })
     }
 

@@ -37,7 +37,7 @@ const STAR = ['', '★', '★★', '★★★']
 // 성급 색. scene3d 의 STAR_COLOR 와 같은 값이어야 배지와 패널이 안 어긋난다.
 const STAR_COLOR = ['#d99154', '#e6edf5', '#ffd166']
 
-export async function createPrep({ data, run, onFight, opponentBoard, onWatch, onPickUnit }) {
+export async function createPrep({ data, run, onFight, onWatch, onPickUnit }) {
   const el = {
     root: document.getElementById('prep'),
     stage: document.getElementById('stage'),
@@ -91,18 +91,6 @@ export async function createPrep({ data, run, onFight, opponentBoard, onWatch, o
     }
   }
   const fieldToLocal = new Map(localToField.map((f, i) => [f, i]))
-
-  // 상대 진영의 로컬 좌표 → 전장 타일. 두 진영은 180도 회전 대응이므로
-  // 행을 뒤집고 열도 뒤집는다 — sim/combat.js 의 toFieldTile 과 같은 규칙이다.
-  const enemyLocalToField = []
-  for (const row of [...data.combat.board.enemyRows].reverse()) {
-    const width = data.combat.board.rows[row]
-    for (let i = 0; i < width; i++) {
-      enemyLocalToField.push(
-        scene.board.tiles.findIndex((t) => t.row === row && t.col === width - 1 - i),
-      )
-    }
-  }
 
   // 헥스 거리는 인접 홉 수다 — 시야 좌표의 유클리드 거리로는 못 잰다.
   // 전투가 쓰는 것과 **같은 표**를 써야 화면의 사거리와 실제 사거리가 같다.
@@ -317,53 +305,11 @@ export async function createPrep({ data, run, onFight, opponentBoard, onWatch, o
     )
   }
 
-  // ── 상대 대기석 ─────────────────────────────────────────
+  // 상대는 **전투 중에만** 보인다.
   //
-  // 이번 라운드에 붙을 상대를 건너편 대기석에 세워 둔다. 무대가 대칭이 되고,
-  // "누구랑 붙는지"가 배치 중에 보인다.
-  //
-  // 편성은 main.js 의 전투 시드와 **같은 식**으로 뽑는다. 다른 식으로 뽑으면
-  // 여기 서 있던 유닛과 실제로 나오는 유닛이 달라진다.
-  const enemyViews = []
-  let enemyToken = 0
-
-  /**
-   * 이번 라운드 상대의 **진형**을 건너편 판에 세운다.
-   *
-   * 전에는 상대 대기석 위에 줄지어 세웠다. 그때는 몬스터 편성이라 자리가
-   * 없었기 때문인데, 지금은 진짜 상대의 판이라 tile 이 있다 — 대기석에
-   * 세우면 "상대가 아직 안 놓았다"는 거짓말이 된다. 배치 중에 상대 진형을
-   * 보고 대비하는 게 이 장르의 핵심이다.
-   */
-  async function syncEnemyBoard() {
-    const token = ++enemyToken
-    for (const v of enemyViews) v.dispose()
-    enemyViews.length = 0
-
-    const roster = opponentBoard()
-
-    for (const e of roster) {
-      const field = enemyLocalToField[e.tile]
-      const t = field === undefined ? null : scene.board.tiles[field]
-      if (!t) continue
-      const v = await scene.makeUnit(e.unitId, e.star, 'B')
-      if (token !== enemyToken) {
-        v.dispose()
-        return
-      }
-      v.root.position.set(t.x, scene.topY, t.z)
-      // 나를 마주 본다. 배치에서는 내 말이 0도(상대 쪽)를 보므로 반대다.
-      v.root.rotation.y = Math.PI
-      if (e.star > 1) {
-        v.badge = scene.makeBadge({ team: 'B', star: e.star, withHp: false })
-        v.badge.sprite.position.y = v.height + scene.spacing.stepX * 0.16
-        v.root.add(v.badge.sprite)
-      }
-      v.play(v.anims.idle)
-      scene.scene.add(v.root)
-      enemyViews.push(v)
-    }
-  }
+  // 배치 중에 건너편에 상대 진형을 세워 봤는데, 그걸 보고 내 배치를 맞추게
+  // 되어 "서로 모르는 채 동시에 짠다"는 이 장르의 전제가 무너졌다.
+  // 전투가 시작되면 battle 이 로그의 spawn 으로 양쪽을 다 세운다.
 
   // ── 그리기 ──────────────────────────────────────────────
   function tierBar(tier) {
@@ -1160,7 +1106,6 @@ export async function createPrep({ data, run, onFight, opponentBoard, onWatch, o
     if (running) {
       tickTimer(dt)
       for (const v of views.values()) v.mixer.update(dt)
-      for (const v of enemyViews) v.mixer.update(dt)
       scene.render()
     }
     requestAnimationFrame(frame)
@@ -1173,10 +1118,7 @@ export async function createPrep({ data, run, onFight, opponentBoard, onWatch, o
   function clearUnits() {
     for (const v of views.values()) v.dispose()
     views.clear()
-    for (const v of enemyViews) v.dispose()
-    enemyViews.length = 0
     syncToken++
-    enemyToken++
   }
 
   /**
@@ -1215,7 +1157,6 @@ export async function createPrep({ data, run, onFight, opponentBoard, onWatch, o
       scene.resize()
       refresh()
       // 라운드가 넘어가면 상대도 바뀐다
-      syncEnemyBoard()
     },
     /**
      * 전투에 판을 넘긴다. 루프는 battle 이 돌린다.
