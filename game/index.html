@@ -76,7 +76,7 @@
 
   .n9 {
     border-style: solid; border-width: var(--bw, 10px);
-    border-image-slice: 6 fill; border-image-repeat: repeat;
+    border-image-slice: 6; border-image-repeat: repeat;
     image-rendering: pixelated;
   }
   /* 3-슬라이스 가로 띠 (좌·중·우 이미지가 따로다) */
@@ -115,8 +115,9 @@
   #topbar {
     min-width: 0;
     display: flex; align-items: center; gap: 9px; height: 28px; padding: 0 3px;
-    border-style: solid; border-width: 6px; border-image-slice: 6 fill;
+    border-style: solid; border-width: 6px; border-image-slice: 6;
     border-image-repeat: repeat; border-image-source: url('/assets/ui/panel_wood.png');
+    background: #c58747;
     image-rendering: pixelated;
   }
   /* 액자 안에 액자를 또 두르면 28px 짜리 띠가 통째로 테두리가 된다.
@@ -186,8 +187,9 @@
   .trait {
     pointer-events: auto; flex: none; line-height: 1;
     display: flex; align-items: center; gap: 5px; height: 27px; padding: 0 3px 0 0;
-    border-style: solid; border-width: 6px; border-image-slice: 6 fill;
+    border-style: solid; border-width: 6px; border-image-slice: 6;
     border-image-repeat: repeat; border-image-source: url('/assets/ui/panel_wood.png');
+    background: #c58747;
     image-rendering: pixelated;
     font-size: 13px; color: #f0e6cf; text-shadow: 0 1px 2px #0009;
   }
@@ -230,8 +232,9 @@
   .seat {
     flex: 0 1 auto; min-height: 0; height: 26px; max-width: 148px;
     display: flex; align-items: center; gap: 4px; padding: 0 0 0 3px;
-    border-style: solid; border-width: 6px; border-image-slice: 6 fill;
+    border-style: solid; border-width: 6px; border-image-slice: 6;
     border-image-repeat: repeat; border-image-source: url('/assets/ui/panel_wood.png');
+    background: #c58747;
     image-rendering: pixelated;
     font-size: 10px; color: #f0e6cf; cursor: pointer;
     text-shadow: 0 1px 2px #0009;
@@ -286,9 +289,10 @@
   /* ── 상세 패널 ─────────────────────────────────────── */
   .panel {
     position: absolute; z-index: 8;
-    border-style: solid; border-width: 12px; border-image-slice: 6 fill;
+    border-style: solid; border-width: 12px; border-image-slice: 6;
     border-image-repeat: repeat; image-rendering: pixelated;
     border-image-source: url('/assets/ui/panel_wood.png');
+    background: #c58747;
     filter: drop-shadow(0 5px 14px #000a);
     font-size: 12px; color: #f0e9dc;
   }
@@ -360,9 +364,10 @@
   #peek {
     position: absolute; left: 50%; top: 80px; transform: translateX(-50%); z-index: 9;
     display: flex; align-items: center; gap: 10px; padding: 5px 14px;
-    border-style: solid; border-width: 10px; border-image-slice: 6 fill;
+    border-style: solid; border-width: 10px; border-image-slice: 6;
     border-image-repeat: repeat; image-rendering: pixelated;
     border-image-source: url('/assets/ui/panel_wood.png');
+    background: #c58747;
     font-size: 13px; font-weight: 700; color: #f0e9dc;
   }
   #peek[hidden] { display: none; }
@@ -419,8 +424,9 @@
     /* 700px 폭에서는 가운데 칸(골드)이 양옆을 눌러 'Lv 7' 과 'XP 0/30' 이
        두 줄로 접혔다. 접히지 않게 못 박는다 — 접히면 30px 틀을 뚫는다. */
     height: 30px; align-items: center; white-space: nowrap;
-    border-style: solid; border-width: 6px; border-image-slice: 6 fill;
+    border-style: solid; border-width: 6px; border-image-slice: 6;
     border-image-repeat: repeat; border-image-source: url('/assets/ui/panel_wood.png');
+    background: #c58747;
     image-rendering: pixelated;
   }
 
@@ -513,8 +519,9 @@
   #shopbar {
     flex: none; height: var(--shopH);
     display: flex; align-items: stretch; gap: 6px;
-    border-style: solid; border-width: 12px; border-image-slice: 6 fill;
+    border-style: solid; border-width: 12px; border-image-slice: 6;
     border-image-repeat: repeat; border-image-source: url('/assets/ui/panel_wood.png');
+    background: #c58747;
     image-rendering: pixelated;
     transition: filter .12s;
   }
