@@ -274,7 +274,7 @@ export async function createPrep({ data, run, onFight }) {
     const ranked = standings(run.lobby)
     const maxHp = Math.max(1, data.economy.startHp)
     el.lobby.replaceChildren(
-      ...ranked.map((seat, i) => {
+      ...ranked.map((seat) => {
         const d = document.createElement('div')
         d.className =
           'seat' +
@@ -288,10 +288,9 @@ export async function createPrep({ data, run, onFight }) {
         d.style.setProperty('--hc', hpColor(ratio))
         d.style.setProperty('--ht', hpTextColor(ratio))
         d.innerHTML =
-          `<span class="rk">${i + 1}</span>` +
-          `<span class="av"><b>${seat.name.slice(0, 1)}</b></span>` +
           `<span class="n">${seat.name}</span>` +
-          `<span class="h">${seat.hp}</span>`
+          `<span class="h">${seat.hp}</span>` +
+          `<span class="av"><b>${seat.name.slice(0, 1)}</b></span>`
         d.title = `${seat.name} · 체력 ${seat.hp}${seat.hp <= 0 ? ' (탈락)' : ''}`
         d.addEventListener('click', () => (seat.id === peekId ? closePeek() : openPeek(seat)))
         return d
