@@ -10,6 +10,7 @@
 // 곳이라 안 쓰는 모델까지 플레이어에게 배포된다.
 
 import { readFile, writeFile, mkdir, copyFile, access } from 'node:fs/promises'
+import { PNG } from 'pngjs'
 import { fileURLToPath, pathToFileURL } from 'node:url'
 import { dirname, join } from 'node:path'
 
@@ -19,6 +20,16 @@ const ART = join(ROOT, 'art-src')
 const OUT = join(ROOT, 'game', 'public', 'assets')
 
 const KAYKIT = join(ART, 'kaykit-hexagon', 'KayKit_Medieval_Hexagon_Pack_1.0_FREE', 'Assets', 'gltf')
+const VILLAGE = join(ART, 'q-medieval-village', 'Medieval Village MegaKit[Standard]', 'glTF')
+const NATURE = join(ART, 'q-stylized-nature', 'glTF')
+
+// 전장 바닥. 2×2 정사각이라 육각 간격(stepX)과 크기가 같아 격자로 깔린다.
+const FLOOR = ['Floor_UnevenBrick']
+// 바닥에 흩을 얼룩. 자갈은 판 위, 풀·꽃은 가장자리에 쓴다.
+const SCATTER = {
+  stone: ['Pebble_Round_1', 'Pebble_Round_3', 'Pebble_Square_2', 'Pebble_Square_5'],
+  grass: ['Grass_Common_Short', 'Grass_Wispy_Short', 'Flower_3_Group', 'Clover_1', 'Mushroom_Common'],
+}
 const HEX_TILES = ['hex_grass', 'hex_water']
 
 // 보드 둘레를 채울 장식. 물 위(수련·수초)와 바깥 실루엣(나무·바위)을 나눈다.
@@ -35,6 +46,56 @@ async function exists(p) {
   } catch {
     return false
   }
+}
+
+// 텍스처 상한. 육각 한 칸이 화면에서 40px 남짓인데 원본은 2048² 다 —
+// 바닥 타일 한 장에 7.8MB 를 플레이어에게 내려보낼 이유가 없다.
+const MAX_TEX = 512
+
+/**
+ * PNG 를 2의 거듭제곱으로 줄인다. 박스 필터 — 축소에는 이걸로 충분하고
+ * 의존성이 pngjs 하나로 끝난다.
+ */
+function downscale(buf, max) {
+  const src = PNG.sync.read(buf)
+  const factor = Math.max(1, Math.ceil(Math.max(src.width, src.height) / max))
+  if (factor === 1) return null
+  const w = Math.max(1, Math.floor(src.width / factor))
+  const h = Math.max(1, Math.floor(src.height / factor))
+  const out = new PNG({ width: w, height: h })
+  for (let y = 0; y < h; y++) {
+    for (let x = 0; x < w; x++) {
+      let r = 0, g = 0, b = 0, a = 0, n = 0
+      for (let dy = 0; dy < factor; dy++) {
+        const sy = y * factor + dy
+        if (sy >= src.height) break
+        for (let dx = 0; dx < factor; dx++) {
+          const sx = x * factor + dx
+          if (sx >= src.width) break
+          const i = (sy * src.width + sx) << 2
+          r += src.data[i]
+          g += src.data[i + 1]
+          b += src.data[i + 2]
+          a += src.data[i + 3]
+          n++
+        }
+      }
+      const o = (y * w + x) << 2
+      out.data[o] = r / n
+      out.data[o + 1] = g / n
+      out.data[o + 2] = b / n
+      out.data[o + 3] = a / n
+    }
+  }
+  return PNG.sync.write(out)
+}
+
+/** 텍스처면 줄여서, 아니면 그대로 옮긴다. */
+async function copyAsset(from, to) {
+  if (!from.endsWith('.png')) return copyFile(from, to)
+  const small = downscale(await readFile(from), MAX_TEX)
+  if (!small) return copyFile(from, to)
+  return writeFile(to, small)
 }
 
 export async function buildAssets({ quiet = false } = {}) {
@@ -110,6 +171,43 @@ export async function buildAssets({ quiet = false } = {}) {
     }
   }
 
+  // ── 전장 바닥 · 흩뿌림 ─────────────────────────────────
+  // glTF 는 .bin 과 텍스처 딸림 파일이 따로다. 참조된 것만 골라 옮긴다 —
+  // 팩 전체를 복사하면 안 쓰는 수백 장이 플레이어에게 배포된다.
+  async function copyGltfSet(srcDir, destDir, names) {
+    await mkdir(destDir, { recursive: true })
+    const out = []
+    for (const name of names) {
+      const gltfPath = join(srcDir, `${name}.gltf`)
+      if (!(await exists(gltfPath))) {
+        console.warn(`  건너뜀: ${name}.gltf 가 없다`)
+        continue
+      }
+      const doc = JSON.parse(await readFile(gltfPath, 'utf8'))
+      await copyFile(gltfPath, join(destDir, `${name}.gltf`))
+      copied++
+      const deps = [
+        ...(doc.buffers ?? []).map((b) => b.uri),
+        ...(doc.images ?? []).map((i) => i.uri),
+      ].filter(Boolean)
+      for (const uri of new Set(deps)) {
+        const from = join(srcDir, decodeURIComponent(uri))
+        if (await exists(from)) {
+          await copyAsset(from, join(destDir, decodeURIComponent(uri)))
+          copied++
+        }
+      }
+      out.push(`${name}.gltf`)
+    }
+    return out
+  }
+
+  manifest.floor = await copyGltfSet(VILLAGE, join(OUT, 'floor'), FLOOR)
+  manifest.scatter = {
+    stone: await copyGltfSet(NATURE, join(OUT, 'scatter'), SCATTER.stone),
+    grass: await copyGltfSet(NATURE, join(OUT, 'scatter'), SCATTER.grass),
+  }
+
   // ── UI 타일 ────────────────────────────────────────────
   // 원본 파일명이 tile_00NN 뿐이라 ui-map.json 의 이름으로 바꿔 내보낸다.
   // 코드에서 숫자를 참조하면 나중에 어느 게 무슨 프레임인지 알 수 없다.
@@ -130,7 +228,9 @@ export async function buildAssets({ quiet = false } = {}) {
     const evo = Object.values(manifest.units).filter((u) => u.evolved).length
     const decorCount = manifest.decor.water.length + manifest.decor.land.length
     console.log(`유닛 ${Object.keys(manifest.units).length}종 (진화 ${evo}) · 육각 타일 ${HEX_TILES.length}종`)
+    const scatterCount = manifest.scatter.stone.length + manifest.scatter.grass.length
     console.log(`장식 ${decorCount}종 · UI 타일 ${manifest.ui.tiles.length}종`)
+    console.log(`바닥 ${manifest.floor.length}종 · 흩뿌림 ${scatterCount}종`)
     console.log(`파일 ${copied}개 복사 → game/public/assets/`)
   }
   return manifest

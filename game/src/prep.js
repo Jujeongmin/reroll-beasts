@@ -11,7 +11,7 @@ import { activeTraits } from '@sim/traits.js'
 import { buildBoard } from '@sim/hex.js'
 import { roundAt, pveBoard } from '@sim/rounds.js'
 import { createRng } from '@sim/rng.js'
-import { sellValue } from '@sim/economy.js'
+import { sellValue, streakBonus } from '@sim/economy.js'
 import {
   allUnits,
   boardCount,
@@ -60,7 +60,7 @@ export async function createPrep({ data, run, onFight }) {
     xpText: document.getElementById('xptext'),
     buyxp: document.getElementById('buyxp'),
     reroll: document.getElementById('reroll'),
-    fight: document.getElementById('fight'),
+    streak: document.getElementById('streak'),
     shopbar: document.getElementById('shopbar'),
     ghost: document.getElementById('ghost'),
     ghostImg: document.querySelector('#ghost img'),
@@ -340,13 +340,28 @@ export async function createPrep({ data, run, onFight }) {
     renderOdds(s.level)
     el.gold.textContent = String(s.gold)
 
+    renderStreak()
+
     el.buyxp.disabled = !need || s.gold < data.shop.xpCost.gold || !running
     el.reroll.disabled = s.gold < data.shop.rerollCost || !running
     el.lock.disabled = !running
     el.lock.classList.toggle('on', s.shopLocked)
-    el.lock.querySelector('.cost').textContent = s.shopLocked ? '켬' : '−'
-    // 전투 중에는 또 시작할 수 없다. 상점은 열려 있으므로 이 버튼만 잠근다.
-    el.fight.disabled = p.used === 0 || !running
+    el.lock.querySelector('.st').textContent = s.shopLocked ? '켬' : '해제'
+  }
+
+  // 연승·연패. 다음 라운드 수입이 이걸로 갈리는데 화면에 없었다.
+  function renderStreak() {
+    const s = run.state
+    const n = s.streak ?? 0
+    const bonus = streakBonus(n, data.economy)
+    el.streak.className = n < 2 ? '' : run.lastWon ? 'win' : 'lose'
+    if (n < 2) {
+      el.streak.innerHTML = '<span>연승 없음</span>'
+      return
+    }
+    el.streak.innerHTML =
+      `<span>${run.lastWon ? '연승' : '연패'}</span><b>${n}</b>` +
+      (bonus > 0 ? `<span style="color:var(--gold)">+${bonus}</span>` : '')
   }
 
   // 지금 레벨에서 무엇이 나오는지. 이게 없으면 "레벨업 vs 리롤" 판단을 못 한다.
@@ -579,7 +594,6 @@ export async function createPrep({ data, run, onFight }) {
     refresh()
   })
 
-  el.fight.addEventListener('click', () => onFight(toCombatEntries(run.state)))
 
   // ── 드래그 배치 ─────────────────────────────────────────
   //

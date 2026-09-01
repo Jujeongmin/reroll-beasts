@@ -308,6 +308,24 @@
       "rock_single_C.gltf"
     ]
   },
+  "floor": [
+    "Floor_UnevenBrick.gltf"
+  ],
+  "scatter": {
+    "stone": [
+      "Pebble_Round_1.gltf",
+      "Pebble_Round_3.gltf",
+      "Pebble_Square_2.gltf",
+      "Pebble_Square_5.gltf"
+    ],
+    "grass": [
+      "Grass_Common_Short.gltf",
+      "Grass_Wispy_Short.gltf",
+      "Flower_3_Group.gltf",
+      "Clover_1.gltf",
+      "Mushroom_Common.gltf"
+    ]
+  },
   "ui": {
     "tiles": [
       "panel_wood",

@@ -247,49 +247,95 @@
   #hint.show { opacity: 1; }
 
   /* ── 하단 바 ───────────────────────────────────────── */
+  /* 두 층이다.
+     위: 레벨/XP · 티어 확률 · 보유 골드 · 연승연패 · 잠금
+     아래: XP구매·새로고침 (세로 2단) · 상점 카드 5장
+     전투 시작 버튼은 없다 — 배치 시간이 0 이 되면 스스로 시작한다. */
   #shopbar {
-    flex: none; height: var(--shopH); display: flex; align-items: stretch; gap: 8px;
-    padding: 7px 10px;
+    flex: none; height: var(--shopH);
+    display: grid; grid-template-rows: 30px 1fr; grid-template-columns: 132px 1fr;
+    gap: 5px 6px; padding: 6px 10px;
     background: linear-gradient(#161326, #0e0c18);
     box-shadow: inset 0 1px 0 #ffffff14;
     transition: filter .12s;
   }
   #shopbar.selling { filter: hue-rotate(-25deg) saturate(1.8) brightness(1.15); }
 
-  /* 좌측: 레벨 · XP · 티어 확률 · 구매/새로고침/잠금 */
-  #levelbox { width: 232px; flex: none; display: flex; flex-direction: column; gap: 4px; }
-  #lvline { display: flex; align-items: center; gap: 7px; }
-  #lvl { font-size: 19px; font-weight: 800; color: var(--gold); line-height: 1; }
-  #lvl::after { content: '레벨'; font-size: 11px; font-weight: 600; color: var(--dim); margin-left: 2px; }
-  #xptext { font-size: 11px; color: var(--dim); font-variant-numeric: tabular-nums; }
-  #xpbar { flex: 1; height: 6px; border-radius: 3px; background: #00000066; overflow: hidden; box-shadow: inset 0 0 0 1px var(--edge); }
+  /* 위층 ─ 좌: 레벨 + XP */
+  #lvbox {
+    display: flex; flex-direction: column; justify-content: center; gap: 2px;
+    padding: 0 8px; border-radius: 4px;
+    background: #221d33; box-shadow: inset 0 0 0 1px var(--edge);
+  }
+  #lvl { font-size: 15px; font-weight: 800; color: var(--gold); line-height: 1; }
+  #lvl::after { content: '레벨'; font-size: 10px; font-weight: 600; color: var(--dim); margin-left: 2px; }
+  #xprow { display: flex; align-items: center; gap: 5px; }
+  #xpbar { flex: 1; height: 5px; border-radius: 3px; background: #00000070; overflow: hidden; }
   #xpbar i { display: block; height: 100%; width: 0; background: linear-gradient(90deg, #3aa0d8, var(--xp)); }
+  #xptext { font-size: 9px; color: var(--dim); font-variant-numeric: tabular-nums; }
+
+  /* 위층 ─ 우: 확률 · 골드 · 연승 · 잠금 */
+  #topline { display: flex; align-items: stretch; gap: 6px; min-width: 0; }
 
   /* 티어 확률. 지금 레벨에서 무엇이 나오는지가 안 보이면 레벨업 판단을 못 한다. */
-  #odds { display: flex; gap: 3px; }
+  #odds { flex: 1; display: flex; gap: 3px; min-width: 0; }
   #odds span {
-    flex: 1; text-align: center; padding: 2px 0; border-radius: 3px;
-    font-size: 11px; font-weight: 800; font-variant-numeric: tabular-nums;
-    color: #0e0c18; background: var(--oc);
+    flex: 1; display: flex; align-items: center; justify-content: center;
+    border-radius: 3px; font-size: 12px; font-weight: 800;
+    font-variant-numeric: tabular-nums; color: #0e0c18; background: var(--oc);
   }
   #odds span.zero { color: #5b5468; background: #ffffff10; }
 
-  #lvbtns { display: flex; gap: 5px; margin-top: auto; }
-  .btn {
-    flex: 1; display: flex; flex-direction: column; align-items: center; justify-content: center;
-    gap: 1px; padding: 5px 0; border-radius: 4px;
-    background: #262133; box-shadow: inset 0 0 0 1px var(--edge);
-    font-size: 11px; line-height: 1.15;
+  #gold {
+    flex: none; display: flex; align-items: center; gap: 6px; padding: 0 12px;
+    border-radius: 4px; background: #2a2010; box-shadow: inset 0 0 0 1px #6b5230;
+    font-size: 17px; font-weight: 800; color: var(--gold); font-variant-numeric: tabular-nums;
   }
-  .btn b { font-size: 12px; }
-  .btn .cost { color: var(--gold); font-weight: 800; font-variant-numeric: tabular-nums; }
+  #gold::before {
+    content: ''; width: 13px; height: 13px; border-radius: 50%;
+    background: radial-gradient(circle at 35% 30%, #ffe9a8, #c9932c);
+  }
+
+  /* 연승·연패. 다음 라운드 수입이 이걸로 갈리는데 화면에 없었다. */
+  #streak {
+    flex: none; display: flex; align-items: center; gap: 5px; padding: 0 12px;
+    border-radius: 14px; background: #221d33; box-shadow: inset 0 0 0 1px var(--edge);
+    font-size: 12px; font-weight: 700; white-space: nowrap;
+  }
+  #streak b { font-variant-numeric: tabular-nums; }
+  #streak.win { background: #143224; box-shadow: inset 0 0 0 1px #3f9e6a; color: #8ff0bb; }
+  #streak.lose { background: #331820; box-shadow: inset 0 0 0 1px #a34b58; color: #ffa8b3; }
+
+  #lock {
+    flex: none; width: 48px; display: flex; flex-direction: column;
+    align-items: center; justify-content: center; gap: 1px;
+    border-radius: 4px; background: #262133; box-shadow: inset 0 0 0 1px var(--edge);
+    font-size: 11px; line-height: 1.1;
+  }
+  #lock .st { font-size: 9px; color: var(--dim); }
+  #lock.on { background: #4a3a12; box-shadow: inset 0 0 0 1px var(--gold); color: var(--gold); }
+  #lock.on .st { color: var(--gold); }
+
+  /* 아래층 ─ 좌: XP 구매 · 새로고침 */
+  #sidebtns { display: flex; flex-direction: column; gap: 5px; }
+  .btn {
+    flex: 1; display: flex; align-items: center; justify-content: center; gap: 6px;
+    border-radius: 4px; background: #262133; box-shadow: inset 0 0 0 1px var(--edge);
+    font-size: 12px; font-weight: 700;
+  }
+  .btn .cost {
+    display: flex; align-items: center; gap: 3px;
+    color: var(--gold); font-weight: 800; font-variant-numeric: tabular-nums;
+  }
+  .btn .cost::before {
+    content: ''; width: 9px; height: 9px; border-radius: 50%;
+    background: radial-gradient(circle at 35% 30%, #ffe9a8, #c9932c);
+  }
   .btn:active { transform: translateY(1px); }
   .btn:disabled { filter: grayscale(.7) brightness(.62); cursor: default; }
-  #lock.on { background: #4a3a12; box-shadow: inset 0 0 0 1px var(--gold); }
-  #lock.on b { color: var(--gold); }
 
-  /* 상점 카드 */
-  #shop { flex: 1; display: flex; gap: 6px; min-width: 0; }
+  /* 아래층 ─ 우: 상점 카드 */
+  #shop { display: flex; gap: 6px; min-width: 0; }
   .card {
     --tc: var(--t1);
     flex: 1; min-width: 0; position: relative; overflow: hidden; border-radius: 5px;
@@ -305,7 +351,7 @@
   }
   .card:not(.empty):active { transform: translateY(1px); }
   .card.poor { filter: grayscale(.5) brightness(.7); }
-  .card .art { position: absolute; left: 0; right: 0; top: 0; bottom: 22px; display: grid; place-items: center; }
+  .card .art { position: absolute; left: 0; right: 0; top: 0; bottom: 21px; display: grid; place-items: center; }
   .card .art img {
     width: 100%; height: 100%; object-fit: contain; transform: scale(1.24);
     filter: drop-shadow(0 3px 5px #000a);
@@ -316,14 +362,14 @@
     font-size: 10px; line-height: 1.25; color: #ded6ee; text-shadow: 0 1px 3px #000, 0 0 6px #000;
   }
   .card .nm {
-    position: absolute; left: 0; right: 0; bottom: 0; height: 22px;
+    position: absolute; left: 0; right: 0; bottom: 0; height: 21px;
     display: flex; align-items: center; padding: 0 6px;
     background: var(--tc); color: #14101c;
     font-size: 13px; font-weight: 800; letter-spacing: -.3px;
     overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
   }
   .card .pr {
-    position: absolute; right: 5px; bottom: 25px; z-index: 2;
+    position: absolute; right: 5px; bottom: 24px; z-index: 2;
     display: flex; align-items: center; gap: 3px;
     padding: 1px 6px 1px 4px; border-radius: 9px;
     background: #12101cee; box-shadow: inset 0 0 0 1px #6b5230;
@@ -333,25 +379,6 @@
     content: ''; width: 9px; height: 9px; border-radius: 50%;
     background: radial-gradient(circle at 35% 30%, #ffe9a8, #c9932c);
   }
-
-  /* 우측: 골드 · 전투 */
-  #rightbox { width: 110px; flex: none; display: flex; flex-direction: column; gap: 5px; }
-  #gold {
-    display: flex; align-items: center; justify-content: center; gap: 6px;
-    height: 40px; border-radius: 4px;
-    background: #2a2010; box-shadow: inset 0 0 0 1px #6b5230;
-    font-size: 22px; font-weight: 800; color: var(--gold); font-variant-numeric: tabular-nums;
-  }
-  #gold::before {
-    content: ''; width: 16px; height: 16px; border-radius: 50%;
-    background: radial-gradient(circle at 35% 30%, #ffe9a8, #c9932c);
-  }
-  #fight {
-    flex: 1; border-radius: 4px; font-weight: 800; font-size: 15px; color: #f6ffe8;
-    background: linear-gradient(#3d8a5e, #2a6342); box-shadow: inset 0 0 0 1px #58b184;
-  }
-  #fight:active { transform: translateY(1px); }
-  #fight:disabled { filter: grayscale(.75) brightness(.6); cursor: default; }
 
   /* ── 전투 조작 ─────────────────────────────────────── */
   #bspeed {
@@ -415,26 +442,24 @@
     </div>
 
     <div id="shopbar">
-      <div id="levelbox">
-        <div id="lvline">
-          <span id="lvl">3</span>
-          <span id="xpbar"><i></i></span>
-          <span id="xptext">0/2</span>
-        </div>
+      <div id="lvbox">
+        <span id="lvl">3</span>
+        <span id="xprow"><span id="xpbar"><i></i></span><span id="xptext">0/2</span></span>
+      </div>
+
+      <div id="topline">
         <div id="odds"></div>
-        <div id="lvbtns">
-          <button class="btn" id="buyxp"><b>경험치</b><span class="cost">4</span></button>
-          <button class="btn" id="reroll"><b>새로고침</b><span class="cost">2</span></button>
-          <button class="btn" id="lock"><b>잠금</b><span class="cost">−</span></button>
-        </div>
+        <div id="gold"><span id="goldval">0</span></div>
+        <div id="streak"></div>
+        <button id="lock"><b>잠금</b><span class="st">해제</span></button>
+      </div>
+
+      <div id="sidebtns">
+        <button class="btn" id="buyxp">경험치 구매<span class="cost">4</span></button>
+        <button class="btn" id="reroll">새로고침<span class="cost">2</span></button>
       </div>
 
       <div id="shop"></div>
-
-      <div id="rightbox">
-        <div id="gold"><span id="goldval">0</span></div>
-        <button id="fight">전투 시작</button>
-      </div>
     </div>
   </div>
 

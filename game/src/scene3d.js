@@ -207,23 +207,70 @@ export async function createScene({
       Math.max(...board.tiles.filter((t) => !allyRows.has(t.row)).map((t) => t.z))) /
     2
 
-  const slabMat = (hex) => new THREE.MeshStandardMaterial({ color: hex, roughness: 0.85 })
-  const matAllySlab = slabMat(0x6f7a4e)
-  const matEnemySlabDim = slabMat(0x2f3428)
-  const matEnemySlabLit = slabMat(0x7a5340)
-
   const boardGroup = new THREE.Group()
   const SLAB_H = 0.55
-  const half = (z0, z1, mat) => {
-    const d = z1 - z0
-    const mesh = new THREE.Mesh(new THREE.BoxGeometry(arena.w, SLAB_H, d), mat)
-    mesh.position.set(arena.cx, -SLAB_H / 2, (z0 + z1) / 2)
-    mesh.receiveShadow = true
+
+  // 돌바닥. 2×2 정사각이라 육각 간격(stepX)과 크기가 같아 격자로 딱 깔린다.
+  const floorProto = (await loader.loadAsync('/assets/floor/Floor_UnevenBrick.gltf')).scene
+  let floorMat = null
+  floorProto.traverse((o) => {
+    if (o.isMesh && !floorMat) floorMat = o.material
+  })
+  // 텍스처를 타일마다 복제하지 않는다 — 재질 하나를 전 칸이 공유한다.
+  const floorGeom = []
+  floorProto.traverse((o) => {
+    if (o.isMesh) floorGeom.push(o.geometry)
+  })
+
+  // 칸 수로 나눠 **정확히** 판만 덮는다. ceil 로 깔면 마지막 줄이 판 밖으로
+  // 최대 한 칸 넘쳐 대기석 위에 돌이 얹힌다.
+  const nx = Math.max(1, Math.round(arena.w / spacing.stepX))
+  const nz = Math.max(1, Math.round(arena.d / spacing.stepX))
+  const stepXTile = arena.w / nx
+  const stepZTile = arena.d / nz
+  // 모델은 2×2 다. 칸 크기에 맞춰 늘린다.
+  const floorSrc = 2
+  const floorGroup = new THREE.Group()
+  for (let ix = 0; ix < nx; ix++) {
+    for (let iz = 0; iz < nz; iz++) {
+      for (const g of floorGeom) {
+        const t = new THREE.Mesh(g, floorMat)
+        t.scale.set(stepXTile / floorSrc, 1, stepZTile / floorSrc)
+        t.position.set(
+          arena.minX + stepXTile * (ix + 0.5),
+          0,
+          arena.minZ + stepZTile * (iz + 0.5),
+        )
+        // 같은 타일이 격자로 반복되면 이음매가 눈에 띈다. 90도 단위로 돌려 흐린다.
+        t.rotation.y = (((ix * 3 + iz * 7) % 4) * Math.PI) / 2
+        t.receiveShadow = true
+        floorGroup.add(t)
+      }
+    }
+  }
+  boardGroup.add(floorGroup)
+
+  // 바닥 아래 받침. 옆에서 보면 판이 종이처럼 얇아 보이는 걸 막는다.
+  const baseMat = new THREE.MeshStandardMaterial({ color: 0x4a4438, roughness: 0.95 })
+  const base = new THREE.Mesh(new THREE.BoxGeometry(arena.w, SLAB_H, arena.d), baseMat)
+  base.position.set(arena.cx, -SLAB_H / 2 - 0.01, arena.cz)
+  base.receiveShadow = true
+  boardGroup.add(base)
+
+  // 진영 색은 바닥 **위에 덮는** 얇은 판으로 준다. 돌 질감을 살린 채 색만 민다.
+  const tintMat = (hex, opacity) =>
+    new THREE.MeshBasicMaterial({ color: hex, transparent: true, opacity, depthWrite: false, toneMapped: false })
+  const halfTint = (z0, z1, mat) => {
+    const mesh = new THREE.Mesh(new THREE.PlaneGeometry(arena.w, z1 - z0), mat)
+    mesh.rotation.x = -Math.PI / 2
+    mesh.position.set(arena.cx, 0.012, (z0 + z1) / 2)
     boardGroup.add(mesh)
     return mesh
   }
-  half(frontZ, arena.maxZ, matAllySlab)
-  const enemySlab = half(arena.minZ, frontZ, isPrep ? matEnemySlabDim : matEnemySlabLit)
+  // 배치에서는 양쪽이 같은 색이다 — 내 자리는 육각 표시로 이미 갈린다.
+  const matEnemySlabDim = tintMat(0x000000, 0)
+  const matEnemySlabLit = tintMat(0xff5a3c, 0.22)
+  const enemySlab = halfTint(arena.minZ, frontZ, isPrep ? matEnemySlabDim : matEnemySlabLit)
 
   // 교전선을 얇은 띠로 긋는다. 없으면 두 진영 색만으로는 경계가 흐리다.
   const line = new THREE.Mesh(
@@ -477,6 +524,45 @@ export async function createScene({
       minZ: farZ - pad / 2 - gap,
       maxZ: deckZ + pad / 2 + gap,
     }
+  }
+
+  // ── 바닥 얼룩 ──────────────────────────────────────────
+  //
+  // 돌바닥만 깔면 같은 타일이 반복돼 평평해 보인다. 자갈·풀을 흩어 얼룩을 준다.
+  // **칸 중앙은 피한다** — 말이 설 자리라 겹치면 발밑이 지저분해진다.
+  {
+
+    const groups = await Promise.all(
+      ['grass'].map(async (g) => [
+        g,
+        await Promise.all(
+          (manifestJson.scatter?.[g] ?? []).map((f) => loader.loadAsync('/assets/scatter/' + f)),
+        ),
+      ]),
+    )
+    const byGroup = Object.fromEntries(groups.map(([g, list]) => [g, list.map((x) => x.scene)]))
+    const rng = createRng(0xfa11)
+    const scatterGroup = new THREE.Group()
+
+    // 판 위에는 아무것도 놓지 않는다. 돌바닥 자체가 이미 무늬라
+    // 자갈까지 얹으면 말 발밑이 지저분해진다.
+
+    // 풀은 판 **좌우 옆면에만** 두른다. 앞뒤는 대기석 자리라 꽃이 그 위에 얹힌다.
+    const grass = byGroup.grass
+    if (grass.length > 0) {
+      for (let i = 0; i < 26; i++) {
+        const t = rng.int(2) === 0 ? -1 : 1
+        const x = (t < 0 ? arena.minX : arena.maxX) + t * spacing.stepX * (0.25 + rng.int(40) / 100)
+        const z = arena.minZ + (rng.int(1000) / 1000) * arena.d
+        const o = grass[rng.int(grass.length)].clone(true)
+        o.position.set(x, -0.02, z)
+        o.rotation.y = (rng.int(360) * Math.PI) / 180
+        // 원본 풀·꽃이 사람 키만 하다. 판 가장자리 장식이므로 크게 줄인다.
+        o.scale.setScalar(0.28 + rng.int(22) / 100)
+        scatterGroup.add(o)
+      }
+    }
+    boardGroup.add(scatterGroup)
   }
 
   // 판 윗면과 같은 높이의 보이지 않는 판. 포인터가 어느 칸 위인지 여기서 잡는다.
