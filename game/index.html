@@ -370,6 +370,21 @@
     font-size: 8px; line-height: 10px; font-weight: 800; text-align: center;
   }
   #traitinfo .mem figure.no { filter: grayscale(1) brightness(.5); }
+  /* 짚은 유닛 이름. 아무것도 안 짚었을 때도 자리를 남긴다 — 줄이 생겼다
+     사라지면 패널 높이가 튀어 마우스가 패널 밖으로 떨어진다. */
+  #traitinfo .pick {
+    display: flex; align-items: center; gap: 4px;
+    /* min-height 로 두면 글자가 들어올 때 4px 늘어난다. 패널 높이가 튀면
+       아래쪽에 있던 마우스가 패널 밖으로 떨어져 패널이 닫힌다. 못 박는다. */
+    height: 15px; margin-top: 4px; padding-top: 4px;
+    border-top: 1px solid #ffffff1a;
+    font-size: 10px; line-height: 15px; font-weight: 700; color: #f0e6cf;
+  }
+  #traitinfo .pick .t {
+    flex: none; min-width: 12px; height: 11px; border-radius: 3px;
+    background: var(--tc, #6a6252); color: #14101c;
+    font-size: 8px; line-height: 11px; font-weight: 800; text-align: center;
+  }
 
   #peek {
     position: absolute; left: 50%; top: 80px; transform: translateX(-50%); z-index: 9;

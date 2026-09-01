@@ -613,11 +613,13 @@ export async function createPrep({ data, run, onFight }) {
         .map(
           (mm) =>
             `<figure class="${mm.owned ? '' : 'no'}" data-unit="${mm.id}"` +
-            ` style="--tc:${tierBar(mm.tier)}" title="${mm.name} · ${mm.tier}티어">` +
+            ` data-name="${mm.name}" data-tier="${mm.tier}"` +
+            ` style="--tc:${tierBar(mm.tier)}">` +
             `<img alt="${mm.name}" /><figcaption>${mm.tier}</figcaption></figure>`,
         )
         .join('') +
-      '</div>'
+      '</div>' +
+      '<div class="pick"></div>'
     el.traitInfo.hidden = false
 
     // 초상화는 비동기로 채운다. 먼저 뜨고 나중에 그림이 붙는 편이
@@ -649,7 +651,27 @@ export async function createPrep({ data, run, onFight }) {
   }
 
   el.traitInfo.addEventListener('pointerenter', keepTraitInfo)
-  el.traitInfo.addEventListener('pointerleave', scheduleHideTraitInfo)
+  el.traitInfo.addEventListener('pointerleave', (ev) => {
+    scheduleHideTraitInfo(ev)
+    pickName(null)
+  })
+  // 짚은 유닛의 이름·티어를 패널 아래 한 줄에 적는다. 칸마다 이름을 붙이면
+  // 여섯 칸이 두 배로 커지고, 별도 팝업을 띄우면 패널 위에 패널이 겹친다.
+  function pickName(fig) {
+    const line = el.traitInfo.querySelector('.pick')
+    if (!line) return
+    if (!fig) {
+      line.textContent = ''
+      line.style.removeProperty('--tc')
+      return
+    }
+    line.style.setProperty('--tc', fig.style.getPropertyValue('--tc'))
+    line.innerHTML = `<span class="t">${fig.dataset.tier}</span>${fig.dataset.name}`
+  }
+  el.traitInfo.addEventListener('pointerover', (ev) => {
+    const fig = ev.target.closest('[data-unit]')
+    if (fig) pickName(fig)
+  })
   // 유닛 하나하나에 리스너를 달지 않는다 — 패널은 매번 새로 그려진다.
 
   let hintTimer = 0
