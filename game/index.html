@@ -28,7 +28,7 @@
     --plate: #12101ce8;
     --edge: #ffffff1c;
 
-    --shopH: 108px;
+    --shopH: 84px;
     /* 비스듬한 판의 기울기. 한 곳에서 정해야 좌우가 대칭으로 보인다. */
     --skew: 9px;
   }
@@ -116,43 +116,49 @@
   @keyframes pulse { 50% { opacity: .4; } }
 
   /* 체력·인구는 목재 판에 얹는다 */
-  #hp, #pop {
-    position: absolute; top: 50px; z-index: 5;
+  #hp {
+    position: absolute; left: 8px; top: 50px; z-index: 5; line-height: 1;
     display: flex; align-items: center; gap: 5px; height: 28px; padding: 0 2px;
     border-style: solid; border-width: 6px; border-image-slice: 6 fill;
     border-image-repeat: repeat; border-image-source: url('/assets/ui/panel_wood.png');
     image-rendering: pixelated;
     font-weight: 800; font-variant-numeric: tabular-nums; font-size: 15px;
-    text-shadow: 0 1px 2px #0009;
+    color: #ff8a95; text-shadow: 0 1px 2px #0009;
   }
-  #hp { left: 8px; color: #ff8a95; }
-  #pop { right: 8px; color: #f3ecdd; }
   #hp::before { content: '♥'; }
 
+  /* 인구는 상단 바 안으로. 우측 세로 자리는 플레이어 목록이 통째로 쓴다. */
+  #pop {
+    display: flex; align-items: center; gap: 4px;
+    font-weight: 800; font-variant-numeric: tabular-nums; font-size: 14px;
+    color: #f3ecdd; text-shadow: 0 1px 2px #0009;
+  }
+  #pop::before { content: '⬡'; font-size: 12px; opacity: .75; }
   #pop.full { color: #ffa08c; }
 
   /* ── 좌측: 시너지 ──────────────────────────────────── */
   #traits {
-    position: absolute; left: 6px; top: 82px; width: 162px;
+    position: absolute; left: 6px; top: 84px; width: 158px;
     max-height: calc(100% - 98px);
     display: flex; flex-direction: column; gap: 2px; z-index: 4;
     overflow-y: auto; pointer-events: none;
   }
   .trait {
-    pointer-events: auto; flex: none;
-    display: flex; align-items: center; gap: 6px; height: 30px; padding: 0 3px 0 0;
+    pointer-events: auto; flex: none; line-height: 1;
+    display: flex; align-items: center; gap: 5px; height: 27px; padding: 0 3px 0 0;
+    border-width: 5px;
     border-style: solid; border-width: 6px; border-image-slice: 6 fill;
     border-image-repeat: repeat; border-image-source: url('/assets/ui/plate_m.png');
     image-rendering: pixelated;
     font-size: 13px; color: #ffffff; text-shadow: 0 1px 2px #000, 0 0 3px #0009;
   }
-  .trait .n { flex: 1; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  .trait .n { flex: 1; line-height: 16px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
   .trait .c { font-variant-numeric: tabular-nums; font-size: 12px; color: #cbd4e2; }
   .trait.off { opacity: .45; }
   /* 육각 배지 + 등급색. 안에는 시너지 이름 첫 글자 — 전용 아이콘이 없으므로
      글자가 곧 표식이다. */
   .trait .pip {
-    width: 21px; height: 24px; flex: none; display: grid; place-items: center;
+    width: 19px; height: 22px; flex: none; display: grid; place-items: center;
     clip-path: polygon(50% 0, 100% 25%, 100% 75%, 50% 100%, 0 75%, 0 25%);
     background: #4a4458; color: #0f0d16; font-size: 12px; font-weight: 800; line-height: 1;
   }
@@ -164,24 +170,26 @@
   .trait.s3 .c { color: var(--gold); }
 
   /* ── 우측: 플레이어 ────────────────────────────────── */
+  /* 8명이 **전부** 보여야 한다. 스크롤에 밀리면 체력이 깎여 아래로 내려간
+     내 줄이 화면 밖으로 나간다. */
   #lobby {
-    position: absolute; right: 6px; top: 82px; width: 164px; z-index: 4;
-    max-height: calc(100% - 98px);
-    display: flex; flex-direction: column; gap: 2px; overflow-y: auto;
+    position: absolute; right: 6px; top: 50px; width: 158px; z-index: 4;
+    display: flex; flex-direction: column; gap: 1px;
   }
   .seat {
-    flex: none;
-    display: flex; align-items: center; gap: 6px; height: 30px; padding: 0 0 0 3px;
+    flex: none; line-height: 1;
+    display: flex; align-items: center; gap: 5px; height: 26px; padding: 0 0 0 2px;
+    border-width: 5px;
     border-style: solid; border-width: 6px; border-image-slice: 6 fill;
     border-image-repeat: repeat; border-image-source: url('/assets/ui/plate_m.png');
     image-rendering: pixelated;
-    font-size: 12px; color: #ffffff; text-shadow: 0 1px 2px #000, 0 0 3px #0009; cursor: pointer;
+    font-size: 11px; color: #ffffff; text-shadow: 0 1px 2px #000, 0 0 3px #0009; cursor: pointer;
   }
   .seat .rk { width: 11px; font-size: 10px; color: #cdd6e4; text-align: right; }
-  .seat .n { flex: 1; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
-  .seat .h { font-variant-numeric: tabular-nums; font-weight: 800; color: #ff9aa4; font-size: 12px; }
+  .seat .n { flex: 1; line-height: 15px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  .seat .h { font-variant-numeric: tabular-nums; font-weight: 800; color: #ff9aa4; font-size: 11px; }
   .seat .av {
-    width: 19px; height: 19px; flex: none; border-radius: 50%;
+    width: 16px; height: 16px; flex: none; border-radius: 50%;
     display: grid; place-items: center; font-size: 10px; font-weight: 800;
     background: #4a4458; color: #0f0d16;
   }
@@ -275,66 +283,58 @@
   }
   #hint.show { opacity: 1; }
 
-  /* ── 하단 바 ───────────────────────────────────────── */
-  /* 목재 판 위에 두 층.
-     위: 레벨/XP · 티어 확률 · 보유 골드 · 연승연패 · 잠금
-     아래: 경험치 구매·새로고침 (세로 2단) · 상점 카드 5장
-     전투 시작 버튼은 없다 — 배치 시간이 0 이 되면 스스로 시작한다. */
-  #shopbar {
-    flex: none; height: var(--shopH);
-    display: grid; grid-template-rows: 28px 1fr; grid-template-columns: 128px 1fr;
-    gap: 5px 6px;
-    border-style: solid; border-width: 12px; border-image-slice: 6 fill;
-    border-image-repeat: repeat; border-image-source: url('/assets/ui/panel_wood.png');
-    image-rendering: pixelated;
-    transition: filter .12s;
+  /* ── 정보 줄 (판 위에 뜬다) ────────────────────────── */
+  /* 레벨 · 확률 · 골드 · 연승 · 잠금은 **상점 판 안에 넣지 않는다.**
+     같은 갈색 판에 묶으면 "상점의 일부"로 읽히는데, 이건 내 상태지
+     상점 물건이 아니다. 판 위에 각자 자기 틀을 쓰고 뜬다. */
+  #hudbar {
+    position: absolute; left: 6px; right: 6px; bottom: 6px; z-index: 6;
+    display: flex; align-items: center; gap: 6px;
   }
-  #shopbar.selling { filter: hue-rotate(-25deg) saturate(1.8) brightness(1.15); }
+  #hudbar > * { flex: none; }
 
-  /* 위층 ─ 좌: 레벨 + XP */
   #lvbox {
-    display: flex; flex-direction: column; justify-content: center; gap: 2px; padding: 0 2px;
+    line-height: 1;
+    display: flex; align-items: center; gap: 7px; height: 30px; padding: 0 4px;
     border-style: solid; border-width: 6px; border-image-slice: 6 fill;
     border-image-repeat: repeat; border-image-source: url('/assets/ui/panel_dark.png');
     image-rendering: pixelated;
   }
-  #lvl { font-size: 14px; font-weight: 800; color: var(--gold); line-height: 1; }
+  #lvl { font-size: 15px; font-weight: 800; color: var(--gold); line-height: 1; }
   #lvl::after { content: '레벨'; font-size: 10px; font-weight: 600; color: #b3a894; margin-left: 2px; }
-  #xprow { display: flex; align-items: center; gap: 4px; }
-  #xpbar { flex: 1; height: 4px; border-radius: 2px; background: #00000080; overflow: hidden; }
+  #xprow { display: flex; flex-direction: column; gap: 2px; width: 52px; }
+  #xpbar { height: 5px; border-radius: 2px; background: #00000080; overflow: hidden; }
   #xpbar i { display: block; height: 100%; width: 0; background: linear-gradient(90deg, #3aa0d8, var(--xp)); }
-  #xptext { font-size: 9px; color: #b3a894; font-variant-numeric: tabular-nums; }
+  #xptext { font-size: 9px; color: #b3a894; font-variant-numeric: tabular-nums; text-align: center; }
 
-  /* 위층 ─ 우 */
-  #topline { display: flex; align-items: center; gap: 8px; min-width: 0; padding-right: 2px; }
-
-  /* 티어 확률. 참고용 숫자다 — 크게 잡으면 상점 카드보다 눈에 먼저 든다.
-     칸을 고정 폭으로 작게 두고 색만 티어를 알린다. */
-  #odds { display: flex; gap: 2px; flex: none; }
+  /* 티어 확률. 참고용 숫자다 — 크게 잡으면 상점 카드보다 눈에 먼저 든다. */
+  #odds { display: flex; gap: 2px; }
   #odds span {
-    width: 27px; height: 15px;
+    width: 27px; height: 22px;
     display: flex; align-items: center; justify-content: center;
-    border-radius: 2px; font-size: 10px; font-weight: 800;
+    border-radius: 2px; font-size: 11px; font-weight: 800;
     font-variant-numeric: tabular-nums; color: #12100c; background: var(--oc);
+    box-shadow: 0 1px 3px #0007;
   }
-  #odds span.zero { color: #6a6252; background: #00000055; }
+  #odds span.zero { color: #8a8272; background: #1a1710e0; }
 
   #gold {
-    display: flex; align-items: center; gap: 5px; padding: 0 3px; height: 24px;
+    line-height: 1;
+    display: flex; align-items: center; gap: 5px; height: 30px; padding: 0 4px;
     border-style: solid; border-width: 6px; border-image-slice: 6 fill;
     border-image-repeat: repeat; border-image-source: url('/assets/ui/panel_dark.png');
     image-rendering: pixelated;
-    font-size: 15px; font-weight: 800; color: var(--gold); font-variant-numeric: tabular-nums;
+    font-size: 16px; font-weight: 800; color: var(--gold); font-variant-numeric: tabular-nums;
   }
   #gold::before {
-    content: ''; width: 12px; height: 12px; border-radius: 50%; flex: none;
+    content: ''; width: 13px; height: 13px; border-radius: 50%; flex: none;
     background: radial-gradient(circle at 35% 30%, #ffe9a8, #c9932c);
   }
 
   /* 연승·연패. 다음 라운드 수입이 이걸로 갈리는데 화면에 없었다. */
   #streak {
-    flex: 1; min-width: 0;
-    display: flex; align-items: center; gap: 5px; height: 24px; padding: 0 2px;
+    line-height: 1;
+    display: flex; align-items: center; gap: 5px; height: 30px; padding: 0 6px;
     border-style: solid; border-width: 6px; border-image-slice: 6 fill;
     border-image-repeat: repeat; border-image-source: url('/assets/ui/plate_m.png');
     image-rendering: pixelated;
@@ -346,8 +346,9 @@
   #streak.lose b { color: #ffa8b3; }
 
   #lock {
-    flex: none; width: 70px; height: 24px;
-    display: flex; align-items: center; justify-content: center; gap: 4px;
+    margin-left: auto; line-height: 1;
+    display: flex; align-items: center; justify-content: center; gap: 5px;
+    width: 78px; height: 30px;
     border-style: solid; border-width: 6px; border-image-slice: 6 fill;
     border-image-repeat: repeat; border-image-source: url('/assets/ui/button.png');
     image-rendering: pixelated;
@@ -357,10 +358,22 @@
   #lock.on { border-image-source: url('/assets/ui/button_light.png'); color: #5a4212; }
   #lock.on .st { opacity: 1; }
 
-  /* 아래층 ─ 좌: 경험치 구매 · 새로고침 */
-  #sidebtns { display: flex; flex-direction: column; gap: 4px; }
+  /* ── 상점 판 ───────────────────────────────────────── */
+  /* 이 판에는 **살 것만** 들어간다. 카드와 그걸 굴리는 버튼 둘. */
+  #shopbar {
+    flex: none; height: var(--shopH);
+    display: flex; align-items: stretch; gap: 6px;
+    border-style: solid; border-width: 12px; border-image-slice: 6 fill;
+    border-image-repeat: repeat; border-image-source: url('/assets/ui/panel_wood.png');
+    image-rendering: pixelated;
+    transition: filter .12s;
+  }
+  #shopbar.selling { filter: hue-rotate(-25deg) saturate(1.8) brightness(1.15); }
+
+  #sidebtns { width: 124px; flex: none; display: flex; flex-direction: column; gap: 5px; }
   .btn {
-    flex: 1; display: flex; align-items: center; justify-content: center; gap: 6px;
+    flex: 1; line-height: 1;
+    display: flex; align-items: center; justify-content: center; gap: 6px;
     border-style: solid; border-width: 6px; border-image-slice: 6 fill;
     border-image-repeat: repeat; border-image-source: url('/assets/ui/button.png');
     image-rendering: pixelated;
@@ -377,8 +390,7 @@
   .btn:active { transform: translateY(1px); }
   .btn:disabled { filter: grayscale(.7) brightness(.62); cursor: default; }
 
-  /* 아래층 ─ 우: 상점 카드 */
-  #shop { display: flex; gap: 5px; min-width: 0; padding-right: 2px; }
+  #shop { flex: 1; display: flex; gap: 5px; min-width: 0; }
   .card {
     --tc: var(--t1);
     flex: 1; min-width: 0; position: relative; overflow: hidden;
@@ -390,27 +402,27 @@
   .card:not(.empty):active { transform: translateY(1px); }
   .card.poor { filter: grayscale(.5) brightness(.72); }
   .card .art {
-    position: absolute; left: 3px; right: 3px; top: 2px; bottom: 20px;
+    position: absolute; left: 0; right: 0; top: 0; bottom: 17px;
     display: grid; place-items: center;
   }
   .card .art img {
-    width: 100%; height: 100%; object-fit: contain; transform: scale(1.18);
+    width: 100%; height: 100%; object-fit: contain; transform: scale(1.2);
     filter: drop-shadow(0 3px 5px #0009);
   }
   /* 시너지는 좌상단에 줄로 세운다 — 이름띠 위에 붙이면 자리가 없다. */
   .card .tr {
-    position: absolute; left: 6px; top: 3px; display: flex; flex-direction: column; gap: 0;
+    position: absolute; left: 1px; top: 0; display: flex; flex-direction: column; gap: 0;
     font-size: 9px; line-height: 1.25; color: #4a3a1c; font-weight: 700;
   }
   .card .nm {
-    position: absolute; left: 0; right: 0; bottom: 0; height: 19px;
+    position: absolute; left: 0; right: 0; bottom: 0; height: 17px; line-height: 17px;
     display: flex; align-items: center; justify-content: center;
     background: var(--tc); color: #14101c;
-    font-size: 12px; font-weight: 800; letter-spacing: -.3px;
+    font-size: 11px; font-weight: 800; letter-spacing: -.3px;
     overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
   }
   .card .pr {
-    position: absolute; right: 4px; top: 3px; z-index: 2;
+    position: absolute; right: 0; top: 0; z-index: 2;
     display: flex; align-items: center; gap: 3px;
     padding: 1px 5px 1px 3px; border-radius: 9px;
     background: #12101cee; box-shadow: inset 0 0 0 1px #6b5230;
@@ -467,10 +479,10 @@
           <span id="roundtag" class="h3">1-1</span>
           <span id="track"></span>
           <span id="timer">30</span>
+          <span id="pop">0/3</span>
         </div>
       </div>
-      <span id="hp" class="n9">40</span>
-      <span id="pop" class="n9">0 / 3</span>
+      <span id="hp">40</span>
       <span id="alive"></span>
 
       <div id="traits"></div>
@@ -481,26 +493,24 @@
       <div id="peek" hidden></div>
       <div id="hint"></div>
       <button id="bspeed" hidden>1x</button>
+
+      <div id="hudbar">
+        <div id="lvbox">
+          <span id="lvl">3</span>
+          <span id="xprow"><span id="xpbar"><i></i></span><span id="xptext">0/2</span></span>
+        </div>
+        <div id="odds"></div>
+        <div id="gold"><span id="goldval">0</span></div>
+        <div id="streak"></div>
+        <button id="lock"><b>잠금</b><span class="st">해제</span></button>
+      </div>
     </div>
 
-    <div id="shopbar" class="n9">
-      <div id="lvbox" class="n9">
-        <span id="lvl">3</span>
-        <span id="xprow"><span id="xpbar"><i></i></span><span id="xptext">0/2</span></span>
-      </div>
-
-      <div id="topline">
-        <div id="odds"></div>
-        <div id="gold" class="n9"><span id="goldval">0</span></div>
-        <div id="streak" class="h3"></div>
-        <button id="lock" class="n9"><b>잠금</b><span class="st">해제</span></button>
-      </div>
-
+    <div id="shopbar">
       <div id="sidebtns">
-        <button class="btn n9" id="buyxp">경험치 구매<span class="cost">4</span></button>
-        <button class="btn n9" id="reroll">새로고침<span class="cost">2</span></button>
+        <button class="btn" id="buyxp">경험치 구매<span class="cost">4</span></button>
+        <button class="btn" id="reroll">새로고침<span class="cost">2</span></button>
       </div>
-
       <div id="shop"></div>
     </div>
   </div>
