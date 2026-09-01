@@ -1,0 +1,15 @@
+{
+  "startGold": 5,
+  "startHp": 40,
+  "baseIncome": 5,
+  "winBonus": 1,
+  "interest": { "per": 10, "max": 5 },
+  "streak": [
+    { "atLeast": 2, "gold": 1 },
+    { "atLeast": 3, "gold": 2 },
+    { "atLeast": 4, "gold": 3 },
+    { "atLeast": 5, "gold": 4 }
+  ],
+  "sell": { "multiplier": [1, 3, 9], "penalty": [0, 1, 1] },
+  "benchSlots": 9
+}

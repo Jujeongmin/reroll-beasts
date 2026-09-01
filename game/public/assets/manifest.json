@@ -1,0 +1,342 @@
+{
+  "units": {
+    "green_blob": {
+      "base": "Blob_GreenBlob.gltf",
+      "evolved": null,
+      "anims": {
+        "idle": "Idle",
+        "run": "Walk",
+        "attack": "Bite_Front",
+        "hit": "HitRecieve",
+        "death": "Death"
+      }
+    },
+    "pink_blob": {
+      "base": "Blob_PinkBlob.gltf",
+      "evolved": null,
+      "anims": {
+        "idle": "Idle",
+        "run": "Walk",
+        "attack": "Bite_Front",
+        "hit": "HitRecieve",
+        "death": "Death"
+      }
+    },
+    "cat": {
+      "base": "Blob_Cat.gltf",
+      "evolved": null,
+      "anims": {
+        "idle": "Idle",
+        "run": "Walk",
+        "attack": "Bite_Front",
+        "hit": "HitRecieve",
+        "death": "Death"
+      }
+    },
+    "chicken": {
+      "base": "Blob_Chicken.gltf",
+      "evolved": null,
+      "anims": {
+        "idle": "Idle",
+        "run": "Walk",
+        "attack": "Bite_Front",
+        "hit": "HitRecieve",
+        "death": "Death"
+      }
+    },
+    "mushnub": {
+      "base": "Blob_Mushnub.gltf",
+      "evolved": "Blob_Mushnub_Evolved.gltf",
+      "anims": {
+        "idle": "Idle",
+        "run": "Walk",
+        "attack": "Bite_Front",
+        "hit": "HitRecieve",
+        "death": "Death"
+      }
+    },
+    "pigeon": {
+      "base": "Flying_Pigeon.gltf",
+      "evolved": null,
+      "anims": {
+        "idle": "Flying_Idle",
+        "run": "Fast_Flying",
+        "attack": "Headbutt",
+        "hit": "HitReact",
+        "death": "Death"
+      }
+    },
+    "goleling": {
+      "base": "Flying_Goleling.gltf",
+      "evolved": "Flying_Goleling_Evolved.gltf",
+      "anims": {
+        "idle": "Flying_Idle",
+        "run": "Fast_Flying",
+        "attack": "Headbutt",
+        "hit": "HitReact",
+        "death": "Death"
+      }
+    },
+    "bunny": {
+      "base": "Big_Bunny.gltf",
+      "evolved": null,
+      "anims": {
+        "idle": "Idle",
+        "run": "Run",
+        "attack": "Punch",
+        "hit": "HitReact",
+        "death": "Death"
+      }
+    },
+    "spiky_blob": {
+      "base": "Blob_GreenSpikyBlob.gltf",
+      "evolved": null,
+      "anims": {
+        "idle": "Idle",
+        "run": "Walk",
+        "attack": "Bite_Front",
+        "hit": "HitRecieve",
+        "death": "Death"
+      }
+    },
+    "cactoro_blob": {
+      "base": "Blob_Cactoro.gltf",
+      "evolved": null,
+      "anims": {
+        "idle": "Idle",
+        "run": "Walk",
+        "attack": "Bite_Front",
+        "hit": "HitRecieve",
+        "death": "Death"
+      }
+    },
+    "cactoro_big": {
+      "base": "Big_Cactoro.gltf",
+      "evolved": null,
+      "anims": {
+        "idle": "Idle",
+        "run": "Run",
+        "attack": "Punch",
+        "hit": "HitReact",
+        "death": "Death"
+      }
+    },
+    "glub": {
+      "base": "Flying_Glub.gltf",
+      "evolved": "Flying_Glub_Evolved.gltf",
+      "anims": {
+        "idle": "Flying_Idle",
+        "run": "Fast_Flying",
+        "attack": "Headbutt",
+        "hit": "HitReact",
+        "death": "Death"
+      }
+    },
+    "armabee": {
+      "base": "Flying_Armabee.gltf",
+      "evolved": "Flying_Armabee_Evolved.gltf",
+      "anims": {
+        "idle": "Flying_Idle",
+        "run": "Fast_Flying",
+        "attack": "Headbutt",
+        "hit": "HitReact",
+        "death": "Death"
+      }
+    },
+    "ghost": {
+      "base": "Flying_Ghost.gltf",
+      "evolved": null,
+      "anims": {
+        "idle": "Flying_Idle",
+        "run": "Fast_Flying",
+        "attack": "Headbutt",
+        "hit": "HitReact",
+        "death": "Death"
+      }
+    },
+    "frog": {
+      "base": "Big_Frog.gltf",
+      "evolved": null,
+      "anims": {
+        "idle": "Idle",
+        "run": "Run",
+        "attack": "Punch",
+        "hit": "HitReact",
+        "death": "Death"
+      }
+    },
+    "wizard": {
+      "base": "Blob_Wizard.gltf",
+      "evolved": null,
+      "anims": {
+        "idle": "Idle",
+        "run": "Walk",
+        "attack": "Bite_Front",
+        "hit": "HitRecieve",
+        "death": "Death"
+      }
+    },
+    "alpaking": {
+      "base": "Flying_Alpaking.gltf",
+      "evolved": "Flying_Alpaking_Evolved.gltf",
+      "anims": {
+        "idle": "Flying_Idle",
+        "run": "Fast_Flying",
+        "attack": "Headbutt",
+        "hit": "HitReact",
+        "death": "Death"
+      }
+    },
+    "ghost_skull": {
+      "base": "Flying_Ghost_Skull.gltf",
+      "evolved": null,
+      "anims": {
+        "idle": "Flying_Idle",
+        "run": "Fast_Flying",
+        "attack": "Headbutt",
+        "hit": "HitReact",
+        "death": "Death"
+      }
+    },
+    "orc": {
+      "base": "Big_Orc.gltf",
+      "evolved": null,
+      "anims": {
+        "idle": "Idle",
+        "run": "Run",
+        "attack": "Punch",
+        "hit": "HitReact",
+        "death": "Death"
+      }
+    },
+    "ninja": {
+      "base": "Big_Ninja.gltf",
+      "evolved": null,
+      "anims": {
+        "idle": "Idle",
+        "run": "Run",
+        "attack": "Punch",
+        "hit": "HitReact",
+        "death": "Death"
+      }
+    },
+    "yeti": {
+      "base": "Big_Yeti.gltf",
+      "evolved": null,
+      "anims": {
+        "idle": "Idle",
+        "run": "Run",
+        "attack": "Punch",
+        "hit": "HitReact",
+        "death": "Death"
+      }
+    },
+    "mushroom_king": {
+      "base": "Big_MushroomKing.gltf",
+      "evolved": null,
+      "anims": {
+        "idle": "Idle",
+        "run": "Run",
+        "attack": "Punch",
+        "hit": "HitReact",
+        "death": "Death"
+      }
+    },
+    "orc_skull": {
+      "base": "Big_Orc_Skull.gltf",
+      "evolved": null,
+      "anims": {
+        "idle": "Idle",
+        "run": "Run",
+        "attack": "Punch",
+        "hit": "HitReact",
+        "death": "Death"
+      }
+    },
+    "dragon": {
+      "base": "Flying_Dragon.gltf",
+      "evolved": "Flying_Dragon_Evolved.gltf",
+      "anims": {
+        "idle": "Flying_Idle",
+        "run": "Fast_Flying",
+        "attack": "Headbutt",
+        "hit": "HitReact",
+        "death": "Death"
+      }
+    },
+    "blue_demon": {
+      "base": "Big_BlueDemon.gltf",
+      "evolved": null,
+      "anims": {
+        "idle": "Idle",
+        "run": "Run",
+        "attack": "Punch",
+        "hit": "HitReact",
+        "death": "Death"
+      }
+    },
+    "dino": {
+      "base": "Big_Dino.gltf",
+      "evolved": null,
+      "anims": {
+        "idle": "Idle",
+        "run": "Run",
+        "attack": "Punch",
+        "hit": "HitReact",
+        "death": "Death"
+      }
+    }
+  },
+  "hex": {
+    "hex_grass": "hex_grass.gltf",
+    "hex_water": "hex_water.gltf"
+  },
+  "decor": {
+    "water": [
+      "waterlily_A.gltf",
+      "waterlily_B.gltf",
+      "waterplant_A.gltf",
+      "waterplant_B.gltf",
+      "waterplant_C.gltf"
+    ],
+    "land": [
+      "tree_single_A.gltf",
+      "tree_single_B.gltf",
+      "trees_A_small.gltf",
+      "trees_B_small.gltf",
+      "rock_single_A.gltf",
+      "rock_single_C.gltf"
+    ]
+  },
+  "ui": {
+    "tiles": [
+      "panel_wood",
+      "panel_parch",
+      "panel_dark",
+      "panel_steel",
+      "button",
+      "button_light",
+      "hex_slot",
+      "hex_unit",
+      "hex_empty",
+      "hex_hot",
+      "hex_sell",
+      "disc",
+      "banner_l",
+      "banner_m",
+      "banner_r",
+      "plate_l",
+      "plate_m",
+      "plate_r"
+    ],
+    "slice": {
+      "note": "9-슬라이스로 늘릴 타일의 테두리 두께(px). 32px 원본 기준. 육각·원형은 늘려 쓰므로 여기 없다.",
+      "panel_wood": 6,
+      "panel_parch": 6,
+      "panel_dark": 6,
+      "panel_steel": 6,
+      "button": 6,
+      "button_light": 6
+    }
+  }
+}

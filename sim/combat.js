@@ -106,6 +106,7 @@ function buildCombatants(entries, team, data, board) {
       buffs: [],
       targetId: null,
       attackCooldown: 0,
+      moveCooldown: 0,
       stats,
     }
   })
@@ -140,7 +141,18 @@ export function simulate({ boardA, boardB, seed, data }) {
   })
 
   for (const c of all) {
-    log.push({ tick: 0, type: 'spawn', casterId: c.id, unitId: c.unitId, team: c.team, tile: c.tile, star: c.star })
+    // maxHp 를 실어 보낸다. 없으면 재생 쪽이 로그의 피해 총합으로 역산해야 하는데,
+    // 끝까지 살아남은 유닛은 하한만 나와 HP 바가 틀린 값을 그린다.
+    log.push({
+      tick: 0,
+      type: 'spawn',
+      casterId: c.id,
+      unitId: c.unitId,
+      team: c.team,
+      tile: c.tile,
+      star: c.star,
+      maxHp: c.maxHp,
+    })
   }
 
   const aliveCount = (team) => all.filter((c) => c.alive && c.team === team).length
@@ -195,11 +207,21 @@ export function simulate({ boardA, boardB, seed, data }) {
       const range = effectiveStat(c, 'range')
 
       if (dist > range) {
-        const next = stepToward(board, c, target, occupied)
+        // 이동에도 공격과 같은 주기가 있다. 없으면 틱마다 한 칸씩 —
+        // 초당 30칸이라 판을 0.2초에 가로지르고, 화면에서는 순간이동으로 보인다.
+        if (c.moveCooldown > 0) {
+          c.moveCooldown--
+          continue
+        }
+        // 사거리를 넘긴다 — 목적지는 타겟의 칸이 아니라 **때릴 수 있는 칸**이다.
+        const next = stepToward(board, c, target, occupied, range)
         if (next !== null) {
           occupied.delete(c.tile)
           c.tile = next
           occupied.set(next, c.id)
+          // 공격 쿨다운과 같은 이유로 1 을 뺀다: 내리는 틱은 움직이지 못하므로
+          // 그대로 두면 실제 주기가 moveInterval+1 이 된다.
+          c.moveCooldown = Math.max(0, cfg.moveInterval - 1)
           log.push({ tick, type: 'move', casterId: c.id, tile: next })
         }
         continue

@@ -1,5 +1,6 @@
 {
   "tickRate": 30,
+  "moveInterval": 9,
   "maxTicks": 1800,
   "starMultiplier": [
     1,
@@ -88,6 +89,14 @@
       "attackInterval": 38,
       "manaStart": 10
     }
+  },
+  "classScale": {
+    "tank": 1.12,
+    "fighter": 1.04,
+    "shooter": 0.94,
+    "mage": 0.88,
+    "assassin": 0.92,
+    "revive": 1
   },
   "classModifier": {
     "tank": {

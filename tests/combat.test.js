@@ -252,3 +252,35 @@ describe('resolveTimeout', () => {
     expect(resolveTimeout(0, 0)).toBe('draw')
   })
 })
+
+describe('이동 주기', () => {
+  // 멀리 떨어뜨려 실제로 걸어오게 만든다.
+  const farA = team([['pink_blob', 3, 0]])
+  const farB = team([['pink_blob', 3, 0]])
+
+  const moveTicks = (moveInterval) => {
+    const cfg = structuredClone(data)
+    cfg.combat.moveInterval = moveInterval
+    const r = simulate({ boardA: farA, boardB: farB, seed: 1, data: cfg })
+    return r.log.filter((e) => e.type === 'move' && e.casterId === 0).map((e) => e.tick)
+  }
+
+  it('한 칸 이동 사이 간격이 moveInterval 과 정확히 같다', () => {
+    const ticks = moveTicks(9)
+    expect(ticks.length).toBeGreaterThan(2)
+    const gaps = ticks.slice(1).map((t, i) => t - ticks[i])
+    // interval 로만 두면 실제 주기가 interval+1 이 된다 — 쿨다운을 내리는 틱은
+    // 움직이지 못하기 때문이다. 그래서 combat.js 가 1 을 뺀다.
+    expect([...new Set(gaps)]).toEqual([9])
+  })
+
+  it('moveInterval 을 키우면 간격이 따라 커진다', () => {
+    // 값을 바꿔도 결과가 같으면 쿨다운이 실제로 걸려 있지 않다는 뜻이다.
+    const gapOf = (n) => {
+      const t = moveTicks(n)
+      return t[1] - t[0]
+    }
+    expect(gapOf(4)).toBe(4)
+    expect(gapOf(15)).toBe(15)
+  })
+})

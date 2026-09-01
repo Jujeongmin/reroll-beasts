@@ -1,0 +1,45 @@
+{
+  "stages": [
+    { "rounds": 3, "damage": 0, "pveRounds": [1, 2, 3] },
+    { "rounds": 5, "damage": 2, "pveRounds": [5] },
+    { "rounds": 5, "damage": 3, "pveRounds": [5] },
+    { "rounds": 5, "damage": 5, "pveRounds": [5] },
+    { "rounds": 5, "damage": 7, "pveRounds": [5] }
+  ],
+  "pve": [
+    {
+      "star": 1,
+      "count": 3,
+      "units": ["green_blob", "chicken", "mushnub", "pigeon", "bunny"]
+    },
+    {
+      "star": 1,
+      "count": 5,
+      "units": ["spiky_blob", "glub", "armabee", "frog", "cactoro_blob", "ghost"]
+    },
+    {
+      "star": 2,
+      "count": 6,
+      "units": ["ghost", "orc", "ninja", "wizard", "alpaking", "ghost_skull"]
+    },
+    {
+      "star": 2,
+      "count": 7,
+      "units": ["yeti", "mushroom_king", "orc_skull", "orc", "ninja", "wizard", "frog"]
+    },
+    {
+      "star": 2,
+      "count": 8,
+      "units": [
+        "dragon",
+        "blue_demon",
+        "dino",
+        "yeti",
+        "orc_skull",
+        "mushroom_king",
+        "wizard",
+        "ninja"
+      ]
+    }
+  ]
+}

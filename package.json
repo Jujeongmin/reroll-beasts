@@ -1,5 +1,5 @@
 {
-  "name": "reroll-royale",
+  "name": "reroll-beasts",
   "private": true,
   "version": "0.1.0",
   "type": "module",
@@ -9,17 +9,16 @@
     "validate": "node tools/validate.mjs",
     "check": "npm run validate && npm test",
     "sim": "node sim/run.mjs",
-    "art": "node tools/check-art.mjs && node tools/verify-sprite-map.mjs && node tools/build-assets.mjs",
+    "art": "node tools/verify-model-map.mjs && node tools/build-assets.mjs",
     "dev": "vite",
     "build": "vite build",
     "preview": "vite preview"
   },
   "devDependencies": {
-    "pngjs": "^7.0.0",
-    "vitest": "^2.1.0",
-    "vite": "^5.4.21"
+    "vite": "^5.4.21",
+    "vitest": "^2.1.0"
   },
   "dependencies": {
-    "pixi.js": "^8.20.1"
+    "three": "^0.185.1"
   }
 }
