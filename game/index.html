@@ -298,23 +298,27 @@
   #hudL { display: flex; align-items: center; gap: 6px; justify-self: start; }
   #hudR { display: flex; align-items: center; gap: 6px; justify-self: end; }
 
+  /* panel_dark 는 금속 모서리쇠와 **가운데 판자 이음선**이 있는 궤짝이다.
+     38px 높이에서는 그 이음선이 글자 한가운데를 가로지르고 모서리쇠가
+     양끝을 먹어, 숫자가 아니라 상자가 먼저 읽힌다. 무늬 없는 판으로 바꾼다.
+     차가운 강철 = 내 상태(레벨·연승), 따뜻한 나무 = 재화(골드). */
   #lvbox {
     display: flex; align-items: center; gap: 8px; height: 38px; padding: 0 6px;
     border-style: solid; border-width: 6px; border-image-slice: 6 fill;
-    border-image-repeat: repeat; border-image-source: url('/assets/ui/panel_dark.png');
+    border-image-repeat: repeat; border-image-source: url('/assets/ui/panel_steel.png');
     image-rendering: pixelated;
   }
-  #lvl { font-size: 17px; font-weight: 800; color: var(--gold); line-height: 24px; white-space: nowrap; }
-  #lvl::after { content: '레벨'; font-size: 11px; font-weight: 600; color: #b3a894; margin-left: 2px; }
+  #lvl { font-size: 17px; font-weight: 800; color: #1d2a3d; line-height: 24px; white-space: nowrap; }
+  #lvl::after { content: '레벨'; font-size: 11px; font-weight: 600; color: #46586f; margin-left: 2px; }
   /* 한 줄로 눕힌다. 22px 안쪽에 두 줄을 넣으면 9px 글자가 되어 안 읽힌다. */
   #xprow { display: flex; align-items: center; }
   /* 막대는 뺐다. 0% 일 때 가운데를 가로지르는 선으로만 읽힌다. */
   #xpbar { display: none; }
   #xptext {
-    font-size: 13px; line-height: 24px; color: var(--xp); font-weight: 700;
+    font-size: 13px; line-height: 24px; color: #1a4a78; font-weight: 800;
     font-variant-numeric: tabular-nums;
   }
-  #xptext::before { content: 'XP '; font-size: 10px; color: #b3a894; font-weight: 600; }
+  #xptext::before { content: 'XP '; font-size: 10px; color: #46586f; font-weight: 600; }
 
   /* 티어 확률. 참고용 숫자다 — 크게 잡으면 상점 카드보다 눈에 먼저 든다. */
   #odds { display: flex; gap: 2px; }
@@ -331,9 +335,10 @@
     line-height: 24px;
     display: flex; align-items: center; gap: 6px; height: 38px; padding: 0 10px;
     border-style: solid; border-width: 6px; border-image-slice: 6 fill;
-    border-image-repeat: repeat; border-image-source: url('/assets/ui/panel_dark.png');
+    border-image-repeat: repeat; border-image-source: url('/assets/ui/panel_wood.png');
     image-rendering: pixelated;
-    font-size: 19px; font-weight: 800; color: var(--gold); font-variant-numeric: tabular-nums;
+    font-size: 19px; font-weight: 800; color: #ffe9a8; font-variant-numeric: tabular-nums;
+    text-shadow: 0 1px 2px #00000090;
   }
   #gold::before {
     content: ''; width: 15px; height: 15px; border-radius: 50%; flex: none;
@@ -345,14 +350,13 @@
     line-height: 16px;
     display: flex; align-items: center; gap: 5px; height: 38px; padding: 0 8px;
     border-style: solid; border-width: 6px; border-image-slice: 6 fill;
-    border-image-repeat: repeat; border-image-source: url('/assets/ui/plate_m.png');
+    border-image-repeat: repeat; border-image-source: url('/assets/ui/panel_steel.png');
     image-rendering: pixelated;
-    font-size: 11px; font-weight: 700; white-space: nowrap; color: #ffffff;
-    text-shadow: 0 1px 2px #000, 0 0 3px #0009;
+    font-size: 11px; font-weight: 700; white-space: nowrap; color: #1d2a3d;
   }
   #streak b { font-variant-numeric: tabular-nums; font-size: 13px; }
-  #streak.win b { color: #8ff0bb; }
-  #streak.lose b { color: #ffa8b3; }
+  #streak.win b { color: #14733f; }
+  #streak.lose b { color: #9c2436; }
 
   #lock {
     line-height: 16px;
