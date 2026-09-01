@@ -485,6 +485,10 @@
     -webkit-mask: url('/assets/ui/gem.png') center / contain no-repeat;
     mask: url('/assets/ui/gem.png') center / contain no-repeat;
   }
+  /* 자릿수가 달라 폭이 흔들리면 다섯 칸이 줄을 안 선다. 폭을 못 박고 가운데. */
+  #odds span b {
+    width: 26px; text-align: center; font-weight: 800;
+  }
   #odds span.zero { color: #8d8371; }
   #odds span.zero i { background: #6b6353; opacity: .5; }
 
@@ -667,9 +671,11 @@
     position: absolute; left: 0; right: 0; bottom: 0; height: 22px; z-index: 2;
     display: flex; align-items: center; justify-content: space-between; gap: 4px;
     padding: 0 5px;
+    /* 반투명. 불투명하면 초상화 발밑이 통째로 잘려 나간다 —
+       아트를 키워 넘치게 두는 방식과 맞물려 더 티가 난다. */
     background: linear-gradient(180deg,
-      color-mix(in srgb, var(--tc) 66%, #0c0a12),
-      color-mix(in srgb, var(--tc) 42%, #0c0a12));
+      color-mix(in srgb, var(--tc) 62%, #0c0a12cc),
+      color-mix(in srgb, var(--tc) 40%, #0c0a12b3));
     box-shadow: inset 0 1px 0 #ffffff2e;
     font-size: 11px; line-height: 22px; font-weight: 800; color: #fff;
     letter-spacing: -.3px; text-shadow: 0 1px 2px #000a;
@@ -686,15 +692,6 @@
   }
 
   /* ── 전투 조작 ─────────────────────────────────────── */
-  #bspeed {
-    position: absolute; right: 8px; bottom: 8px; z-index: 6;
-    min-width: 30px; padding: 4px 2px; color: #f3ecdd;
-    border-style: solid; border-width: 10px; border-image-slice: 6;
-    border-image-source: url('/assets/ui/button.png');
-    background: #c58747; image-rendering: pixelated;
-    font-size: 13px; font-weight: 700; text-shadow: 0 1px 2px #0009;
-  }
-  #bspeed[hidden] { display: none; }
   .teamA { color: var(--team-a); }
   .teamB { color: var(--team-b); }
 
@@ -754,7 +751,6 @@
       <div id="info" class="panel" hidden></div>
       <div id="traitinfo" class="panel" hidden></div>
       <div id="hint"></div>
-      <button id="bspeed" hidden>1x</button>
 
       <div id="hudbar">
         <div id="hudL">

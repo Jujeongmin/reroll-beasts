@@ -77,3 +77,22 @@ describe('시너지 상세', () => {
     expect(traitById(data.traits, '없는시너지')).toBeNull()
   })
 })
+
+describe('효과 문장 위생', () => {
+  it('모든 시너지 단계 문장에 [object Object] · undefined · NaN 이 없다', () => {
+    // 값이 객체({hpPct,perRound})인 키를 숫자처럼 끼우면 여기서 걸린다 —
+    // 실제로 부활·망자가 "체력 [object Object]%" 로 떠 있었다.
+    const groups = [...data.traits.origins, ...data.traits.classes]
+    const bad = []
+    for (const g of groups) {
+      for (const [i, eff] of g.effects.entries()) {
+        const text = effectText(eff)
+        const dirty = ['[object', 'undefined', 'NaN'].filter((x) => text.includes(x))
+        if (dirty.length > 0) bad.push(`${g.id}[${i}]: ${text}`)
+        if (text.trim() === '') bad.push(`${g.id}[${i}]: 빈 문장`)
+      }
+    }
+    expect(bad).toEqual([])
+  })
+})
+

@@ -37,7 +37,8 @@ const RENDER = {
   pierceCount: (v, e) => `뒤쪽 ${v}명에게 ${e.piercePct ?? 100}% 관통`,
   aoeRadius: (v) => `스킬 범위 ${signed(v)}`,
   leapToBackline: () => '전투 시작 시 상대 뒷줄로 도약',
-  revive: (v) => `죽으면 체력 ${v}% 로 한 번 부활`,
+  revive: (v) =>
+    `죽으면 체력 ${v.hpPct}% 로 부활 (라운드당 ${v.perRound}회)`,
   allyDef: (v) => `아군 전체 방어력 ${signed(v)}`,
 }
 

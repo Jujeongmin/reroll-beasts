@@ -421,7 +421,8 @@ export async function createPrep({ data, run, onFight, opponentBoard, onWatch })
         // 색 점 + 숫자. 색칠된 네모에 숫자를 넣으면 다섯 개가 알록달록한 블록
         // 줄이 되어 상점 카드보다 확률표가 눈에 먼저 든다 — 참고용 숫자인데.
         // 점은 색만 나르고 숫자는 배경 없이 읽힌다.
-        d.innerHTML = `<i></i>${pct}%`
+        // 숫자를 따로 감싼다 — 자릿수가 달라도(0% vs 75%) 폭이 같아야 다섯 칸이 줄을 선다.
+        d.innerHTML = `<i></i><b>${pct}%</b>`
         d.style.setProperty('--oc', TIER_COLOR[i])
         if (pct === 0) d.classList.add('zero')
         d.title = `${i + 1}티어 ${pct}%`

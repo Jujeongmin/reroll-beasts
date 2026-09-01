@@ -13,9 +13,9 @@ const TICK_RATE = 30
 const BOLT_COLOR = { mage: 0xb98cff, shooter: 0xffc266 }
 
 export async function createBattle({ data, scene }) {
-  const el = {
-    speed: document.getElementById('bspeed'),
-  }
+  // 한 판을 화면에서 이만큼 안에 끝낸다. 판이 커질수록 틱이 늘어나는데 배속을
+  // 손으로 올리게 두면 매 라운드 같은 버튼을 누르게 된다 — 길이로 정한다.
+  const TARGET_SECONDS = 11
 
   // 전투가 끝나고 결과를 눈으로 확인할 시간. 이만큼 뒤에 스스로 정산으로 넘어간다.
   // 버튼을 누르게 하면 매 라운드 한 번씩 의미 없는 확인 클릭이 쌓인다.
@@ -227,13 +227,16 @@ export async function createBattle({ data, scene }) {
     scene.render()
   }
 
-  // ── 조작 ────────────────────────────────────────────────
-  // 배속 하나만 남긴다. 일시정지·스크럽은 전투를 관람물로 만드는데,
-  // 전투 중에도 상점을 굴려야 하므로 손이 그쪽에 있어야 한다.
-  el.speed.addEventListener('click', () => {
-    speed = speed === 1 ? 2 : speed === 2 ? 4 : 1
-    el.speed.textContent = `${speed}x`
-  })
+  /**
+   * 이 판의 배속. 길면 빨리 감는다.
+   *
+   * 1 · 2 · 4 로만 끊는다 — 1.7배 같은 값은 걷는 동작이 어긋나 보이고,
+   * 무엇보다 사람이 "지금 몇 배속인지"를 못 센다.
+   */
+  function speedFor(ticks) {
+    const want = ticks / TICK_RATE / TARGET_SECONDS
+    return want > 3 ? 4 : want > 1.5 ? 2 : 1
+  }
 
   let acc = 0
   let last = performance.now()
@@ -268,7 +271,10 @@ export async function createBattle({ data, scene }) {
 
   return {
     /** 전투 하나를 무대에 올린다. 배치 화면의 말은 부르는 쪽이 미리 치운다. */
-    async load(nextResult, { onBack } = {}) {
+    /** 지금 재생 위치. 관전에서 판을 갈아탈 때 이어 보려면 필요하다. */
+    tick: () => tick,
+
+    async load(nextResult, { onBack, atTick = 0 } = {}) {
       for (const v of views.values()) v.dispose()
       views = new Map()
 
@@ -292,15 +298,16 @@ export async function createBattle({ data, scene }) {
       }
 
       scene.setBattleMode(true)
-      el.speed.hidden = false
       active = true
       endHold = 0
       resetState()
       tick = 0
+      cursor = 0
       acc = 0
       playing = true
-      speed = 1
-      el.speed.textContent = '1x'
+      speed = speedFor(result.ticks)
+      // 이어보기. seekTo 가 로그를 그 지점까지 한 번에 적용한다.
+      if (atTick > 0) seekTo(Math.min(result.ticks, atTick))
       last = performance.now()
     },
     hide() {
@@ -311,7 +318,6 @@ export async function createBattle({ data, scene }) {
       active = false
       playing = false
       scene.clearBolts()
-      el.speed.hidden = true
       scene.setBattleMode(false)
     },
   }
