@@ -169,6 +169,8 @@ export async function createScene({
   scene.add(sun)
 
   const loader = new GLTFLoader()
+  // 이미지 텍스처 공용 로더. 지형·이펙트가 같이 쓴다.
+  const texLoader = new THREE.TextureLoader()
 
   // ── 육각 보드 ──────────────────────────────────────────────
   const hexProto = (await loader.loadAsync('/assets/hex/hex_grass.gltf')).scene
@@ -423,31 +425,30 @@ export async function createScene({
   const OUT_Z = arena.d * 3.2
 
   // 잔디 평면 한 장. 타일 수백 개 대신 하나라 드로우콜도 하나다.
-  const groundMat = new THREE.MeshStandardMaterial({ color: 0x6f8f45, roughness: 1 })
+  //
+  // 단색이면 종이를 깐 것처럼 보인다. 회색 노이즈를 곱해 얼룩을 만든다 —
+  // 텍스처는 무채색 한 장이고 색은 여기서 입힌다. 반복을 크게 잡아야
+  // 구름 무늬가 뭉치지 않고 잔디처럼 잘게 흩어진다.
+  const groundTex = texLoader.load('/assets/terrain/noise.png')
+  groundTex.colorSpace = THREE.SRGBColorSpace
+  groundTex.wrapS = THREE.RepeatWrapping
+  groundTex.wrapT = THREE.RepeatWrapping
+  groundTex.repeat.set(18, 18)
+  const groundMat = new THREE.MeshStandardMaterial({
+    map: groundTex,
+    color: 0x86a855,
+    roughness: 1,
+  })
   const ground = new THREE.Mesh(new THREE.PlaneGeometry(OUT_X, OUT_Z), groundMat)
   ground.rotation.x = -Math.PI / 2
   ground.position.set(arena.cx, SHORE_Y, arena.cz)
   ground.receiveShadow = true
   surroundGroup.add(ground)
 
-  // 판을 두르는 물띠. 경계를 물로 끊어야 "여기까지가 전장"이 한눈에 읽힌다 —
-  // 육각 물타일을 늘어놓던 자리를 띠 하나가 대신한다.
-  const MOAT_W = spacing.stepX * 1.15
-  const waterMat = new THREE.MeshStandardMaterial({
-    color: 0x2f7fc4,
-    roughness: 0.35,
-    metalness: 0.1,
-  })
-  {
-    const w = arena.w + MOAT_W * 2
-    const d = arena.d + MOAT_W * 2
-    const moat = new THREE.Mesh(new THREE.PlaneGeometry(w, d), waterMat)
-    moat.rotation.x = -Math.PI / 2
-    // 잔디보다 위, 판보다 아래. 판이 물 위에 얹힌 고원이 된다.
-    moat.position.set(arena.cx, SHORE_Y + 0.14, arena.cz)
-    moat.receiveShadow = true
-    surroundGroup.add(moat)
-  }
+  // 물띠는 걷어냈다. 판이 바닥보다 한 단 높아(SLAB_H) 옆면이 그림자와 함께
+  // 경계를 만든다 — 물까지 두르면 테두리가 두 겹이라 판이 액자에 갇힌다.
+  // 여기서 자리를 재는 값만 남긴다.
+  const MOAT_W = spacing.stepX * 0.9
 
   /**
    * 나무·바위를 무리 지어 심는다.
@@ -499,25 +500,6 @@ export async function createScene({
       }
     }
 
-    // 물 위 수련. 띠가 넓어 비면 허전하다 — 판 둘레를 따라 드문드문.
-    if (near.length > 0) {
-      for (let i = 0; i < 16; i++) {
-        const d = near[decorRng.int(near.length)].clone(true)
-        const onX = decorRng.int(2) === 0
-        const t = (decorRng.int(2000) / 1000 - 1) * 0.95
-        const sideSign = decorRng.int(2) === 0 ? -1 : 1
-        const x = arena.cx + (onX ? (t * arena.w) / 2 : sideSign * (arena.w / 2 + MOAT_W * 0.55))
-        const z = arena.cz + (onX ? sideSign * (arena.d / 2 + MOAT_W * 0.55) : (t * arena.d) / 2)
-        d.position.set(x, SHORE_Y + 0.12, z)
-        d.rotation.y = (decorRng.int(360) * Math.PI) / 180
-        d.scale.setScalar(0.7)
-        d.traverse((o) => {
-          if (o.isMesh) o.receiveShadow = true
-        })
-        d.userData.decor = true
-        surroundGroup.add(d)
-      }
-    }
   }
 
   scene.add(surroundGroup)
@@ -961,10 +943,9 @@ export async function createScene({
   // 스프라이트는 **무채색 한 장**을 색만 바꿔 쓴다. 색깔별 파일을 두면 같은
   // 그림이 여덟 벌 생기고, 티어색처럼 값이 바뀔 때마다 다시 뽑아야 한다.
   const fxTex = new Map()
-  const fxLoader = new THREE.TextureLoader()
   function fxTexture(kind) {
     if (!fxTex.has(kind)) {
-      const t = fxLoader.load(`/assets/fx/${kind}.png`)
+      const t = texLoader.load(`/assets/fx/${kind}.png`)
       t.colorSpace = THREE.SRGBColorSpace
       fxTex.set(kind, t)
     }

@@ -254,6 +254,18 @@ export async function buildAssets({ quiet = false } = {}) {
   }
   manifest.fx = Object.keys(FX)
 
+  // ── 지형 텍스처 ────────────────────────────────────────
+  // 판 바깥 잔디는 평면 한 장이다. 단색이면 종이처럼 보이므로 회색 노이즈를
+  // 곱해 얼룩을 만든다 — 색은 코드가 입히니 텍스처는 무채색 한 장이면 된다.
+  const terrainDest = join(OUT, 'terrain')
+  await mkdir(terrainDest, { recursive: true })
+  {
+    const from = join(VILLAGE, '..', 'Textures', 'T_Noise_Terrain.png')
+    const small = downscale(await readFile(from), 256)
+    await writeFile(join(terrainDest, 'noise.png'), small ?? (await readFile(from)))
+    copied++
+  }
+
   await writeFile(join(OUT, 'manifest.json'), JSON.stringify(manifest, null, 2) + '\n')
 
   if (!quiet) {
