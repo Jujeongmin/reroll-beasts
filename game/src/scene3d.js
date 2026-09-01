@@ -13,6 +13,15 @@ import { hexSpacing, buildBoard3D } from './board3d.js'
 // 말이 판을 채워 보인다 — 작게 잡으면 큰 판에 점이 흩어진 그림이 된다.
 const UNIT_FIT = 1.1
 
+// 판 가로 늘이기.
+//
+// 화면은 812×~230 — 3.5:1 이다. 정육각을 그대로 깔면 판의 화면상 가로세로가
+// 거의 1:1 이라, 세로에 맞추는 순간 좌우가 절반이 비어 판이 화면 가운데
+// 우표처럼 남는다. 기울기를 눕혀 세로를 눌러 봐도 머리 여유(cos)가 남아
+// 2:1 을 못 넘는다. 남는 방법은 **칸 자체를 가로로 늘이는 것**이다.
+// 말 크기는 여기 딸려가지 않는다 (아래 unitStep) — 칸만 넓어진다.
+const STRETCH_X = 1.4
+
 // 정규화 강도. 1 이면 모든 모델이 **정확히 같은 폭**이 되는데, 그러면 원본이
 // 작은 모델일수록 더 크게 늘어나 마법사가 예티만 해진다 (젤리 마법사 원본 1.97 →
 // 1.32배 확대, 예티 4.65 → 0.56배 축소). 0 이면 원본 비율 그대로라 편차가 너무 크다.
@@ -44,7 +53,7 @@ const FOG = 0x1b2440
 // 띠는 **바깥으로 몇 칸인지**로 센다. 정규화 비율로 나누면 가로세로 칸 크기가
 // 달라 한쪽 띠가 통째로 경계 밖으로 밀린다 (해자가 좌우에만 생긴다).
 const MOAT_RINGS = 1
-const SHORE_RINGS = 3
+const SHORE_RINGS = 2
 // 물가를 판보다 낮춰 전장을 고원으로 만든다. 같은 높이면 어디까지가 판인지 흐려진다.
 const SHORE_Y = -0.34
 
@@ -57,10 +66,10 @@ export class UnitView {
     const size = box.getSize(new THREE.Vector3())
     // 부분 정규화: 기준 크기로 맞추는 배율을 그대로 쓰지 않고 지수로 눌러
     // 원본의 크기 차이를 얼마쯤 남긴다.
-    const uniform = (spacing.stepX * UNIT_FIT) / Math.max(size.x, size.z)
+    const uniform = (spacing.unitStep * UNIT_FIT) / Math.max(size.x, size.z)
     const shaped = Math.pow(uniform, NORMALIZE)
     const k =
-      Math.min(shaped, (spacing.stepX * UNIT_MAX_H) / size.y) *
+      Math.min(shaped, (spacing.unitStep * UNIT_MAX_H) / size.y) *
       (STAR_SCALE[star - 1] ?? 1) *
       classScale
     model.scale.setScalar(k)
@@ -121,7 +130,7 @@ export class UnitView {
 export async function createScene({
   mount,
   boardCfg,
-  pitchDeg = 42,
+  pitchDeg = 34,
   phase = 'battle',
   benchSlots = 0,
   // 직업별 크기 배율. 마법사는 작고 탱커는 크다 — 규칙은 combat.json 이 갖고
@@ -167,6 +176,10 @@ export async function createScene({
   // **타일 간격을 상수로 박지 않는다.** 모델의 실제 크기를 재서 유도한다.
   const hexBox = new THREE.Box3().setFromObject(hexProto)
   const spacing = hexSpacing(hexBox.getSize(new THREE.Vector3()))
+  // 말 크기·머리 여유·체력바는 **늘이기 전** 칸을 기준으로 잡는다.
+  // 늘어난 stepX 를 쓰면 칸을 넓힌 만큼 말도 같이 커져 아무것도 안 바뀐다.
+  spacing.unitStep = spacing.stepX
+  spacing.stepX *= STRETCH_X
   const board = buildBoard3D(boardCfg, spacing)
   const topY = hexBox.max.y
 
@@ -309,6 +322,8 @@ export async function createScene({
     const g = new THREE.ShapeGeometry(shape)
     // Shape 는 XY 평면에 생긴다. 판 위에 눕힌다.
     g.rotateX(-Math.PI / 2)
+    // 칸을 가로로 늘였으니 그림도 같은 배율로 늘인다.
+    g.scale(STRETCH_X, 1, 1)
     return g
   }
 
@@ -420,6 +435,7 @@ export async function createScene({
       const y = isMoat ? 0 : SHORE_Y
       const tile = (isMoat ? waterProto : hexProto).clone(true)
       tile.position.set(x, y, z)
+      tile.scale.x = STRETCH_X
       tile.traverse((o) => {
         if (!o.isMesh) return
         o.receiveShadow = true
@@ -608,7 +624,7 @@ export async function createScene({
   // 머리 높이를 **뒤쪽 모서리에만** 준다. 카메라가 +Z 에서 내려다보므로
   // 앞줄 유닛이 커지는 방향은 화면 위쪽 — 즉 화면 안쪽이라 잘릴 일이 없다.
   // 네 모서리 전부에 주면 아래쪽 여백만 버려져 보드가 작아진다.
-  const headRoom = spacing.stepX * (UNIT_MAX_H + 0.12)
+  const headRoom = spacing.unitStep * (UNIT_MAX_H + 0.12)
 
   // 화면에 담을 범위를 **실제로 그린 타일**에서 잡는다.
   // 행 수·오프셋으로 역산하면 그리지 않는 절반까지 세게 되어 보드가 쪼그라든다.
@@ -627,7 +643,7 @@ export async function createScene({
     }
   }
   // 대기석 말은 화면에서 작으므로 머리 여유도 작게
-  const benchHead = spacing.stepX * 0.85
+  const benchHead = spacing.unitStep * 0.85
 
   function frameCorners() {
     const f = frameBox()
@@ -729,14 +745,14 @@ export async function createScene({
     let best = -1
     let bestD = Infinity
     for (const t of board.tiles) {
-      const d = (t.x - hit.x) ** 2 + (t.z - hit.z) ** 2
+      const d = ((t.x - hit.x) / spacing.stepX) ** 2 + ((t.z - hit.z) / spacing.stepZ) ** 2
       if (d < bestD) {
         bestD = d
         best = t.index
       }
     }
     // 칸 반지름 밖이면 보드를 벗어난 것으로 본다
-    return bestD <= (spacing.stepX * 0.62) ** 2 ? best : null
+    return bestD <= 0.62 ** 2 ? best : null
   }
 
   /**
@@ -790,7 +806,7 @@ export async function createScene({
     })
     const sprite = new THREE.Sprite(mat)
     sprite.renderOrder = 10
-    const w = spacing.stepX * 0.92
+    const w = spacing.unitStep * 0.92
     sprite.scale.set(w, (w * H) / W, 1)
 
     const g = cv.getContext('2d')
@@ -855,7 +871,7 @@ export async function createScene({
   //
   // 원거리 공격이 아무것도 안 날아가면 "저 멀리 있는 말이 왜 죽는가"가 안 보인다.
   // 피해 판정은 이미 로그가 끝냈으므로 이건 순수하게 눈에 보이라고 있는 것이다.
-  const boltGeom = new THREE.SphereGeometry(spacing.stepX * 0.075, 8, 8)
+  const boltGeom = new THREE.SphereGeometry(spacing.unitStep * 0.075, 8, 8)
   const boltMats = new Map()
   const bolts = []
 
@@ -890,7 +906,7 @@ export async function createScene({
       to: to.clone(),
       t: 0,
       // 판을 가로지르는 데 0.5초쯤. 짧으면 안 보이고 길면 맞은 뒤에 도착한다.
-      dur: Math.max(0.08, dist / (spacing.stepX * 14)),
+      dur: Math.max(0.08, dist / (spacing.unitStep * 14)),
     })
   }
 
@@ -906,7 +922,7 @@ export async function createScene({
       }
       b.mesh.position.lerpVectors(b.from, b.to, k)
       // 날아가는 동안 살짝 떠올랐다 떨어진다 — 직선으로만 가면 판에 붙어 보인다
-      b.mesh.position.y += Math.sin(k * Math.PI) * spacing.stepX * 0.28
+      b.mesh.position.y += Math.sin(k * Math.PI) * spacing.unitStep * 0.28
       b.mesh.scale.setScalar(1 + Math.sin(k * Math.PI) * 0.35)
     }
   }

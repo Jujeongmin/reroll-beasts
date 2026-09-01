@@ -436,9 +436,8 @@ export async function createPrep({ data, run, onFight }) {
         d.style.setProperty('--tc', tierBar(u.tier))
         d.innerHTML =
           `<span class="art"><img alt="${u.name.ko}" /></span>` +
-          `<span class="pr">${u.tier}</span>` +
-          `<span class="tr">${traitLabel(u.origin)} · ${traitLabel(u.class)}</span>` +
-          `<span class="nm">${u.name.ko}</span>`
+          `<span class="tr"><i>${traitLabel(u.origin)}</i><i>${traitLabel(u.class)}</i></span>` +
+          `<span class="nm"><b>${u.name.ko}</b><span class="pr">${u.tier}</span></span>`
         thumbFor(unitId, 1).then((url) => {
           const img = d.querySelector('img')
           if (img) img.src = url

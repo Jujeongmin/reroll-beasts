@@ -28,7 +28,7 @@
     --plate: #12101ce8;
     --edge: #ffffff1c;
 
-    --shopH: 84px;
+    --shopH: 92px;
     /* 비스듬한 판의 기울기. 한 곳에서 정해야 좌우가 대칭으로 보인다. */
     --skew: 9px;
   }
@@ -118,7 +118,7 @@
   /* 체력·인구는 목재 판에 얹는다 */
   #hp {
     position: absolute; left: 8px; top: 50px; z-index: 5; line-height: 1;
-    display: flex; align-items: center; gap: 5px; height: 28px; padding: 0 2px;
+    display: flex; align-items: center; gap: 5px; height: 30px; padding: 0 2px;
     border-style: solid; border-width: 6px; border-image-slice: 6 fill;
     border-image-repeat: repeat; border-image-source: url('/assets/ui/panel_wood.png');
     image-rendering: pixelated;
@@ -287,30 +287,39 @@
   /* 레벨 · 확률 · 골드 · 연승 · 잠금은 **상점 판 안에 넣지 않는다.**
      같은 갈색 판에 묶으면 "상점의 일부"로 읽히는데, 이건 내 상태지
      상점 물건이 아니다. 판 위에 각자 자기 틀을 쓰고 뜬다. */
+  /* 좌 · 중 · 우 세 칸. flex 로 늘어놓으면 왼쪽 것들 폭에 따라 골드가 흔들린다 —
+     골드는 화면 정가운데에 고정돼야 눈이 매번 같은 자리를 본다. */
+  /* 무대 안에 띄우면 3D 대기석을 덮는다. 무대와 상점 판 **사이**의 제 줄이다.
+     상점 판(갈색) 안에는 넣지 않는다 — 이건 내 상태지 상점 물건이 아니다. */
   #hudbar {
-    position: absolute; left: 6px; right: 6px; bottom: 6px; z-index: 6;
-    display: flex; align-items: center; gap: 6px;
+    flex: none; height: 42px; padding: 0 6px;
+    display: grid; grid-template-columns: 1fr auto 1fr; align-items: center; gap: 8px;
   }
-  #hudbar > * { flex: none; }
+  #hudL { display: flex; align-items: center; gap: 6px; justify-self: start; }
+  #hudR { display: flex; align-items: center; gap: 6px; justify-self: end; }
 
   #lvbox {
-    line-height: 1;
-    display: flex; align-items: center; gap: 7px; height: 30px; padding: 0 4px;
+    display: flex; align-items: center; gap: 8px; height: 38px; padding: 0 6px;
     border-style: solid; border-width: 6px; border-image-slice: 6 fill;
     border-image-repeat: repeat; border-image-source: url('/assets/ui/panel_dark.png');
     image-rendering: pixelated;
   }
-  #lvl { font-size: 15px; font-weight: 800; color: var(--gold); line-height: 1; }
-  #lvl::after { content: '레벨'; font-size: 10px; font-weight: 600; color: #b3a894; margin-left: 2px; }
-  #xprow { display: flex; flex-direction: column; gap: 2px; width: 52px; }
-  #xpbar { height: 5px; border-radius: 2px; background: #00000080; overflow: hidden; }
-  #xpbar i { display: block; height: 100%; width: 0; background: linear-gradient(90deg, #3aa0d8, var(--xp)); }
-  #xptext { font-size: 9px; color: #b3a894; font-variant-numeric: tabular-nums; text-align: center; }
+  #lvl { font-size: 17px; font-weight: 800; color: var(--gold); line-height: 24px; white-space: nowrap; }
+  #lvl::after { content: '레벨'; font-size: 11px; font-weight: 600; color: #b3a894; margin-left: 2px; }
+  /* 한 줄로 눕힌다. 22px 안쪽에 두 줄을 넣으면 9px 글자가 되어 안 읽힌다. */
+  #xprow { display: flex; align-items: center; }
+  /* 막대는 뺐다. 0% 일 때 가운데를 가로지르는 선으로만 읽힌다. */
+  #xpbar { display: none; }
+  #xptext {
+    font-size: 13px; line-height: 24px; color: var(--xp); font-weight: 700;
+    font-variant-numeric: tabular-nums;
+  }
+  #xptext::before { content: 'XP '; font-size: 10px; color: #b3a894; font-weight: 600; }
 
   /* 티어 확률. 참고용 숫자다 — 크게 잡으면 상점 카드보다 눈에 먼저 든다. */
   #odds { display: flex; gap: 2px; }
   #odds span {
-    width: 27px; height: 22px;
+    width: 28px; height: 26px;
     display: flex; align-items: center; justify-content: center;
     border-radius: 2px; font-size: 11px; font-weight: 800;
     font-variant-numeric: tabular-nums; color: #12100c; background: var(--oc);
@@ -319,22 +328,22 @@
   #odds span.zero { color: #8a8272; background: #1a1710e0; }
 
   #gold {
-    line-height: 1;
-    display: flex; align-items: center; gap: 5px; height: 30px; padding: 0 4px;
+    line-height: 24px;
+    display: flex; align-items: center; gap: 6px; height: 38px; padding: 0 10px;
     border-style: solid; border-width: 6px; border-image-slice: 6 fill;
     border-image-repeat: repeat; border-image-source: url('/assets/ui/panel_dark.png');
     image-rendering: pixelated;
-    font-size: 16px; font-weight: 800; color: var(--gold); font-variant-numeric: tabular-nums;
+    font-size: 19px; font-weight: 800; color: var(--gold); font-variant-numeric: tabular-nums;
   }
   #gold::before {
-    content: ''; width: 13px; height: 13px; border-radius: 50%; flex: none;
+    content: ''; width: 15px; height: 15px; border-radius: 50%; flex: none;
     background: radial-gradient(circle at 35% 30%, #ffe9a8, #c9932c);
   }
 
   /* 연승·연패. 다음 라운드 수입이 이걸로 갈리는데 화면에 없었다. */
   #streak {
-    line-height: 1;
-    display: flex; align-items: center; gap: 5px; height: 30px; padding: 0 6px;
+    line-height: 16px;
+    display: flex; align-items: center; gap: 5px; height: 38px; padding: 0 8px;
     border-style: solid; border-width: 6px; border-image-slice: 6 fill;
     border-image-repeat: repeat; border-image-source: url('/assets/ui/plate_m.png');
     image-rendering: pixelated;
@@ -346,9 +355,9 @@
   #streak.lose b { color: #ffa8b3; }
 
   #lock {
-    margin-left: auto; line-height: 1;
+    line-height: 16px;
     display: flex; align-items: center; justify-content: center; gap: 5px;
-    width: 78px; height: 30px;
+    width: 78px; height: 38px;
     border-style: solid; border-width: 6px; border-image-slice: 6 fill;
     border-image-repeat: repeat; border-image-source: url('/assets/ui/button.png');
     image-rendering: pixelated;
@@ -390,43 +399,77 @@
   .btn:active { transform: translateY(1px); }
   .btn:disabled { filter: grayscale(.7) brightness(.62); cursor: default; }
 
+  /* 정사각. 가로로 길면 초상화가 납작해져 무슨 몬스터인지 안 읽힌다.
+     남는 폭은 가운데 정렬로 흘린다 — 늘려서 채우면 다시 직사각이 된다. */
   #shop { flex: 1; display: flex; gap: 5px; min-width: 0; }
+
+  /* 카드. 나무 액자를 두르지 않는다 — 6px 9-슬라이스가 사방을 먹어
+     78px 카드에서 실제 그림 자리가 66px 밖에 안 남았다. 대신 **아트가 카드
+     전체를 채우고**, 정보는 그 위에 얹는다:
+       좌상단  특성 두 줄 (어두운 스크림 위)
+       하단 띠  이름 왼쪽 · 값 오른쪽, 띠 색이 곧 티어
+     참고한 오토체스 상점이 쓰는 배치다. 액자 대신 티어색이 테두리 노릇을 한다. */
   .card {
     --tc: var(--t1);
     flex: 1; min-width: 0; position: relative; overflow: hidden;
-    border-style: solid; border-width: 6px; border-image-slice: 6 fill;
-    border-image-repeat: repeat; border-image-source: url('/assets/ui/panel_parch.png');
-    image-rendering: pixelated;
+    border-radius: 3px;
+    background: linear-gradient(180deg, color-mix(in srgb, var(--tc) 26%, #15121d), #0c0a12);
+    box-shadow: inset 0 0 0 1px color-mix(in srgb, var(--tc) 45%, transparent), 0 2px 5px #000a;
   }
-  .card.empty { --tc: #6a6252; border-image-source: url('/assets/ui/panel_dark.png'); opacity: .55; }
+  /* 위쪽 후광. 어두운 모델이 어두운 판에 묻히는 걸 막는다. */
+  .card::before {
+    content: ''; position: absolute; inset: 0; pointer-events: none;
+    background: radial-gradient(120% 72% at 50% 4%, color-mix(in srgb, var(--tc) 46%, transparent), transparent 76%);
+  }
+  .card.empty { --tc: #6a6252; opacity: .28; }
+  .card.empty::before { display: none; }
   .card:not(.empty):active { transform: translateY(1px); }
-  .card.poor { filter: grayscale(.5) brightness(.72); }
-  .card .art {
-    position: absolute; left: 0; right: 0; top: 0; bottom: 17px;
-    display: grid; place-items: center;
-  }
+  .card.poor { filter: grayscale(.55) brightness(.7); }
+
+  .card .art { position: absolute; left: 0; right: 0; top: 0; bottom: 18px; z-index: 1; }
   .card .art img {
-    width: 100%; height: 100%; object-fit: contain; transform: scale(1.2);
-    filter: drop-shadow(0 3px 5px #0009);
+    width: 100%; height: 100%; object-fit: contain;
+    /* 그림 자리는 128×50 인데 섬네일은 정사각이다 — contain 이면 세로에 맞춰
+       50px 폭만 쓰고 좌우 78px 이 통째로 빈다. 키워서 넘치게 두고 카드가
+       잘라 낸다 (참고한 상점도 아트를 잘라 쓴다). 발밑은 이름띠가 덮는다. */
+    transform: scale(1.62) translateY(6%);
+    filter: drop-shadow(0 3px 5px #000b);
   }
-  /* 시너지는 좌상단에 줄로 세운다 — 이름띠 위에 붙이면 자리가 없다. */
+
+  /* 특성은 좌상단에 세로로. 아트 위에 바로 얹으면 밝은 모델에서 글자가 사라져
+     스크림을 깐다 — 왼쪽만 어둡게, 오른쪽으로 사라지는 그라디언트. */
   .card .tr {
-    position: absolute; left: 1px; top: 0; display: flex; flex-direction: column; gap: 0;
-    font-size: 9px; line-height: 1.25; color: #4a3a1c; font-weight: 700;
+    position: absolute; left: 0; top: 0; z-index: 2;
+    display: flex; flex-direction: column;
+    padding: 2px 10px 3px 3px;
+    background: linear-gradient(100deg, #000000b8 0%, #00000078 58%, #0000 100%);
+    font-size: 9px; line-height: 11px; font-weight: 700; color: #e4dff2;
   }
+  .card .tr i {
+    display: flex; align-items: center; gap: 3px; font-style: normal;
+    white-space: nowrap;
+  }
+  .card .tr i::before {
+    content: ''; flex: none; width: 5px; height: 6px; background: #d3cade;
+    clip-path: polygon(50% 0, 100% 25%, 100% 75%, 50% 100%, 0 75%, 0 25%);
+  }
+
+  /* 하단 띠 = 이름 + 값. 티어색이 여기에만 진하게 들어간다. */
   .card .nm {
-    position: absolute; left: 0; right: 0; bottom: 0; height: 17px; line-height: 17px;
-    display: flex; align-items: center; justify-content: center;
-    background: var(--tc); color: #14101c;
-    font-size: 11px; font-weight: 800; letter-spacing: -.3px;
-    overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
+    position: absolute; left: 0; right: 0; bottom: 0; height: 18px; z-index: 2;
+    display: flex; align-items: center; justify-content: space-between; gap: 4px;
+    padding: 0 4px;
+    background: linear-gradient(180deg,
+      color-mix(in srgb, var(--tc) 66%, #0c0a12),
+      color-mix(in srgb, var(--tc) 42%, #0c0a12));
+    box-shadow: inset 0 1px 0 #ffffff2e;
+    font-size: 11px; line-height: 18px; font-weight: 800; color: #fff;
+    text-shadow: 0 1px 2px #000a;
   }
+  .card .nm b { min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
   .card .pr {
-    position: absolute; right: 0; top: 0; z-index: 2;
-    display: flex; align-items: center; gap: 3px;
-    padding: 1px 5px 1px 3px; border-radius: 9px;
-    background: #12101cee; box-shadow: inset 0 0 0 1px #6b5230;
-    font-size: 11px; color: var(--gold); font-weight: 800;
+    flex: none; display: flex; align-items: center; gap: 2px;
+    color: #ffe6a8; font-variant-numeric: tabular-nums;
   }
   .card .pr::before {
     content: ''; width: 8px; height: 8px; border-radius: 50%;
@@ -494,13 +537,18 @@
       <div id="hint"></div>
       <button id="bspeed" hidden>1x</button>
 
-      <div id="hudbar">
+    </div>
+
+    <div id="hudbar">
+      <div id="hudL">
         <div id="lvbox">
           <span id="lvl">3</span>
           <span id="xprow"><span id="xpbar"><i></i></span><span id="xptext">0/2</span></span>
         </div>
         <div id="odds"></div>
-        <div id="gold"><span id="goldval">0</span></div>
+      </div>
+      <div id="gold"><span id="goldval">0</span></div>
+      <div id="hudR">
         <div id="streak"></div>
         <button id="lock"><b>잠금</b><span class="st">해제</span></button>
       </div>
