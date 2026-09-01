@@ -475,11 +475,11 @@ export async function createScene({
     const apron = await loadFloor('Floor_Brick')
     // 판의 돌보다 밝아서 따로 놀았다. 눌러서 같은 돌 계열로 맞춘다.
     const apronMat = apron.mat.clone()
-    // 판보다 **어둡게** 만든다. 비슷한 밝기면 판 경계가 사라져 어디까지가
-    // 전장인지 안 읽힌다 — 전투에서는 육각 표시도 꺼지므로 더 그렇다.
-    apronMat.color.multiplyScalar(0.55)
+    // 판보다 **뚜렷하게** 어둡게. 0.55 로는 판 자체가 이미 어두워서 차이가
+    // 안 읽혔다 — 밝은 전장 / 어두운 마당 / 잔디 세 단계가 보여야 한다.
+    apronMat.color.multiplyScalar(0.42)
 
-    const RINGS = 2
+    const RINGS = 4
     const step = spacing.stepX
     const inX = arena.w / 2
     const inZ = arena.d / 2
@@ -497,14 +497,16 @@ export async function createScene({
         // 판이 덮는 자리는 건너뛴다 — 두 겹이 겹치면 z-파이팅이 난다.
         if (Math.abs(x - arena.cx) < inX && Math.abs(z - arena.cz) < inZ) continue
 
-        // 판에서 몇 칸 떨어졌나. 첫 칸은 반드시 깔고, 그 뒤로는 확률로 성긴다.
+        // 판에서 몇 칸 떨어졌나.
         const outX = Math.max(0, Math.abs(x - arena.cx) - inX) / step
         const outZ = Math.max(0, Math.abs(z - arena.cz) - inZ) / step
         const out = Math.max(outX, outZ)
-        if (out > 1) {
-          // 두 번째 칸부터 성긴다. 절반쯤 남아야 "닳은 가장자리"로 보인다.
-          if (decorRng.int(100) >= 52) continue
-        }
+
+        // **첫 칸부터** 성긴다. 한 겹이라도 꽉 채우면 판 바깥에 직선 띠가
+        // 하나 더 생겨, 아무리 바깥을 흩어도 액자로 보인다.
+        // 멀어질수록 급하게 줄여 넓고 자연스러운 그러데이션을 만든다.
+        const keep = Math.pow(Math.max(0, 1 - out / RINGS), 1.5)
+        if (decorRng.int(1000) >= Math.round(keep * 940)) continue
 
         for (const geo of apron.geom) {
           const t = new THREE.Mesh(geo, apronMat)
