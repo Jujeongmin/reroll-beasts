@@ -394,11 +394,6 @@
     display: grid; grid-template-columns: 1fr auto 1fr; align-items: center; gap: 8px;
     pointer-events: none;
   }
-  #hudbar::before {
-    content: ''; position: absolute; left: -6px; right: -6px; bottom: 0; height: 44px;
-    z-index: -1; pointer-events: none;
-    background: linear-gradient(180deg, #0b0f1e00, #0b0f1e47 60%, #0b0f1e7d);
-  }
   /* 누를 수 있는 것만 포인터를 받는다 — 나머지는 뒤의 판을 그대로 집게 둔다. */
   #lock { pointer-events: auto; }
   #hudL { display: flex; align-items: center; gap: 6px; justify-self: start; }
