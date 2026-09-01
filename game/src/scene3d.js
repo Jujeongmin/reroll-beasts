@@ -287,13 +287,23 @@ export async function createScene({
   const matEnemySlabLit = tintMat(0xff5a3c, 0.22)
   const enemySlab = halfTint(arena.minZ, frontZ, isPrep ? matEnemySlabDim : matEnemySlabLit)
 
-  // 교전선을 얇은 띠로 긋는다. 없으면 두 진영 색만으로는 경계가 흐리다.
-  const line = new THREE.Mesh(
-    new THREE.BoxGeometry(arena.w, 0.02, spacing.stepZ * 0.06),
-    new THREE.MeshBasicMaterial({ color: 0xffe6a8, transparent: true, opacity: 0.35, toneMapped: false, fog: false }),
+  // 교전선. 판 한가운데를 가로지르는 선은 돌바닥을 두 장으로 갈라 보이게 한다 —
+  // 그어 두는 대신 **경계 양쪽을 아주 옅게 물들여** 자연스러운 이음매로 만든다.
+  // 전투에서는 상대 절반이 붉게 물드니 경계는 그것만으로 읽힌다.
+  const seam = new THREE.Mesh(
+    new THREE.PlaneGeometry(arena.w, spacing.stepZ * 0.5),
+    new THREE.MeshBasicMaterial({
+      color: 0x000000,
+      transparent: true,
+      opacity: 0.1,
+      depthWrite: false,
+      toneMapped: false,
+      fog: false,
+    }),
   )
-  line.position.set(arena.cx, 0.012, frontZ)
-  boardGroup.add(line)
+  seam.rotation.x = -Math.PI / 2
+  seam.position.set(arena.cx, 0.013, frontZ)
+  boardGroup.add(seam)
 
   // ── 벌집 표시 ──────────────────────────────────────────
   //
@@ -461,6 +471,7 @@ export async function createScene({
             o.receiveShadow = true
           }
         })
+        d.userData.decor = true
         surroundGroup.add(d)
       }
     }
@@ -536,6 +547,17 @@ export async function createScene({
       enemyBenchPads.push(tile)
     }
     scene.add(benchGroup)
+    // 물가 장식은 대기석보다 **먼저** 뿌려진다 (자리를 아직 모르므로).
+    // 대기석이 앉을 자리에 걸친 것만 여기서 걷어낸다 — 안 그러면 널빤지 위에
+    // 꽃이 피어 있다.
+    const deckPad = pad * 0.5 + gap
+    for (const d of [...surroundGroup.children]) {
+      if (!d.userData.decor) continue
+      const inX = Math.abs(d.position.x - cx) <= totalW / 2 + deckPad
+      const nearNear = Math.abs(d.position.z - deckZ) <= pad / 2 + deckPad
+      const nearFar = Math.abs(d.position.z - farZ) <= pad / 2 + deckPad
+      if (inX && (nearNear || nearFar)) surroundGroup.remove(d)
+    }
     benchExtent = {
       minX: cx - totalW / 2 - gap,
       maxX: cx + totalW / 2 + gap,
