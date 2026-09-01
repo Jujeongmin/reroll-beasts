@@ -21,6 +21,7 @@ import {
   moveTo,
   population,
   refreshShop,
+  resolveMerges,
   toggleShopLock,
   sell,
   toCombatEntries,
@@ -51,7 +52,6 @@ export async function createPrep({ data, run, onFight }) {
     odds: document.getElementById('odds'),
     lock: document.getElementById('lock'),
     lobby: document.getElementById('lobby'),
-    peek: document.getElementById('peek'),
     shop: document.getElementById('shop'),
     roundtag: document.getElementById('roundtag'),
     track: document.getElementById('track'),
@@ -90,16 +90,6 @@ export async function createPrep({ data, run, onFight }) {
   }
   const fieldToLocal = new Map(localToField.map((f, i) => [f, i]))
 
-  // 상대 진영의 로컬 좌표 → 전장 타일. 두 진영은 180도 회전 대응이므로
-  // 행을 뒤집고 열도 뒤집는다 — sim/combat.js 의 toFieldTile 과 같은 규칙이다.
-  const enemyLocalToField = []
-  for (const row of [...data.combat.board.enemyRows].reverse()) {
-    const width = data.combat.board.rows[row]
-    for (let i = 0; i < width; i++) {
-      enemyLocalToField.push(scene.board.tiles.findIndex((t) => t.row === row && t.col === width - 1 - i))
-    }
-  }
-
   // 헥스 거리는 인접 홉 수다 — 시야 좌표의 유클리드 거리로는 못 잰다.
   // 전투가 쓰는 것과 **같은 표**를 써야 화면의 사거리와 실제 사거리가 같다.
   const simBoard = buildBoard(data.combat.board)
@@ -126,7 +116,7 @@ export async function createPrep({ data, run, onFight }) {
 
   // 개발용 손잡이. 브라우저 콘솔에서 판 상태를 들여다보려면 이게 필요하다.
   // 프로덕션 번들에는 들어가지 않는다.
-  if (import.meta.env.DEV) globalThis.__dev = { run, scene, views, el, data, refresh: () => refresh() }
+  if (import.meta.env.DEV) globalThis.__dev = { run, scene, views, el, data, refresh: () => refresh(), thumbFor: (id, star) => thumbFor(id, star) }
   let syncToken = 0
 
   // 전투 중에는 판을 얼린다. 전투는 **전투 시작 시점의 판**으로 이미 계산된
@@ -154,6 +144,9 @@ export async function createPrep({ data, run, onFight }) {
   }
 
   async function syncUnits() {
+    // 정찰 중에는 내 말을 세우지 않는다. 세우면 남의 판 위에 내 판이 겹친다 —
+    // refresh() 는 상점을 굴릴 때마다 불리므로 실제로 겹쳤다.
+    if (peekSeat) return
     const token = ++syncToken
     const want = wantedSpots()
 
@@ -204,6 +197,8 @@ export async function createPrep({ data, run, onFight }) {
   // 그 사람 말을 세운 뒤, 닫으면 원래대로 돌린다.
   let peekViews = []
   let peekId = null
+  // 보고 있는 사람의 자리 정보. 시너지·유닛 목록이 전부 여기서 나온다.
+  let peekSeat = null
   let peekToken = 0
 
   async function closePeek() {
@@ -211,8 +206,9 @@ export async function createPrep({ data, run, onFight }) {
     for (const v of peekViews) v.dispose()
     peekViews = []
     peekId = null
-    el.peek.hidden = true
+    peekSeat = null
     renderLobby()
+    renderTraits()
     syncUnits()
   }
 
@@ -223,24 +219,34 @@ export async function createPrep({ data, run, onFight }) {
     peekViews = []
     clearUnits()
     peekId = seat.id
+    peekSeat = seat
 
-    el.peek.innerHTML =
-      `<span>${seat.name} 의 진형 · ♥ ${seat.hp}</span><button type="button">닫기</button>`
-    el.peek.hidden = false
-    el.peek.querySelector('button').addEventListener('click', closePeek)
+    // 누구 판인지는 우측 순위표에서 그 줄이 밝아지는 걸로 말한다 — 판 한가운데에
+    // 띠를 띄우면 정작 봐야 할 말들을 그 띠가 가린다 (실제로 뒷줄이 가려졌다).
     renderLobby()
+    // 시너지도 그 사람 것으로 바꾼다. 남의 판을 보는데 내 시너지가 떠 있으면
+    // 그 판이 왜 센지를 못 읽는다.
+    renderTraits()
 
-    // 남의 진형은 **상대 진영 쪽**에 세운다. 내 자리에 세우면 내 보드로 착각한다.
+    // 남의 진형을 **내 자리에** 세운다. 정찰은 "저 사람 판이 어떻게 생겼나"를
+    // 보는 일이라, 건너편에 뒤집어 세우면 내가 보던 방향과 달라 비교가 안 된다.
+    // 화면 위쪽 띠가 누구 판인지 계속 말해 주므로 헷갈릴 일도 없다.
     for (const e of seat.board) {
-      const v = await scene.makeUnit(e.unitId, e.star, 'B')
+      const v = await scene.makeUnit(e.unitId, e.star, 'A')
       if (token !== peekToken) {
         v.dispose()
         return
       }
-      const field = enemyLocalToField[e.tile]
+      const field = localToField[e.tile]
       const t = field === undefined ? null : scene.board.tiles[field]
       if (!t) continue
       v.root.position.set(t.x, scene.topY, t.z)
+      v.root.rotation.y = 0
+      if (e.star > 1) {
+        v.badge = scene.makeBadge({ team: 'A', star: e.star, withHp: false })
+        v.badge.sprite.position.y = v.height + scene.spacing.stepX * 0.16
+        v.root.add(v.badge.sprite)
+      }
       v.play(v.anims.idle)
       scene.scene.add(v.root)
       peekViews.push(v)
@@ -368,9 +374,9 @@ export async function createPrep({ data, run, onFight }) {
 
     renderStreak()
 
-    el.buyxp.disabled = !need || s.gold < data.shop.xpCost.gold || !running
-    el.reroll.disabled = s.gold < data.shop.rerollCost || !running
-    el.lock.disabled = !running
+    // 상점은 전투 중에도 열려 있다 — 싸우는 동안 굴리는 게 이 장르의 리듬이다.
+    el.buyxp.disabled = !need || s.gold < data.shop.xpCost.gold
+    el.reroll.disabled = s.gold < data.shop.rerollCost
     el.lock.classList.toggle('on', s.shopLocked)
     // 글자는 뺐다 — 자물쇠 모양과 버튼 색이 이미 상태를 말한다.
     // 다만 눈으로만 알 수 있으면 안 되므로 이름표는 남긴다.
@@ -421,10 +427,19 @@ export async function createPrep({ data, run, onFight }) {
     return t ? t.name.ko : id
   }
 
+  /**
+   * 지금 화면에 서 있는 판의 유닛들.
+   *
+   * 남의 판을 보는 중이면 **그 사람 것**이다. 시너지와 유닛 목록이 화면에
+   * 서 있는 말과 어긋나면, 정찰이 아니라 거짓말이 된다.
+   */
+  function shownBoard() {
+    return peekSeat ? peekSeat.board : run.state.board.filter(Boolean)
+  }
+
   function renderTraits() {
     // 보드에 놓인 유닛만 시너지를 낸다 — 벤치는 세지 않는다
-    const onBoard = run.state.board
-      .filter(Boolean)
+    const onBoard = shownBoard()
       .map((c) => {
         const u = unitById(data.units, c.unitId)
         return { unitId: u.id, origin: u.origin, class: u.class }
@@ -594,6 +609,8 @@ export async function createPrep({ data, run, onFight }) {
 
   // ── 시너지 상세 ─────────────────────────────────────────
   function ownedUnitIds() {
+    // 남의 판을 보는 중이면 그 사람이 가진 것으로 회색 처리를 가른다.
+    if (peekSeat) return new Set(peekSeat.board.map((c) => c.unitId))
     return new Set(allUnits(run.state).map((u) => u.unitId))
   }
 
@@ -698,10 +715,20 @@ export async function createPrep({ data, run, onFight }) {
   }
 
   // ── 상점 조작 ───────────────────────────────────────────
+  /**
+   * 전투 중에는 **대기석 안에서만** 합쳐진다.
+   *
+   * 판 위의 말이 싸우는 도중에 승급하면, 이미 돌고 있는 리플레이의 능력치와
+   * 화면의 말이 어긋난다. 판을 낀 합성은 전투가 끝난 뒤 show() 에서 정산한다.
+   */
+  const mergeScope = () => (running ? null : 'bench')
+
   el.shop.addEventListener('click', (ev) => {
     const card = ev.target.closest('[data-shop]')
     if (!card) return
-    const r = buy(run.state, run.pool, Number(card.dataset.shop), data)
+    const r = buy(run.state, run.pool, Number(card.dataset.shop), data, {
+      mergeOnly: mergeScope(),
+    })
     if (!r.ok) hint(r.reason)
     refresh()
   })
@@ -736,10 +763,18 @@ export async function createPrep({ data, run, onFight }) {
     refresh()
   }
 
+  /** 지금 이 말을 만질 수 있는가. 전투 중에는 판 위의 말이 잠긴다. */
+  function canTouch(uid) {
+    if (running) return true
+    const at = findUnit(run.state, uid)
+    return at ? at.where !== 'board' : false
+  }
+
   /** 가리키는 말을 판다. */
   function sellPointed() {
     const found = unitAtPointer(ptr.x, ptr.y)
     if (!found) return hint('가리키는 말이 없다')
+    if (!canTouch(found.uid)) return hint('싸우는 중인 말은 못 판다')
     const value = sellValue(found.unit.unitId, found.unit.star, data)
     const r = sell(run.state, run.pool, found.uid, data)
     hint(r.ok ? `판매 +${value}골드` : r.reason)
@@ -779,8 +814,9 @@ export async function createPrep({ data, run, onFight }) {
     ev.preventDefault()
     // 남의 판을 보는 중에는 내 말을 못 만진다 — 화면에 없는 말이다.
     if (peekId !== null && (ev.code === 'KeyW' || ev.code === 'KeyE')) return
-    // 전투 중에는 판을 건드릴 수 없다 (리플레이와 어긋난다).
-    if (!running && (ev.code === 'KeyW' || ev.code === 'KeyE')) return
+    // W 는 판으로 옮기는 키다 — 전투 중에는 막는다.
+    // E(판매)는 대기석 말이면 통한다 (sellPointed 가 다시 확인한다).
+    if (!running && ev.code === 'KeyW') return
     act()
   })
 
@@ -970,7 +1006,6 @@ export async function createPrep({ data, run, onFight }) {
   }
 
   el.root.addEventListener('pointerdown', (ev) => {
-    if (!running) return
     if (ev.target.closest('#shopbar') || ev.target.closest('#top') || ev.target.closest('#info')) {
       return
     }
@@ -979,6 +1014,9 @@ export async function createPrep({ data, run, onFight }) {
       hideInfo()
       return
     }
+    // 전투 중에도 대기석 말은 집을 수 있다 (팔거나 자리를 옮긴다).
+    // 판 위의 말은 잠근다 — 옮기면 리플레이와 어긋난다.
+    if (!canTouch(found.uid)) return
     ev.preventDefault()
     drag = { uid: found.uid, unit: found.unit, x0: ev.clientX, y0: ev.clientY, moved: false }
     thumbFor(found.unit.unitId, found.unit.star).then((url) => {
@@ -1020,6 +1058,7 @@ export async function createPrep({ data, run, onFight }) {
       return
     }
     if (!target) return
+    if (!running && target.where === 'board') return hint('전투 중에는 판을 못 바꾼다')
     if (target.where === 'sell') {
       const value = sellValue(held.unit.unitId, held.unit.star, data)
       const r = sell(run.state, run.pool, held.uid, data)
@@ -1094,6 +1133,8 @@ export async function createPrep({ data, run, onFight }) {
     show() {
       running = true
       boardFrozen = false
+      // 전투 중에는 판을 낀 합성을 미뤄 뒀다. 여기서 제한 없이 한 번 돌린다.
+      if (resolveMerges(run.state, data) > 0) hint('합성 완료')
       resetTimer()
       last = performance.now()
       scene.resize()

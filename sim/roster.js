@@ -88,7 +88,14 @@ function bySeatOrder(list) {
   )
 }
 
-export function resolveMerges(state, data) {
+/**
+ * 세 장 모인 유닛을 한 단계 위로 합친다. 연쇄도 여기서 돈다.
+ *
+ * only 를 주면 **그 자리에 있는 말만** 센다. 전투 중에 판 위의 말이 승급하면
+ * 이미 돌고 있는 리플레이와 실제 판이 어긋난다 — 그때는 'bench' 로 묶고,
+ * 나머지는 전투가 끝난 뒤 제한 없이 한 번 더 돌려 정산한다.
+ */
+export function resolveMerges(state, data, { only = null } = {}) {
   const need = 3
   const maxStar = data.combat.starMultiplier.length
   let merged = 0
@@ -97,6 +104,7 @@ export function resolveMerges(state, data) {
     const groups = new Map()
     for (const u of allUnits(state)) {
       if (u.star >= maxStar) continue
+      if (only && u.where !== only) continue
       const key = `${u.unitId}:${u.star}`
       if (!groups.has(key)) groups.set(key, [])
       groups.get(key).push(u)
@@ -124,8 +132,10 @@ export function resolveMerges(state, data) {
 }
 
 /** 이 유닛을 한 장 더 얻으면 곧바로 합성이 되는가. 벤치가 꽉 찼을 때의 예외 근거. */
-function completesMerge(state, unitId) {
-  const same = allUnits(state).filter((u) => u.unitId === unitId && u.star === 1)
+function completesMerge(state, unitId, only = null) {
+  const same = allUnits(state).filter(
+    (u) => u.unitId === unitId && u.star === 1 && (!only || u.where === only),
+  )
   return same.length >= 2
 }
 
@@ -156,7 +166,7 @@ export function refreshShop(state, pool, rng, data, { free = false } = {}) {
   return ok
 }
 
-export function buy(state, pool, slotIndex, data) {
+export function buy(state, pool, slotIndex, data, { mergeOnly = null } = {}) {
   const unitId = state.shop[slotIndex]
   if (!unitId) return fail('빈 칸이다')
 
@@ -166,7 +176,7 @@ export function buy(state, pool, slotIndex, data) {
   // 벤치가 꽉 차도 **합성이 완성되는 경우엔** 살 수 있다.
   // 이게 없으면 벤치 9칸이 다 찼을 때 눈앞의 3성을 놓친다.
   const slot = freeBenchSlot(state)
-  if (slot < 0 && !completesMerge(state, unitId)) return fail('벤치가 가득 찼다')
+  if (slot < 0 && !completesMerge(state, unitId, mergeOnly)) return fail('벤치가 가득 찼다')
 
   state.gold -= cost
   state.shop[slotIndex] = null
@@ -175,12 +185,16 @@ export function buy(state, pool, slotIndex, data) {
   } else {
     // 벤치 만석 + 합성 완성. 산 카드는 어차피 즉시 합쳐지므로 자리가 필요 없다.
     // 기존 두 장을 지우고 그 앞자리에 한 단계 위를 앉힌다.
-    const same = bySeatOrder(allUnits(state).filter((u) => u.unitId === unitId && u.star === 1))
+    const same = bySeatOrder(
+      allUnits(state).filter(
+        (u) => u.unitId === unitId && u.star === 1 && (!mergeOnly || u.where === mergeOnly),
+      ),
+    )
     const [home, other] = same
     slotsOf(state, other.where)[other.index] = null
     slotsOf(state, home.where)[home.index] = { uid: state.nextUid++, unitId, star: 2 }
   }
-  resolveMerges(state, data)
+  resolveMerges(state, data, { only: mergeOnly })
   return ok
 }
 

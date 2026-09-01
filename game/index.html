@@ -388,23 +388,6 @@
     font-size: 8px; line-height: 11px; font-weight: 800; text-align: center;
   }
 
-  #peek {
-    position: absolute; left: 50%; top: 80px; transform: translateX(-50%); z-index: 9;
-    display: flex; align-items: center; gap: 10px; padding: 5px 14px;
-    border-style: solid; border-width: 10px; border-image-slice: 6;
-    border-image-repeat: repeat; image-rendering: pixelated;
-    border-image-source: url('/assets/ui/panel_wood.png');
-    background: #c58747;
-    font-size: 13px; font-weight: 700; color: #f0e9dc;
-  }
-  #peek[hidden] { display: none; }
-  #peek button {
-    font-size: 11px; padding: 3px 6px; color: #f3ecdd;
-    border-style: solid; border-width: 8px; border-image-slice: 6;
-    border-image-source: url('/assets/ui/button.png');
-    background: #c58747; image-rendering: pixelated;
-  }
-
   #hint {
     position: absolute; left: 50%; bottom: 10px; transform: translateX(-50%); z-index: 9;
     padding: 5px 14px; border-radius: 20px;
@@ -556,6 +539,7 @@
 
   #sidebtns { width: 138px; flex: none; display: flex; flex-direction: column; gap: 6px; }
   .btn {
+    position: relative;
     flex: 1; line-height: 1;
     display: flex; align-items: center; justify-content: center; gap: 6px;
     /* fill 을 안 쓴다. button.png 은 테두리 6px 이 밝은 갈색(197,135,71)이고
@@ -578,6 +562,15 @@
     background: url('/assets/ui/coin.png') center / contain no-repeat;
     image-rendering: pixelated;
   }
+  /* 단축키 표시. 버튼을 누르러 가는 손이 키를 배우게 하는 가장 싼 방법이다 —
+     따로 도움말을 두면 아무도 안 연다. */
+  .btn .kb {
+    position: absolute; left: 3px; top: 2px;
+    min-width: 12px; height: 12px; padding: 0 2px; border-radius: 3px;
+    background: #efe3c4; color: #4a3a1c;
+    font-size: 9px; line-height: 12px; font-weight: 800; text-align: center;
+  }
+  .btn:disabled .kb { opacity: .45; }
   .btn:active { transform: translateY(1px); }
   .btn:disabled { filter: grayscale(.7) brightness(.62); cursor: default; }
 
@@ -751,7 +744,6 @@
 
       <div id="info" class="panel" hidden></div>
       <div id="traitinfo" class="panel" hidden></div>
-      <div id="peek" hidden></div>
       <div id="hint"></div>
       <button id="bspeed" hidden>1x</button>
 
@@ -775,8 +767,8 @@
 
     <div id="shopbar">
       <div id="sidebtns">
-        <button class="btn" id="buyxp">경험치 구매<span class="cost">4</span></button>
-        <button class="btn" id="reroll">새로고침<span class="cost">2</span></button>
+        <button class="btn" id="buyxp"><span class="kb">F</span>경험치 구매<span class="cost">4</span></button>
+        <button class="btn" id="reroll"><span class="kb">D</span>새로고침<span class="cost">2</span></button>
       </div>
       <div id="shop"></div>
     </div>

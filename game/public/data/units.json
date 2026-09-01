@@ -29,7 +29,7 @@
     { "id": "pigeon", "name": { "ko": "비둘기", "en": "Pigeon" }, "tier": 1, "origin": "wing", "class": "assassin", "model": "pigeon",
       "skill": { "id": "pg_dive", "type": "single", "params": { "dmgPct": 210, "hits": 1 } } },
 
-    { "id": "goleling", "name": { "ko": "돌조각", "en": "Goleling" }, "tier": 1, "origin": "undead", "class": "revive", "model": "goleling", "evolved": true,
+    { "id": "goleling", "name": { "ko": "뿔도깨비", "en": "Goleling" }, "tier": 1, "origin": "undead", "class": "revive", "model": "goleling", "evolved": true,
       "skill": { "id": "gl_stone", "type": "buff", "params": { "target": "self", "stat": "damageTakenPct", "amount": -45, "durationTicks": 90 } } },
 
     { "id": "bunny", "name": { "ko": "성난 토끼", "en": "Angry Bunny" }, "tier": 1, "origin": "giant", "class": "fighter", "model": "bunny",
@@ -44,10 +44,10 @@
     { "id": "cactoro_big", "name": { "ko": "큰 선인장", "en": "Elder Cactoro" }, "tier": 2, "origin": "mushroom", "class": "tank", "model": "cactoro_big",
       "skill": { "id": "cg_root", "type": "buff", "params": { "target": "self", "stat": "shield", "amountPctMaxHp": 18, "durationTicks": 150 } } },
 
-    { "id": "glub", "name": { "ko": "물방울", "en": "Glub" }, "tier": 2, "origin": "wing", "class": "shooter", "model": "glub", "evolved": true,
+    { "id": "glub", "name": { "ko": "보라 올챙이", "en": "Glub" }, "tier": 2, "origin": "wing", "class": "shooter", "model": "glub", "evolved": true,
       "skill": { "id": "gb_jet", "type": "single", "params": { "dmgPct": 240, "hits": 1 } } },
 
-    { "id": "armabee", "name": { "ko": "갑옷벌", "en": "Armabee" }, "tier": 2, "origin": "wing", "class": "mage", "model": "armabee", "evolved": true,
+    { "id": "armabee", "name": { "ko": "벌", "en": "Armabee" }, "tier": 2, "origin": "wing", "class": "mage", "model": "armabee", "evolved": true,
       "skill": { "id": "ab_swarm", "type": "aoe", "params": { "radius": 1, "dmgPct": 230 } } },
 
     { "id": "ghost", "name": { "ko": "유령", "en": "Ghost" }, "tier": 2, "origin": "undead", "class": "assassin", "model": "ghost",
@@ -59,7 +59,7 @@
     { "id": "wizard", "name": { "ko": "젤리 마법사", "en": "Jelly Wizard" }, "tier": 3, "origin": "slime", "class": "mage", "model": "wizard",
       "skill": { "id": "wz_burst", "type": "aoe", "params": { "radius": 2, "dmgPct": 290 } } },
 
-    { "id": "alpaking", "name": { "ko": "구름알파카", "en": "Alpaking" }, "tier": 3, "origin": "wing", "class": "tank", "model": "alpaking", "evolved": true,
+    { "id": "alpaking", "name": { "ko": "왕관 요정", "en": "Alpaking" }, "tier": 3, "origin": "wing", "class": "tank", "model": "alpaking", "evolved": true,
       "skill": { "id": "ap_veil", "type": "buff", "params": { "target": "allies", "stat": "shield", "amountPctMaxHp": 12, "durationTicks": 180 } } },
 
     { "id": "ghost_skull", "name": { "ko": "해골 유령", "en": "Skull Ghost" }, "tier": 3, "origin": "undead", "class": "revive", "model": "ghost_skull",
