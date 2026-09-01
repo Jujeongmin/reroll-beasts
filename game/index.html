@@ -146,10 +146,10 @@
   #track i.done { background: #efe3c4; box-shadow: inset 0 0 0 2px #efe3c4; }
   /* 지금 자리. 바깥 고리 두 겹이 9px 점을 15px 로 부풀려 옆 점을 덮었다 —
      한 겹만 두르고 빛으로 띄운다. */
-  #track i.now {
-    background: var(--gold);
-    box-shadow: inset 0 0 0 2px #ffe9a8, 0 0 8px #ffd166dd;
-  }
+  /* 바깥 빛무리(0 0 8px)를 걸면 10px 점 둘레가 통째로 금색으로 번져,
+     마름모 바깥까지 칠해진 것처럼 보인다. 안쪽 테두리만으로 구분한다 —
+     이웃이 속 빈 점이라 채워진 것만으로 이미 눈에 띈다. */
+  #track i.now { background: var(--gold); box-shadow: inset 0 0 0 2px #ffe9a8; }
 
   #timer {
     display: flex; align-items: center; gap: 4px; flex: none;
@@ -598,10 +598,6 @@
     font-size: 13px; font-weight: 700; text-shadow: 0 1px 2px #0009;
   }
   #bspeed[hidden] { display: none; }
-  #alive {
-    position: absolute; left: 50%; top: 48px; transform: translateX(-50%); z-index: 5;
-    font-weight: 800; font-size: 15px; text-shadow: 0 1px 3px #000;
-  }
   .teamA { color: var(--team-a); }
   .teamB { color: var(--team-b); }
 
@@ -654,7 +650,6 @@
           <div id="timebar"><i></i></div>
         </div>
       </div>
-      <span id="alive"></span>
 
       <div id="traits"></div>
       <div id="lobby"></div>

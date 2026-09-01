@@ -14,7 +14,6 @@ const BOLT_COLOR = { mage: 0xb98cff, shooter: 0xffc266 }
 
 export async function createBattle({ data, scene }) {
   const el = {
-    alive: document.getElementById('alive'),
     speed: document.getElementById('bspeed'),
   }
 
@@ -223,9 +222,8 @@ export async function createBattle({ data, scene }) {
     }
     scene.updateBolts(dt)
 
-    const aliveA = [...unitState].filter(([id, s]) => s.alive && teamById.get(id) === 'A').length
-    const aliveB = [...unitState].filter(([id, s]) => s.alive && teamById.get(id) === 'B').length
-    el.alive.innerHTML = `<b class="teamA">${aliveA}</b> vs <b class="teamB">${aliveB}</b>`
+    // 남은 수 표시는 뺐다. 말 위에 체력바가 이미 있고 죽으면 사라진다 —
+    // 판을 보면 되는 걸 숫자로 다시 말하면 눈이 판에서 떨어진다.
     scene.render()
   }
 
@@ -314,7 +312,6 @@ export async function createBattle({ data, scene }) {
       playing = false
       scene.clearBolts()
       el.speed.hidden = true
-      el.alive.textContent = ''
       scene.setBattleMode(false)
     },
   }
