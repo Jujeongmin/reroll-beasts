@@ -6,17 +6,16 @@
 <title>Reroll Beasts</title>
 <style>
   /* ─────────────────────────────────────────────────────────
-     배치는 TFT 를 따른다: 판이 화면의 주인이고 HUD 는 그 위에 뜬다.
-     골드·경험치는 하단 양 끝의 원형 디스크, 시너지는 좌측 세로 컬럼.
+     TFT 배치를 따른다. 판이 화면의 주인이고 HUD 는 그 위에 뜬다.
 
-     세로가 390px 뿐이라 상단 바와 벤치를 **띠로 쌓지 않고 판 위에 겹친다** —
-     쌓으면 그 높이만큼 판이 그대로 줄어든다.
+     이 UI 의 뼈대는 **비스듬한 판(평행사변형)** 이다. TFT 의 시너지 줄과
+     플레이어 줄이 전부 그 모양이고, 직사각형 목록과는 인상이 완전히 다르다.
+     clip-path 로 자른다 — border-radius 로는 못 만드는 각이다.
 
-     프레임·버튼·육각 칸은 Kenney UI Pixel Adventure (CC0) 타일이다.
-     32px 원본이라 늘릴 때 image-rendering: pixelated 가 필수다.
+     세로가 390px 뿐이라 상단·좌우를 띠로 쌓지 않고 판 위에 겹친다.
      ───────────────────────────────────────────────────────── */
   :root {
-    --bg: #101526;
+    --bg: #0e1220;
     --ink: #f3ecdd;
     --dim: #a9a08f;
     --gold: #ffd166;
@@ -26,8 +25,12 @@
     --team-b: #ff7a6f;
     --sell: #e8654f;
     --t1: #9aa3b2; --t2: #4fb96a; --t3: #4f8fe8; --t4: #b06fe8; --t5: #e8b34f;
+    --plate: #12101ce8;
+    --edge: #ffffff1c;
 
-    --shopH: 106px;
+    --shopH: 108px;
+    /* 비스듬한 판의 기울기. 한 곳에서 정해야 좌우가 대칭으로 보인다. */
+    --skew: 9px;
   }
   * { box-sizing: border-box; margin: 0; padding: 0; }
   html, body { height: 100%; overflow: hidden; }
@@ -46,109 +49,88 @@
   .screen { position: fixed; inset: 0; display: flex; flex-direction: column; }
   .screen[hidden] { display: none; }
 
-  /* 9-슬라이스. 원본 32px, 테두리 6px. */
-  .nine {
-    border-style: solid;
-    border-width: 12px;
-    border-image-slice: 6 fill;
-    border-image-repeat: repeat;
-    image-rendering: pixelated;
-  }
-  .n-wood { border-image-source: url('/assets/ui/panel_wood.png'); }
-
   /* ── 무대 ──────────────────────────────────────────── */
-  /* 하늘. three 의 단색 배경 대신 CSS 그라디언트를 깔고 캔버스를 투명하게 둔다 —
-     단색이면 판이 허공에 뜬 격자로 보인다. 안개 색(FOG)이 이 중간 톤과 맞다. */
   #stage {
     flex: 1; min-height: 0; position: relative; overflow: hidden;
     background: radial-gradient(130% 100% at 50% 6%, #3a4d7d 0%, #1b2440 50%, #0d1120 100%);
   }
   #stage canvas { display: block; position: relative; }
 
-  /* ── 상단 오버레이: 라운드 · 스테이지 트랙 · 체력 ───── */
+  /* ── 상단: 라운드 · 라운드 종류 트랙 · 남은 시간 ───── */
   #top {
-    position: absolute; top: 0; left: 0; right: 0; height: 42px; z-index: 5;
-    display: flex; align-items: center; gap: 10px; padding: 0 10px;
-    background: linear-gradient(#0d1120e6, #0d112000);
+    position: absolute; top: 0; left: 0; right: 0; height: 44px; z-index: 5;
+    display: flex; align-items: flex-start; justify-content: center;
+    background: linear-gradient(#0b0e1ae8, #0b0e1a00);
     pointer-events: none;
   }
-  /* 라운드·스테이지 트랙은 TFT 처럼 상단 **가운데**. 좌우는 좌측 시너지 컬럼과
-     우측 체력·인구가 각각 차지한다. */
-  #topmid {
-    position: absolute; left: 50%; transform: translateX(-50%);
-    display: flex; align-items: center; gap: 8px;
+  #topbar {
+    display: flex; align-items: center; gap: 11px; height: 32px; padding: 0 16px;
+    background: var(--plate); box-shadow: inset 0 0 0 1px var(--edge);
+    clip-path: polygon(11px 0, calc(100% - 11px) 0, 100% 100%, 0 100%);
   }
-  #roundtag {
-    display: flex; align-items: center; gap: 6px; height: 32px; padding: 0 11px;
-    font-size: 16px; font-weight: 800; letter-spacing: .3px; color: #fff2e0;
-    border-style: solid; border-width: 0 13px; border-image-slice: 0 10 0 10 fill;
-    border-image-source: url('/assets/ui/banner_m.png');
-    image-rendering: pixelated; text-shadow: 0 1px 2px #0009;
-  }
-  #track { display: flex; gap: 4px; align-items: center; }
-  /* 라운드 점열. PvE 는 마름모로 그려 "이번엔 상대가 아니다" 를 모양으로 준다. */
+  #roundtag { font-size: 16px; font-weight: 800; letter-spacing: .5px; color: #fff2e0; }
+
+  /* 라운드 종류 트랙. 마름모 = PvE, 원 = 상대. */
+  #track { display: flex; gap: 5px; align-items: center; }
   #track i {
-    width: 11px; height: 11px; border-radius: 50%; display: block;
-    background: #ffffff26; box-shadow: inset 0 0 0 1px #0006;
-  }
-  #track i.done { background: #ffffff85; }
-  #track i.now {
-    background: var(--gold); box-shadow: 0 0 8px var(--gold), inset 0 0 0 1px #0006;
-    transform: scale(1.25);
+    width: 10px; height: 10px; display: block; border-radius: 50%;
+    background: #ffffff24; box-shadow: inset 0 0 0 1px #0007;
   }
   #track i.pve { border-radius: 2px; transform: rotate(45deg); }
-  #track i.pve.now { transform: rotate(45deg) scale(1.25); }
-  #nextup { font-size: 11px; color: #cfc6b0; text-shadow: 0 1px 3px #000; }
+  #track i.done { background: #ffffff7d; }
+  #track i.now { background: var(--gold); box-shadow: 0 0 9px var(--gold); transform: scale(1.3); }
+  #track i.pve.now { transform: rotate(45deg) scale(1.3); }
 
-  /* 체력·인구는 숫자만으로는 "얼마나 남았나" 가 안 읽힌다. 막대를 붙인다. */
-  .gauge {
-    display: flex; flex-direction: column; align-items: flex-end; gap: 2px;
+  #timer {
+    display: flex; align-items: center; gap: 5px;
+    font-variant-numeric: tabular-nums; font-weight: 800; font-size: 16px;
+    min-width: 44px; justify-content: flex-end;
+  }
+  #timer::before {
+    content: ''; width: 12px; height: 12px; border-radius: 50%;
+    box-shadow: inset 0 0 0 2px currentColor;
+  }
+  #timer.warn { color: var(--sell); animation: pulse .6s steps(2, end) infinite; }
+  @keyframes pulse { 50% { opacity: .4; } }
+
+  /* 체력은 왼쪽 위, 인구는 오른쪽 위 — 상단 바와 겹치지 않게 내린다. */
+  #hp, #pop {
+    position: absolute; top: 48px; z-index: 5;
+    display: flex; align-items: center; gap: 6px; height: 25px; padding: 0 11px;
+    background: var(--plate); box-shadow: inset 0 0 0 1px var(--edge);
+    font-weight: 800; font-variant-numeric: tabular-nums; font-size: 15px;
     text-shadow: 0 1px 3px #000;
   }
-  .gauge .v { font-weight: 800; font-size: 17px; line-height: 1; }
-  .gauge .bar {
-    width: 62px; height: 5px; border-radius: 3px; overflow: hidden;
-    background: #00000070; box-shadow: inset 0 0 0 1px #ffffff1f;
-  }
-  .gauge .bar i { display: block; height: 100%; width: 0; }
-  #hp .v { color: var(--hp); }
-  #hp .bar i { background: linear-gradient(90deg, #ff4d61, #ff8a95); }
-  #pop .v { color: var(--ink); }
-  #pop .bar i { background: linear-gradient(90deg, #4de8d8, #8ffff0); }
-  #pop.full .v { color: var(--sell); }
-  #pop.full .bar i { background: linear-gradient(90deg, #e8654f, #ffa08c); }
-  #top .grow { flex: 1; }
+  #hp { left: 8px; color: var(--hp); }
+  #pop { right: 8px; }
+  #hp::before { content: '♥'; }
+  #pop::after { content: '배치'; font-size: 10px; font-weight: 600; color: var(--dim); }
+  #pop.full { color: var(--sell); }
 
-
-  /* ── 시너지 (좌측 세로) ────────────────────────────── */
-  /* TFT 처럼 **육각 배지 + 등급색**. 등급이 색으로 먼저 읽히고 숫자는 확인용이다. */
+  /* ── 좌측: 시너지 ──────────────────────────────────── */
   #traits {
-    position: absolute; left: 6px; top: 46px; width: 140px;
-    max-height: calc(100% - 120px);
+    position: absolute; left: 8px; top: 80px; width: 148px;
+    max-height: calc(100% - 96px);
     display: flex; flex-direction: column; gap: 3px; z-index: 4;
     overflow-y: auto; pointer-events: none;
   }
-  /* 컬럼은 포인터를 통과시키되 행은 받는다 — 판을 가리지 않으면서 올려볼 수 있다 */
-  .trait { pointer-events: auto; }
   .trait {
-    display: flex; align-items: center; gap: 7px; height: 28px; padding: 0 8px 0 4px;
-    border-radius: 5px; background: #14111ec9;
-    box-shadow: inset 0 0 0 1px #ffffff14;
+    pointer-events: auto;
+    flex: none;
+    display: flex; align-items: center; gap: 6px; height: 25px; padding: 0 10px 0 3px;
+    background: var(--plate); box-shadow: inset 0 0 0 1px var(--edge);
+    clip-path: polygon(0 0, 100% 0, calc(100% - var(--skew)) 100%, 0 100%);
     font-size: 13px; color: #e6e0f0; text-shadow: 0 1px 2px #000a;
   }
   .trait .n { flex: 1; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
   .trait .c { font-variant-numeric: tabular-nums; font-size: 12px; color: #9c94ad; }
-  .trait.on .c { font-weight: 800; }
-  .trait.off { opacity: .55; }
-
-  /* 육각 배지. 안에는 시너지 이름 첫 글자를 넣는다 — 전용 아이콘이 없으므로
-     글자가 곧 표식이다. 등급이 오르면 배경색이 동 → 은 → 금으로 간다. */
+  .trait.off { opacity: .5; }
+  /* 육각 배지 + 등급색. 배지 안에는 시너지 이름 첫 글자 — 전용 아이콘이
+     없으므로 글자가 곧 표식이다. */
   .trait .pip {
-    width: 22px; height: 25px; flex: none;
-    display: grid; place-items: center;
+    width: 21px; height: 24px; flex: none; display: grid; place-items: center;
     clip-path: polygon(50% 0, 100% 25%, 100% 75%, 50% 100%, 0 75%, 0 25%);
-    background: #3b3550; color: #0f0d16;
-    font-size: 12px; font-weight: 800; line-height: 1;
+    background: #3b3550; color: #0f0d16; font-size: 12px; font-weight: 800; line-height: 1;
   }
   .trait.s1 .pip { background: linear-gradient(#d99154, #a5602c); }
   .trait.s2 .pip { background: linear-gradient(#e6edf5, #a8b4c4); }
@@ -157,55 +139,69 @@
   .trait.s2 .c { color: #dfe7f0; }
   .trait.s3 .c { color: var(--gold); }
 
-  /* ── 유닛 정보 (탭하면 뜬다) ───────────────────────── */
-  /* 우측에 붙인다 — 좌측은 시너지 컬럼이 쓰고 있고, 가운데를 덮으면
-     정작 보려던 말이 가린다. */
-  #info {
-    position: absolute; right: 140px; top: 46px; width: 196px; z-index: 7;
-    border-radius: 6px; overflow: hidden;
-    background: #14111edd; box-shadow: inset 0 0 0 1px var(--tc, #4a4358), 0 4px 14px #0008;
+  /* ── 우측: 플레이어 ────────────────────────────────── */
+  /* 8행이 세로를 다 먹는다. 행을 낮추고 넘치면 스크롤 — 등수는 위쪽이 중요하다. */
+  #lobby {
+    position: absolute; right: 8px; top: 80px; width: 152px; z-index: 4;
+    max-height: calc(100% - 96px);
+    display: flex; flex-direction: column; gap: 2px;
+    overflow-y: auto;
+  }
+  .seat {
+    flex: none;
+    display: flex; align-items: center; gap: 6px; height: 25px; padding: 0 3px 0 10px;
+    background: var(--plate); box-shadow: inset 0 0 0 1px var(--edge);
+    clip-path: polygon(var(--skew) 0, 100% 0, 100% 100%, 0 100%);
+    font-size: 12px; color: #e6e0f0; text-shadow: 0 1px 2px #000a; cursor: pointer;
+  }
+  .seat .rk { width: 12px; font-size: 10px; color: #8d85a0; text-align: right; }
+  .seat .n { flex: 1; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  .seat .h { font-variant-numeric: tabular-nums; font-weight: 800; color: #ff8a95; font-size: 12px; }
+  /* 오른쪽 끝 원형 표식 — TFT 의 초상화 자리다. */
+  .seat .av {
+    width: 19px; height: 19px; flex: none; border-radius: 50%;
+    display: grid; place-items: center; font-size: 10px; font-weight: 800;
+    background: #3b3550; color: #0f0d16;
+  }
+  .seat.me { box-shadow: inset 0 0 0 1px var(--gold); }
+  .seat.me .n { color: var(--gold); font-weight: 800; }
+  .seat.me .av { background: linear-gradient(#ffe08a, #d9a12c); }
+  .seat.foe { box-shadow: inset 0 0 0 1px var(--team-b); }
+  .seat.foe .av { background: linear-gradient(#ff9a8c, #d9503c); }
+  .seat.out { opacity: .35; }
+  .seat.out .h { color: #6c6579; }
+  .seat.open { background: #2a2440f0; box-shadow: inset 0 0 0 1px #6f7fd8; }
+
+  /* ── 상세 패널 ─────────────────────────────────────── */
+  .panel {
+    position: absolute; z-index: 8; border-radius: 5px; overflow: hidden;
+    background: #12101cf5; box-shadow: inset 0 0 0 1px var(--pc, #6f7fd8), 0 6px 18px #000a;
     font-size: 12px; color: #e6e0f0;
   }
-  #info[hidden] { display: none; }
+  .panel[hidden] { display: none; }
+
+  #info { right: 166px; top: 80px; width: 200px; --pc: var(--tc, #6f7fd8); }
   #info .hd {
     display: flex; align-items: center; gap: 7px; padding: 6px 8px;
     background: linear-gradient(90deg, color-mix(in srgb, var(--tc) 45%, transparent), transparent);
   }
   #info .hd img { width: 34px; height: 34px; object-fit: contain; flex: none; }
   #info .hd .t { flex: 1; min-width: 0; }
-  #info .hd .nm {
-    font-weight: 800; font-size: 13px; overflow: hidden;
-    text-overflow: ellipsis; white-space: nowrap;
-  }
+  #info .hd .nm { font-weight: 800; font-size: 13px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
   #info .hd .sub { font-size: 10px; color: #a79fbb; }
-  /* 별 색은 말 위 배지와 같아야 한다. 여기만 금색이면 2성인데 3성처럼 읽힌다. */
   #info .hd .st { color: var(--sc); font-size: 13px; letter-spacing: -1px; }
   #info .grid {
     display: grid; grid-template-columns: 1fr 1fr; gap: 2px 8px;
-    padding: 6px 8px; border-top: 1px solid #ffffff14;
-    font-variant-numeric: tabular-nums;
+    padding: 6px 8px; border-top: 1px solid var(--edge); font-variant-numeric: tabular-nums;
   }
   #info .grid span { color: #9c94ad; }
   #info .grid b { float: right; font-weight: 700; color: #f0ecf8; }
-  #info .sk {
-    padding: 6px 8px; border-top: 1px solid #ffffff14;
-    line-height: 1.4; color: #d5cee6;
-  }
+  #info .sk { padding: 6px 8px; border-top: 1px solid var(--edge); line-height: 1.4; color: #d5cee6; }
   #info .sk em { color: var(--xp); font-style: normal; font-weight: 700; }
-  #info .sell {
-    padding: 5px 8px; border-top: 1px solid #ffffff14;
-    color: #a79fbb; font-size: 10px;
-  }
+  #info .sell { padding: 5px 8px; border-top: 1px solid var(--edge); color: #a79fbb; font-size: 10px; }
   #info .sell b { color: var(--gold); }
 
-  /* ── 시너지 상세 (시너지 행에 손을 올리면) ─────────── */
-  #traitinfo {
-    position: absolute; left: 150px; top: 46px; width: 214px; z-index: 8;
-    border-radius: 6px; overflow: hidden;
-    background: #14111ef2; box-shadow: inset 0 0 0 1px #6f7fd8, 0 6px 18px #000a;
-    font-size: 12px; color: #e6e0f0;
-  }
-  #traitinfo[hidden] { display: none; }
+  #traitinfo { left: 162px; top: 80px; width: 214px; }
   #traitinfo .hd {
     display: flex; align-items: center; gap: 7px; padding: 6px 9px;
     background: #2a2440; font-weight: 800; font-size: 13px;
@@ -216,177 +212,121 @@
   #traitinfo .step.on { opacity: 1; }
   #traitinfo .step b { flex: none; width: 16px; text-align: right; color: #9c94ad; }
   #traitinfo .step.on b { color: var(--gold); }
-  #traitinfo .mem {
-    display: flex; flex-wrap: wrap; gap: 4px; padding: 6px 9px;
-    border-top: 1px solid #ffffff14;
-  }
+  #traitinfo .mem { display: flex; flex-wrap: wrap; gap: 4px; padding: 6px 9px; border-top: 1px solid var(--edge); }
   #traitinfo .mem figure { width: 36px; text-align: center; }
   #traitinfo .mem img {
-    width: 34px; height: 34px; object-fit: contain; display: block;
-    border-radius: 4px;
-    /* 보유한 유닛은 밝은 바탕 + 금테. 회색 처리만으로는 어두운 모델끼리
-       구분이 안 된다 — 바탕까지 갈라야 읽힌다. */
+    width: 34px; height: 34px; object-fit: contain; display: block; border-radius: 4px;
     background: #ffd16626; box-shadow: inset 0 0 0 1px #ffd16688;
   }
   #traitinfo .mem figcaption {
     font-size: 8px; line-height: 1.1; color: #b7afc8; margin-top: 1px;
     overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
   }
-  /* 아직 못 구한 유닛은 회색. "뭘 더 구하면 되는가" 가 한눈에 보여야 한다. */
   #traitinfo .mem figure.no img {
     filter: grayscale(1) brightness(.45);
-    background: #ffffff08; box-shadow: inset 0 0 0 1px #ffffff14;
+    background: #ffffff08; box-shadow: inset 0 0 0 1px var(--edge);
   }
   #traitinfo .mem figure.no figcaption { color: #6c6579; }
 
-  /* ── 로비 (우측 세로) ──────────────────────────────── */
-  /* 누르면 그 사람 판을 무대에 띄운다. 시너지가 좌측이니 여긴 우측이다. */
-  #lobby {
-    position: absolute; right: 6px; top: 46px; width: 128px; z-index: 4;
-    display: flex; flex-direction: column; gap: 2px;
-  }
-  .seat {
-    display: flex; align-items: center; gap: 6px; height: 24px; padding: 0 7px;
-    border-radius: 4px; background: #14111ec9;
-    box-shadow: inset 0 0 0 1px #ffffff14;
-    font-size: 12px; color: #e6e0f0; text-shadow: 0 1px 2px #000a;
-    cursor: pointer;
-  }
-  .seat .n { flex: 1; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
-  .seat .h { font-variant-numeric: tabular-nums; font-weight: 700; color: #ff8a95; }
-  .seat .rk { width: 12px; color: #8d85a0; font-size: 10px; text-align: right; }
-  .seat.me { box-shadow: inset 0 0 0 1px var(--gold); background: #241d14e0; }
-  .seat.me .n { color: var(--gold); font-weight: 800; }
-  /* 이번 라운드 내 상대. 누구랑 붙는지가 목록에서 바로 보여야 한다. */
-  .seat.foe { box-shadow: inset 0 0 0 1px #ff7a6f; }
-  .seat.foe .n::after { content: ' ⚔'; color: var(--team-b); }
-  .seat.out { opacity: .38; }
-  .seat.out .h { color: #6c6579; }
-  .seat.open { background: #2a2440; box-shadow: inset 0 0 0 1px #6f7fd8; }
-
-  /* 남의 판을 보는 중임을 알리는 띠. 안 알리면 내 판이 사라진 줄 안다. */
   #peek {
-    position: absolute; left: 50%; top: 46px; transform: translateX(-50%); z-index: 8;
-    display: flex; align-items: center; gap: 10px;
-    padding: 5px 12px; border-radius: 20px;
-    background: #2a2440ee; box-shadow: inset 0 0 0 1px #6f7fd8;
+    position: absolute; left: 50%; top: 80px; transform: translateX(-50%); z-index: 9;
+    display: flex; align-items: center; gap: 10px; padding: 5px 14px;
+    background: #2a2440f2; box-shadow: inset 0 0 0 1px #6f7fd8;
+    clip-path: polygon(9px 0, calc(100% - 9px) 0, 100% 100%, 0 100%);
     font-size: 13px; font-weight: 700;
   }
   #peek[hidden] { display: none; }
-  #peek button {
-    font-size: 11px; padding: 2px 8px; border-radius: 12px;
-    background: #4a4270; color: #fff;
-  }
+  #peek button { font-size: 11px; padding: 2px 9px; background: #4a4270; color: #fff; border-radius: 3px; }
 
   #hint {
-    position: absolute; left: 50%; bottom: 8px;
-    transform: translateX(-50%); z-index: 6;
-    padding: 4px 12px; border-radius: 20px;
-    background: rgba(0,0,0,.72); color: var(--ink); font-size: 11px;
+    position: absolute; left: 50%; bottom: 10px; transform: translateX(-50%); z-index: 9;
+    padding: 5px 14px; border-radius: 20px;
+    background: rgba(0,0,0,.78); color: var(--ink); font-size: 12px;
     pointer-events: none; opacity: 0; transition: opacity .18s;
   }
   #hint.show { opacity: 1; }
 
-  /* ── 상점 바 ───────────────────────────────────────── */
+  /* ── 하단 바 ───────────────────────────────────────── */
   #shopbar {
-    flex: none; height: var(--shopH); display: flex; align-items: center; gap: 6px;
-    padding: 4px 6px;
+    flex: none; height: var(--shopH); display: flex; align-items: stretch; gap: 8px;
+    padding: 7px 10px;
+    background: linear-gradient(#161326, #0e0c18);
+    box-shadow: inset 0 1px 0 #ffffff14;
     transition: filter .12s;
   }
   #shopbar.selling { filter: hue-rotate(-25deg) saturate(1.8) brightness(1.15); }
 
-  /* 골드·경험치는 TFT 처럼 원형 디스크로 양 끝에 둔다.
-     9-슬라이스 테두리가 상하 24px 를 먹으므로 디스크 지름이 바 높이를 정한다. */
-  .disc {
-    width: 80px; height: 80px; flex: none; position: relative;
-    background: url('/assets/ui/disc.png') center/100% 100% no-repeat;
-    display: flex; flex-direction: column; align-items: center; justify-content: center;
-    color: #45300f; image-rendering: pixelated;
-  }
-  .disc b { font-size: 28px; line-height: 1; font-weight: 800; letter-spacing: -.5px; }
-  .disc .cap { font-size: 10px; line-height: 1.1; opacity: .8; letter-spacing: -.2px; }
-  .disc:disabled { filter: grayscale(.55) brightness(.85); cursor: default; }
-  .disc:not(:disabled):active { transform: translateY(1px); }
-  /* 경험치 막대는 디스크 **안쪽 아래**에 걸친다. 밖에 두면 원형 프레임이 깨진다. */
-  #xpbar {
-    position: absolute; left: 20px; right: 20px; bottom: 17px; height: 7px;
-    background: #00000055; border-radius: 3px; overflow: hidden;
-  }
-  #xpbar i { display: block; height: 100%; background: var(--xp); width: 0; }
+  /* 좌측: 레벨 · XP · 티어 확률 · 구매/새로고침/잠금 */
+  #levelbox { width: 232px; flex: none; display: flex; flex-direction: column; gap: 4px; }
+  #lvline { display: flex; align-items: center; gap: 7px; }
+  #lvl { font-size: 19px; font-weight: 800; color: var(--gold); line-height: 1; }
+  #lvl::after { content: '레벨'; font-size: 11px; font-weight: 600; color: var(--dim); margin-left: 2px; }
+  #xptext { font-size: 11px; color: var(--dim); font-variant-numeric: tabular-nums; }
+  #xpbar { flex: 1; height: 6px; border-radius: 3px; background: #00000066; overflow: hidden; box-shadow: inset 0 0 0 1px var(--edge); }
+  #xpbar i { display: block; height: 100%; width: 0; background: linear-gradient(90deg, #3aa0d8, var(--xp)); }
 
-  #sideR { display: flex; align-items: center; gap: 5px; flex: none; }
+  /* 티어 확률. 지금 레벨에서 무엇이 나오는지가 안 보이면 레벨업 판단을 못 한다. */
+  #odds { display: flex; gap: 3px; }
+  #odds span {
+    flex: 1; text-align: center; padding: 2px 0; border-radius: 3px;
+    font-size: 11px; font-weight: 800; font-variant-numeric: tabular-nums;
+    color: #0e0c18; background: var(--oc);
+  }
+  #odds span.zero { color: #5b5468; background: #ffffff10; }
 
-  .mini {
-    font-size: 13px; padding: 6px 10px; line-height: 1.25; text-align: center; color: #f3ecdd;
-    border-style: solid; border-width: 9px; border-image-slice: 6 fill;
-    border-image-source: url('/assets/ui/button.png');
-    image-rendering: pixelated; text-shadow: 0 1px 2px #0009;
+  #lvbtns { display: flex; gap: 5px; margin-top: auto; }
+  .btn {
+    flex: 1; display: flex; flex-direction: column; align-items: center; justify-content: center;
+    gap: 1px; padding: 5px 0; border-radius: 4px;
+    background: #262133; box-shadow: inset 0 0 0 1px var(--edge);
+    font-size: 11px; line-height: 1.15;
   }
-  .mini:active { transform: translateY(1px); }
-  .mini:disabled { filter: grayscale(.7) brightness(.7); cursor: default; }
-  .mini b { color: var(--gold); font-size: 12px; }
-  /* 리롤은 골드 디스크와 짝이다. 폭을 고정해 숫자가 바뀌어도 바가 안 흔들린다. */
-  /* 9-슬라이스 테두리가 좌우 18px 를 먹는다. 그만큼 더 잡지 않으면 "리롤" 두 글자가
-     세로로 쪼개진다. */
-  #reroll {
-    width: 78px; display: flex; flex-direction: column; align-items: center; gap: 2px;
-    white-space: nowrap;
-  }
-  #reroll .coin {
-    display: inline-flex; align-items: center; gap: 3px;
-  }
-  #reroll .coin::before {
-    content: ''; width: 8px; height: 8px; border-radius: 50%;
-    background: radial-gradient(circle at 35% 30%, #ffe9a8, #c9932c);
-  }
+  .btn b { font-size: 12px; }
+  .btn .cost { color: var(--gold); font-weight: 800; font-variant-numeric: tabular-nums; }
+  .btn:active { transform: translateY(1px); }
+  .btn:disabled { filter: grayscale(.7) brightness(.62); cursor: default; }
+  #lock.on { background: #4a3a12; box-shadow: inset 0 0 0 1px var(--gold); }
+  #lock.on b { color: var(--gold); }
 
-  /* ── 상점 카드 ─────────────────────────────────────── */
-  /* TFT 카드 구조: 위는 초상화, 아래는 **티어색 이름띠**, 우상단에 가격.
-     티어색이 카드 테두리·이름띠·후광에 동시에 걸려 값이 한눈에 읽힌다. */
+  /* 상점 카드 */
   #shop { flex: 1; display: flex; gap: 6px; min-width: 0; }
   .card {
     --tc: var(--t1);
-    flex: 1; min-width: 0; height: 96px; position: relative; overflow: hidden;
-    border-radius: 6px;
+    flex: 1; min-width: 0; position: relative; overflow: hidden; border-radius: 5px;
     background:
-      radial-gradient(120% 80% at 50% 12%, color-mix(in srgb, var(--tc) 34%, transparent), transparent 70%),
+      radial-gradient(120% 74% at 50% 16%, color-mix(in srgb, var(--tc) 36%, transparent), transparent 72%),
       linear-gradient(#2b2536, #191322);
     box-shadow: inset 0 0 0 1px var(--tc), 0 2px 6px #0006;
   }
   .card.empty {
-    --tc: #4a4358;
+    --tc: #46405a;
     background: repeating-linear-gradient(45deg, #1a1622 0 6px, #171320 6px 12px);
-    opacity: .55;
+    opacity: .5;
   }
   .card:not(.empty):active { transform: translateY(1px); }
-  .card.poor { filter: grayscale(.5) brightness(.72); }
-
-  .card .art {
-    position: absolute; left: 0; right: 0; top: 0; bottom: 27px;
-    display: grid; place-items: center;
-  }
+  .card.poor { filter: grayscale(.5) brightness(.7); }
+  .card .art { position: absolute; left: 0; right: 0; top: 0; bottom: 22px; display: grid; place-items: center; }
   .card .art img {
-    width: 100%; height: 100%; max-width: 52px; max-height: 46px;
-    object-fit: contain; filter: drop-shadow(0 3px 4px #0009);
+    width: 100%; height: 100%; object-fit: contain; transform: scale(1.24);
+    filter: drop-shadow(0 3px 5px #000a);
   }
+  /* 시너지는 TFT 처럼 좌상단에 줄로 세운다 — 이름띠 위에 붙이면 자리가 없다. */
   .card .tr {
-    position: absolute; left: 0; right: 0; bottom: 27px;
-    font-size: 11px; line-height: 1.3; text-align: center; color: #cfc6e0;
-    text-shadow: 0 1px 3px #000, 0 0 5px #000;
-    overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
+    position: absolute; left: 6px; top: 4px; display: flex; flex-direction: column; gap: 1px;
+    font-size: 10px; line-height: 1.25; color: #ded6ee; text-shadow: 0 1px 3px #000, 0 0 6px #000;
   }
   .card .nm {
-    position: absolute; left: 0; right: 0; bottom: 0; height: 25px;
-    display: flex; align-items: center; justify-content: center;
+    position: absolute; left: 0; right: 0; bottom: 0; height: 22px;
+    display: flex; align-items: center; padding: 0 6px;
     background: var(--tc); color: #14101c;
-    font-size: 14px; font-weight: 800; letter-spacing: -.3px;
-    overflow: hidden; text-overflow: ellipsis; white-space: nowrap; padding: 0 3px;
+    font-size: 13px; font-weight: 800; letter-spacing: -.3px;
+    overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
   }
   .card .pr {
-    position: absolute; top: 3px; right: 3px; z-index: 2;
-    display: flex; align-items: center; gap: 2px;
-    padding: 0 5px 0 4px; height: 18px; border-radius: 9px;
-    background: #12101ce8; box-shadow: inset 0 0 0 1px #6b5230;
+    position: absolute; right: 5px; bottom: 25px; z-index: 2;
+    display: flex; align-items: center; gap: 3px;
+    padding: 1px 6px 1px 4px; border-radius: 9px;
+    background: #12101cee; box-shadow: inset 0 0 0 1px #6b5230;
     font-size: 12px; color: var(--gold); font-weight: 800;
   }
   .card .pr::before {
@@ -394,36 +334,47 @@
     background: radial-gradient(circle at 35% 30%, #ffe9a8, #c9932c);
   }
 
-  #fight {
-    align-self: stretch; width: 100px; flex: none; padding: 4px 6px;
-    font-weight: 800; font-size: 17px;
-    line-height: 1.15; color: #f6ffe8;
-    border-style: solid; border-width: 10px; border-image-slice: 6 fill;
-    border-image-source: url('/assets/ui/button_light.png');
-    image-rendering: pixelated; text-shadow: 0 1px 2px #0009;
+  /* 우측: 골드 · 전투 */
+  #rightbox { width: 110px; flex: none; display: flex; flex-direction: column; gap: 5px; }
+  #gold {
+    display: flex; align-items: center; justify-content: center; gap: 6px;
+    height: 40px; border-radius: 4px;
+    background: #2a2010; box-shadow: inset 0 0 0 1px #6b5230;
+    font-size: 22px; font-weight: 800; color: var(--gold); font-variant-numeric: tabular-nums;
   }
-  #fight:disabled { filter: grayscale(.7) brightness(.7); cursor: default; }
+  #gold::before {
+    content: ''; width: 16px; height: 16px; border-radius: 50%;
+    background: radial-gradient(circle at 35% 30%, #ffe9a8, #c9932c);
+  }
+  #fight {
+    flex: 1; border-radius: 4px; font-weight: 800; font-size: 15px; color: #f6ffe8;
+    background: linear-gradient(#3d8a5e, #2a6342); box-shadow: inset 0 0 0 1px #58b184;
+  }
+  #fight:active { transform: translateY(1px); }
+  #fight:disabled { filter: grayscale(.75) brightness(.6); cursor: default; }
+
+  /* ── 전투 조작 ─────────────────────────────────────── */
+  #bspeed {
+    position: absolute; right: 8px; bottom: 8px; z-index: 6;
+    min-width: 48px; padding: 6px 11px; border-radius: 4px;
+    background: #262133e8; box-shadow: inset 0 0 0 1px var(--edge);
+    font-size: 13px; font-weight: 700;
+  }
+  #bspeed[hidden] { display: none; }
+  #alive {
+    position: absolute; left: 50%; top: 48px; transform: translateX(-50%); z-index: 5;
+    font-weight: 800; font-size: 15px; text-shadow: 0 1px 3px #000;
+  }
+  .teamA { color: var(--team-a); }
+  .teamB { color: var(--team-b); }
 
   /* ── 드래그 유령 ───────────────────────────────────── */
   #ghost {
-    position: fixed; width: 54px; height: 54px; pointer-events: none;
+    position: fixed; width: 56px; height: 56px; pointer-events: none;
     z-index: 50; display: none; transform: translate(-50%, -62%);
   }
   #ghost img { width: 100%; height: 100%; object-fit: contain; }
   #ghost.sell { filter: drop-shadow(0 0 7px var(--sell)); }
-
-  /* ── 전투 조작 ─────────────────────────────────────── */
-  /* 전투 중에도 상점은 그대로 쓴다 (TFT 와 같다). 그래서 하단 바를 갈아끼우지
-     않고, 배속 버튼 하나만 무대 위에 띄운다. */
-  #bspeed {
-    position: absolute; right: 8px; bottom: 8px; z-index: 6;
-    min-width: 46px;
-  }
-  #bspeed[hidden] { display: none; }
-  #shopbar[hidden] { display: none; }
-  #alive { font-weight: 800; font-size: 16px; text-shadow: 0 1px 3px #000; }
-  .teamA { color: var(--team-a); }
-  .teamB { color: var(--team-b); }
 
   #rotate {
     display: none; position: fixed; inset: 0; z-index: 90;
@@ -440,43 +391,51 @@
 </style>
 </head>
 <body>
-  <!-- 배치 · 상점 -->
   <div id="prep" class="screen" hidden>
     <div id="stage">
       <div id="top">
-        <div id="topmid">
+        <div id="topbar">
           <span id="roundtag">1-1</span>
           <span id="track"></span>
-          <span id="nextup"></span>
+          <span id="timer">30</span>
         </div>
-        <span class="grow"></span>
-        <span id="alive"></span>
-        <span class="gauge" id="hp"><span class="v">♥ 40</span><span class="bar"><i></i></span></span>
-        <span class="gauge" id="pop"><span class="v">0/3</span><span class="bar"><i></i></span></span>
       </div>
+      <span id="hp">40</span>
+      <span id="pop">0 / 3</span>
+      <span id="alive"></span>
+
       <div id="traits"></div>
-      <div id="traitinfo" hidden></div>
       <div id="lobby"></div>
+
+      <div id="info" class="panel" hidden></div>
+      <div id="traitinfo" class="panel" hidden></div>
       <div id="peek" hidden></div>
-      <div id="info" hidden></div>
-      <button class="mini" id="bspeed" hidden>1x</button>
       <div id="hint"></div>
+      <button id="bspeed" hidden>1x</button>
     </div>
 
-    <div id="shopbar" class="nine n-wood">
-      <button class="disc" id="buyxp" title="경험치 구매">
-        <b id="lvl">3</b>
-        <span class="cap" id="xptext">0/2</span>
-        <span id="xpbar"><i></i></span>
-      </button>
-      <div id="shop"></div>
-      <div id="sideR">
-        <button class="mini" id="reroll">리롤<span class="coin"><b>2</b></span></button>
-        <div class="disc" id="gold"><b id="goldval">0</b><span class="cap">골드</span></div>
+    <div id="shopbar">
+      <div id="levelbox">
+        <div id="lvline">
+          <span id="lvl">3</span>
+          <span id="xpbar"><i></i></span>
+          <span id="xptext">0/2</span>
+        </div>
+        <div id="odds"></div>
+        <div id="lvbtns">
+          <button class="btn" id="buyxp"><b>경험치</b><span class="cost">4</span></button>
+          <button class="btn" id="reroll"><b>새로고침</b><span class="cost">2</span></button>
+          <button class="btn" id="lock"><b>잠금</b><span class="cost">−</span></button>
+        </div>
       </div>
-      <button id="fight">전투<br />시작</button>
-    </div>
 
+      <div id="shop"></div>
+
+      <div id="rightbox">
+        <div id="gold"><span id="goldval">0</span></div>
+        <button id="fight">전투 시작</button>
+      </div>
+    </div>
   </div>
 
   <div id="ghost"><img alt="" /></div>

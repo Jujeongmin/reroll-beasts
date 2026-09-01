@@ -286,14 +286,15 @@ export async function createScene({
   // 테두리는 **모든 칸**에 만든다. 사거리는 상대 진영까지 뻗으므로 내 절반에만
   // 있으면 원거리 유닛의 실제 도달 범위를 보여줄 수 없다.
   // 평소에는 내 칸만 보이고 상대 칸 테두리는 숨어 있다.
-  // 상대 절반용. 흐릿한 회백색이라 "칸이 있다" 만 알려주고 시선을 안 끈다.
-  const ringFaint = ringMat(0.16, 0xdfe7f0)
-
+  // 칸 표시는 **내가 놓을 수 있는 자리**를 알려주는 도구다.
+  //  - 배치: 내 절반만 그린다. 상대 절반은 놓을 수 없으니 그릴 이유가 없다
+  //  - 전투: 둘 다 끈다. 이제 놓을 게 없고, 격자가 말과 겹쳐 어지럽다
+  // 메시는 전 칸에 만들어 둔다 — 사거리 표시가 상대 진영까지 뻗기 때문이다.
   const ringNodes = []
   for (const t of board.tiles) {
-    const ally = allyRows.has(t.row)
-    const ring = new THREE.Mesh(ringGeom, ally ? ringIdle : ringFaint)
+    const ring = new THREE.Mesh(ringGeom, ringIdle)
     ring.position.set(t.x, 0.02, t.z)
+    ring.visible = allyRows.has(t.row)
     boardGroup.add(ring)
     ringNodes.push(ring)
   }
@@ -602,6 +603,10 @@ export async function createScene({
     if (battleMode === on) return
     battleMode = on
     enemySlab.material = on ? matEnemySlabLit : matEnemySlabDim
+    for (let i = 0; i < ringNodes.length; i++) {
+      const ring = ringNodes[i]
+      if (ring) ring.visible = !on && allyRows.has(board.tiles[i].row)
+    }
     if (benchGroup) benchGroup.visible = true
     resize()
   }
@@ -666,7 +671,9 @@ export async function createScene({
         ring.material = ringRange
         ring.visible = true
       } else {
-        ring.material = allyRows.has(board.tiles[i].row) ? ringIdle : ringFaint
+        ring.material = ringIdle
+        // 사거리 표시가 끝나면 원래 규칙으로 돌아간다
+        ring.visible = !battleMode && allyRows.has(board.tiles[i].row)
       }
     }
   }

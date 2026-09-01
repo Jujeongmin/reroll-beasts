@@ -11,6 +11,7 @@ import {
   allUnits,
   resolveMerges,
   refreshShop,
+  toggleShopLock,
   buy,
   buyXp,
   sell,
@@ -329,5 +330,53 @@ describe('유닛 찾기', () => {
     expect(findUnit(s, 50)).toMatchObject({ where: 'board', index: 2 })
     expect(findUnit(s, s.bench[0].uid)).toMatchObject({ where: 'bench', index: 0 })
     expect(findUnit(s, 9999)).toBeNull()
+  })
+})
+
+describe('상점 잠금', () => {
+  it('잠그면 라운드 갱신이 상점을 안 건드린다', () => {
+    const { state, pool } = startRun(data, createRng(31))
+    const before = [...state.shop]
+    toggleShopLock(state)
+    refreshShop(state, pool, createRng(32), data, { free: true })
+    expect(state.shop).toEqual(before)
+  })
+
+  it('잠금은 한 번만 먹고 스스로 풀린다', () => {
+    // 계속 잠겨 있으면 잠근 걸 잊고 왜 안 바뀌는지 모르게 된다
+    const { state, pool } = startRun(data, createRng(31))
+    toggleShopLock(state)
+    refreshShop(state, pool, createRng(32), data, { free: true })
+    expect(state.shopLocked).toBe(false)
+
+    const held = [...state.shop]
+    refreshShop(state, pool, createRng(33), data, { free: true })
+    expect(state.shop).not.toEqual(held)
+  })
+
+  it('돈 낸 리롤은 잠금을 무시하고 푼다', () => {
+    const { state, pool } = startRun(data, createRng(31))
+    state.gold = 10
+    const before = [...state.shop]
+    toggleShopLock(state)
+    expect(refreshShop(state, pool, createRng(34), data).ok).toBe(true)
+    expect(state.shop).not.toEqual(before)
+    expect(state.shopLocked).toBe(false)
+    expect(state.gold).toBe(10 - data.shop.rerollCost)
+  })
+
+  it('잠긴 채 무료 갱신을 건너뛰어도 골드는 안 나간다', () => {
+    const { state, pool } = startRun(data, createRng(31))
+    state.gold = 7
+    toggleShopLock(state)
+    refreshShop(state, pool, createRng(35), data, { free: true })
+    expect(state.gold).toBe(7)
+  })
+
+  it('토글이 현재 상태를 되돌려준다', () => {
+    const s = createRun(data)
+    expect(s.shopLocked).toBe(false)
+    expect(toggleShopLock(s)).toBe(true)
+    expect(toggleShopLock(s)).toBe(false)
   })
 })

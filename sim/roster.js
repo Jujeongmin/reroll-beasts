@@ -29,6 +29,9 @@ export function createRun(data) {
     bench: Array(economy.benchSlots).fill(null),
     board: Array(tilesPerSide(data)).fill(null),
     shop: Array(shop.slots).fill(null),
+    // 잠그면 라운드가 넘어가도 상점이 그대로 남는다. 노선을 굳히는 중에
+    // 판이 갈리면 리롤 비용을 다시 물어야 한다.
+    shopLocked: false,
     nextUid: 1,
   }
 }
@@ -128,11 +131,25 @@ function completesMerge(state, unitId) {
 
 // ── 상점 ────────────────────────────────────────────────────
 
+export function toggleShopLock(state) {
+  state.shopLocked = !state.shopLocked
+  return state.shopLocked
+}
+
 export function refreshShop(state, pool, rng, data, { free = false } = {}) {
-  if (!free) {
+  if (free) {
+    // 잠금은 **한 번만** 먹고 스스로 풀린다. 계속 잠겨 있으면 잠근 걸 잊고
+    // 왜 상점이 안 바뀌는지 모르게 된다.
+    if (state.shopLocked) {
+      state.shopLocked = false
+      return ok
+    }
+  } else {
     const cost = data.shop.rerollCost
     if (state.gold < cost) return fail(`골드가 부족하다 (리롤 ${cost})`)
     state.gold -= cost
+    // 돈을 냈으면 새 판을 원한 것이다. 잠금은 여기서 무시하고 푼다.
+    state.shopLocked = false
   }
   discardShop(pool, state.shop)
   state.shop = rollShop(pool, state.level, rng, data)

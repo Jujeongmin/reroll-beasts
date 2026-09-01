@@ -21,6 +21,7 @@ import {
   moveTo,
   population,
   refreshShop,
+  toggleShopLock,
   sell,
   toCombatEntries,
 } from '@sim/roster.js'
@@ -44,7 +45,9 @@ export async function createPrep({ data, run, onFight }) {
     hint: document.getElementById('hint'),
     info: document.getElementById('info'),
     traitInfo: document.getElementById('traitinfo'),
-    nextup: document.getElementById('nextup'),
+    timer: document.getElementById('timer'),
+    odds: document.getElementById('odds'),
+    lock: document.getElementById('lock'),
     lobby: document.getElementById('lobby'),
     peek: document.getElementById('peek'),
     shop: document.getElementById('shop'),
@@ -252,7 +255,8 @@ export async function createPrep({ data, run, onFight }) {
           (seat.id === peekId ? ' open' : '')
         d.innerHTML =
           `<span class="rk">${i + 1}</span><span class="n">${seat.name}</span>` +
-          `<span class="h">${seat.hp}</span>`
+          `<span class="h">${seat.hp}</span>` +
+          `<span class="av">${seat.name.slice(0, 1)}</span>`
         d.addEventListener('click', () => (seat.id === peekId ? closePeek() : openPeek(seat)))
         return d
       }),
@@ -304,7 +308,6 @@ export async function createPrep({ data, run, onFight }) {
   function renderTrack() {
     const info = roundAt(run.index, data.rounds)
     const stage = data.rounds.stages[info.stageIndex]
-    el.nextup.textContent = info.isPve ? 'PvE' : '상대'
     el.track.replaceChildren(
       ...Array.from({ length: stage.rounds }, (_, i) => {
         const n = i + 1
@@ -319,29 +322,46 @@ export async function createPrep({ data, run, onFight }) {
 
   function renderHud() {
     const s = run.state
+
     el.roundtag.textContent = run.round
     renderTrack()
 
-    const maxHp = data.economy.startHp
-    el.hp.querySelector('.v').textContent = `♥ ${s.hp}`
-    el.hp.querySelector('.bar i').style.width = `${Math.max(0, (s.hp / maxHp) * 100)}%`
+    el.hp.textContent = String(s.hp)
 
-    el.gold.textContent = String(s.gold)
-    el.lvl.textContent = String(s.level)
+    const p = population(s)
+    el.pop.textContent = `${p.used}/${p.cap}`
+    el.pop.classList.toggle('full', p.used >= p.cap)
 
     const need = data.levels.xpToNext[String(s.level)]
+    el.lvl.textContent = String(s.level)
     el.xpFill.style.width = need ? `${Math.min(100, (s.xp / need) * 100)}%` : '100%'
     el.xpText.textContent = need ? `${s.xp}/${need}` : 'MAX'
 
-    const p = population(s)
-    el.pop.querySelector('.v').textContent = `${p.used}/${p.cap}`
-    el.pop.querySelector('.bar i').style.width = `${(p.used / p.cap) * 100}%`
-    el.pop.classList.toggle('full', p.used >= p.cap)
+    renderOdds(s.level)
+    el.gold.textContent = String(s.gold)
 
-    el.buyxp.disabled = !need || s.gold < data.shop.xpCost.gold
-    el.reroll.disabled = s.gold < data.shop.rerollCost
+    el.buyxp.disabled = !need || s.gold < data.shop.xpCost.gold || !running
+    el.reroll.disabled = s.gold < data.shop.rerollCost || !running
+    el.lock.disabled = !running
+    el.lock.classList.toggle('on', s.shopLocked)
+    el.lock.querySelector('.cost').textContent = s.shopLocked ? '켬' : '−'
     // 전투 중에는 또 시작할 수 없다. 상점은 열려 있으므로 이 버튼만 잠근다.
     el.fight.disabled = p.used === 0 || !running
+  }
+
+  // 지금 레벨에서 무엇이 나오는지. 이게 없으면 "레벨업 vs 리롤" 판단을 못 한다.
+  function renderOdds(level) {
+    const odds = data.shop.tierOdds[String(level)] ?? []
+    el.odds.replaceChildren(
+      ...odds.map((pct, i) => {
+        const d = document.createElement('span')
+        d.textContent = String(pct)
+        d.style.setProperty('--oc', TIER_COLOR[i])
+        if (pct === 0) d.classList.add('zero')
+        d.title = `T${i + 1} ${pct}%`
+        return d
+      }),
+    )
   }
 
   function traitLabel(id) {
@@ -542,6 +562,11 @@ export async function createPrep({ data, run, onFight }) {
     refresh()
   })
 
+  el.lock.addEventListener('click', () => {
+    toggleShopLock(run.state)
+    renderHud()
+  })
+
   el.reroll.addEventListener('click', () => {
     const r = refreshShop(run.state, run.pool, run.rng, data)
     if (!r.ok) hint(r.reason)
@@ -563,6 +588,35 @@ export async function createPrep({ data, run, onFight }) {
   // 배치 단계에서만 판을 만질 수 있다. 전투 중에 말을 옮기면 화면이 재생 중인
   // 로그와 어긋나 "보이는 것이 곧 판정"이라는 전제가 깨진다.
   let running = true
+
+  // ── 배치 시간 ───────────────────────────────────────────
+  //
+  // 0 이 되면 스스로 전투가 시작된다. 시간 제한이 없으면 한 판이 늘어져
+  // "8~12분에 끝난다"는 설계가 무너진다.
+  let timeLeft = 0
+  function resetTimer() {
+    const r = data.rounds
+    timeLeft = run.index === 1 ? (r.firstRoundSeconds ?? r.prepSeconds) : r.prepSeconds
+  }
+  function tickTimer(dt) {
+    if (!running) return
+    const was = Math.ceil(timeLeft)
+    timeLeft = Math.max(0, timeLeft - dt)
+    const now = Math.ceil(timeLeft)
+    if (now !== was) {
+      el.timer.textContent = String(now)
+      el.timer.classList.toggle('warn', now <= 5)
+    }
+    if (timeLeft === 0) {
+      // 배치가 비었으면 시작할 수 없다 — 무한 루프가 된다. 그 판은 그대로 둔다.
+      if (boardCount(run.state) > 0) {
+        running = false
+        onFight(toCombatEntries(run.state))
+      } else {
+        timeLeft = 5
+      }
+    }
+  }
 
   // 벤치 칸 색. 판의 청록 테두리와 같은 계열로 밝혀 목표가 어디인지 통일한다.
   const BENCH_IDLE = 0x8a6238
@@ -720,6 +774,7 @@ export async function createPrep({ data, run, onFight }) {
     const dt = Math.min(0.1, (now - last) / 1000)
     last = now
     if (running) {
+      tickTimer(dt)
       for (const v of views.values()) v.mixer.update(dt)
       for (const v of enemyViews) v.mixer.update(dt)
       scene.render()
@@ -748,6 +803,9 @@ export async function createPrep({ data, run, onFight }) {
     show() {
       running = true
       boardFrozen = false
+      resetTimer()
+      el.timer.textContent = String(Math.ceil(timeLeft))
+      el.timer.classList.remove('warn')
       last = performance.now()
       scene.resize()
       refresh()
@@ -761,6 +819,8 @@ export async function createPrep({ data, run, onFight }) {
     hide() {
       running = false
       boardFrozen = true
+      el.timer.textContent = '—'
+      el.timer.classList.remove('warn')
       if (peekId !== null) closePeek()
       hideInfo()
       clearHighlight()
