@@ -39,6 +39,21 @@ const DECOR = {
   land: ['tree_single_A', 'tree_single_B', 'trees_A_small', 'trees_B_small', 'rock_single_A', 'rock_single_C'],
 }
 
+// 판 둘레에 세울 랜드마크. 들판에 놓인 돌판이 아니라 "경기장"으로 보이게 하는
+// 것들이다. 전부 장식과 같은 hexagons_medieval.png 를 쓰므로 텍스처가 안 는다.
+//
+// 진영색을 나눈다 — 내 쪽은 파랑, 상대 쪽은 빨강. 어느 쪽이 누구 자리인지
+// 판 색을 빼고도 읽힌다.
+const LANDMARK = {
+  // buildings/<하위폴더> 에서 가져온다
+  ally: ['building_home_A_blue', 'building_market_blue'],
+  foe: ['building_home_A_red', 'building_market_red'],
+  neutral: ['building_stage_A', 'fence_wood_straight', 'wall_straight'],
+  side: ['building_home_B_yellow', 'building_blacksmith_green'],
+  // decoration/props
+  props: ['barrel', 'crate_A_big', 'crate_long_A', 'sack', 'weaponrack', 'target', 'tent', 'wheelbarrow', 'flag_blue', 'flag_red'],
+}
+
 async function exists(p) {
   try {
     await access(p)
@@ -229,6 +244,44 @@ export async function buildAssets({ quiet = false } = {}) {
   manifest.ui = {
     tiles: [...Object.keys(ui.tiles), ...Object.keys(ui.smallTiles)],
     slice: ui.slice,
+  }
+
+  // ── 랜드마크 ───────────────────────────────────────────
+  const markDest = join(OUT, 'landmark')
+  await mkdir(markDest, { recursive: true })
+  manifest.landmark = {}
+  const markDir = {
+    ally: join(KAYKIT, 'buildings', 'blue'),
+    foe: join(KAYKIT, 'buildings', 'red'),
+    neutral: join(KAYKIT, 'buildings', 'neutral'),
+    props: join(KAYKIT, 'decoration', 'props'),
+  }
+  for (const [group, names] of Object.entries(LANDMARK)) {
+    manifest.landmark[group] = []
+    for (const name of names) {
+      // side 묶음은 색이 섞여 있어 파일명에서 폴더를 고른다.
+      const dir =
+        group === 'side'
+          ? join(KAYKIT, 'buildings', name.endsWith('_yellow') ? 'yellow' : 'green')
+          : markDir[group]
+      let ok = false
+      for (const ext of ['gltf', 'bin']) {
+        const from = join(dir, name + '.' + ext)
+        if (await exists(from)) {
+          await copyFile(from, join(markDest, name + '.' + ext))
+          copied++
+          ok = true
+        }
+      }
+      if (ok) manifest.landmark[group].push(name + '.gltf')
+    }
+  }
+  {
+    const t = join(KAYKIT, 'buildings', 'blue', 'hexagons_medieval.png')
+    if (await exists(t)) {
+      await copyFile(t, join(markDest, 'hexagons_medieval.png'))
+      copied++
+    }
   }
 
   // ── 이펙트 스프라이트 ──────────────────────────────────

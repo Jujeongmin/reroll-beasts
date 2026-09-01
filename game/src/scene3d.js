@@ -712,6 +712,132 @@ export async function createScene({
     }
   }
 
+  // ── 랜드마크 ───────────────────────────────────────────
+  //
+  // 여기까지는 "들판에 놓인 돌판"이었다. 장소가 없으면 매 라운드 같은 빈
+  // 벌판에서 싸우는 그림이라 기억에 안 남는다.
+  //
+  // 배치 규칙 셋:
+  //   - 판과 대기석 위에는 아무것도 안 세운다 (말이 가려진다)
+  //   - 진영색을 나눈다 — 내 뒤는 파랑, 상대 뒤는 빨강. 판 색 없이도 읽힌다
+  //   - 카메라가 담는 띠에만 세운다. 뒤로 더 가면 안개에 묻혀 값만 버린다
+  {
+    const mk = manifestJson.landmark ?? {}
+    const load = async (group) =>
+      Promise.all((mk[group] ?? []).map((f) => loader.loadAsync('/assets/landmark/' + f)))
+    const [ally, foe, neutral, side, props] = await Promise.all([
+      load('ally'),
+      load('foe'),
+      load('neutral'),
+      load('side'),
+      load('props'),
+    ])
+    const pick = (list, i) => (list.length > 0 ? list[i % list.length].scene : null)
+
+    const markGroup = new THREE.Group()
+    const rng = createRng(0xb00c)
+
+    /** 하나 세운다. 판·대기석과 겹치면 버린다. */
+    function place(proto, x, z, { scale = 1, faceIn = true } = {}) {
+      if (!proto) return
+      const clear = benchExtent
+      if (
+        clear &&
+        x > clear.minX - spacing.stepX &&
+        x < clear.maxX + spacing.stepX &&
+        z > clear.minZ - spacing.stepZ * 0.8 &&
+        z < clear.maxZ + spacing.stepZ * 0.8
+      ) {
+        return
+      }
+      const o = proto.clone(true)
+      o.position.set(x, SHORE_Y, z)
+      // 판을 바라보게 돌린다. 집이 등을 지고 서 있으면 배경이 아니라 잡동사니다.
+      o.rotation.y = faceIn ? Math.atan2(arena.cx - x, arena.cz - z) : (rng.int(360) * Math.PI) / 180
+      o.scale.setScalar(scale)
+      o.traverse((n) => {
+        if (n.isMesh) {
+          n.castShadow = true
+          n.receiveShadow = true
+        }
+      })
+      markGroup.add(o)
+    }
+
+    const halfX = arena.w / 2
+    const halfZ = arena.d / 2
+    const outZ = halfZ + spacing.stepZ * 3.0
+    const outX = halfX + spacing.stepX * 3.0
+
+    // 이 팩의 모델은 육각 한 칸(약 1)을 기준으로 만들어졌는데 우리 칸은 그
+    // 두 배쯤이다. 그대로 두면 집이 통보다 작아 배경으로 안 읽힌다.
+    const KIT = spacing.unitStep / 1.0
+
+    // 내 뒤(가까운 쪽)와 상대 뒤(먼 쪽). 대기석 바깥으로 밀어 둔다.
+    place(pick(ally, 0), arena.cx - halfX * 0.55, arena.cz + outZ, { scale: KIT * 1.5 })
+    place(pick(ally, 1), arena.cx + halfX * 0.5, arena.cz + outZ * 1.2, { scale: KIT * 1.3 })
+    place(pick(foe, 0), arena.cx + halfX * 0.55, arena.cz - outZ, { scale: KIT * 1.5 })
+    place(pick(foe, 1), arena.cx - halfX * 0.5, arena.cz - outZ * 1.2, { scale: KIT * 1.3 })
+
+    // 좌우는 화면에 가장 크게 걸리는 자리다. 색이 다른 집을 하나씩 세워
+    // 양쪽이 대칭으로 안 보이게 한다.
+    place(pick(side, 0), arena.cx - outX, arena.cz - halfZ * 0.35, { scale: KIT * 1.6 })
+    place(pick(side, 1), arena.cx + outX, arena.cz + halfZ * 0.3, { scale: KIT * 1.6 })
+
+    // 울타리. 판 좌우를 따라 늘어세우면 "경기장"이 된다.
+    const fence = pick(neutral, 1) ?? pick(neutral, 2)
+    if (fence) {
+      // 울타리는 **자기 길이만큼** 띄워야 이어진다. 칸 간격으로 놓으면
+      // 사이가 벌어져 점선처럼 보인다 (원본 길이 1.15).
+      const fScale = KIT * 1.15
+      const stepF = 1.15 * fScale
+      const fz0 = arena.cz - halfZ - spacing.stepZ * 0.5
+      const n = Math.max(2, Math.ceil((halfZ * 2 + spacing.stepZ) / stepF))
+      for (let i = 0; i <= n; i++) {
+        const z = fz0 + stepF * i
+        for (const sx of [-1, 1]) {
+          // 앞마당 **바깥**에 세운다. 돌 위에 서면 떠 있는 것처럼 보인다.
+          const x = arena.cx + sx * (halfX + spacing.stepX * 2.9)
+          const o = fence.clone(true)
+          o.position.set(x, SHORE_Y, z)
+          o.scale.setScalar(fScale)
+          // 울타리는 판과 나란히 서야 한다 — 판을 바라보면 옆면만 보인다.
+          o.rotation.y = 0
+          o.traverse((nd) => {
+            if (nd.isMesh) {
+              nd.castShadow = true
+              nd.receiveShadow = true
+            }
+          })
+          markGroup.add(o)
+        }
+      }
+    }
+
+    // 소품. 대기석 옆과 울타리 안쪽에 흩는다 — 사람이 쓰는 자리로 보인다.
+    for (let i = 0; i < 14; i++) {
+      const proto = pick(props, rng.int(Math.max(1, props.length)))
+      const sx = rng.int(2) === 0 ? -1 : 1
+      const x = arena.cx + sx * (halfX + spacing.stepX * (0.6 + rng.int(90) / 100))
+      const z = arena.cz + (rng.int(2000) / 1000 - 1) * halfZ * 1.05
+      place(proto, x, z, { scale: KIT * 1.1, faceIn: false })
+    }
+
+    scene.add(markGroup)
+
+    // 랜드마크가 앉은 자리의 나무는 걷어낸다 — 집 위에 나무가 자란다.
+    for (const d of [...surroundGroup.children]) {
+      if (!d.userData.decor) continue
+      for (const o of markGroup.children) {
+        if (Math.abs(d.position.x - o.position.x) < spacing.stepX * 0.9 &&
+            Math.abs(d.position.z - o.position.z) < spacing.stepZ * 0.9) {
+          surroundGroup.remove(d)
+          break
+        }
+      }
+    }
+  }
+
   // ── 바닥 얼룩 ──────────────────────────────────────────
   //
   // 돌바닥만 깔면 같은 타일이 반복돼 평평해 보인다. 자갈·풀을 흩어 얼룩을 준다.
