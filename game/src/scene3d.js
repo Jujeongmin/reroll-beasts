@@ -225,6 +225,19 @@ export async function createScene({
   const boardGroup = new THREE.Group()
   const SLAB_H = 0.55
 
+  /** 마을 팩 바닥 한 장을 지오메트리·재질로 풀어 온다. 전부 2×2 정사각이다. */
+  async function loadFloor(name) {
+    const root = (await loader.loadAsync(`/assets/floor/${name}.gltf`)).scene
+    let mat = null
+    const geom = []
+    root.traverse((o) => {
+      if (!o.isMesh) return
+      if (!mat) mat = o.material
+      geom.push(o.geometry)
+    })
+    return { mat, geom }
+  }
+
   // 돌바닥. 2×2 정사각이라 육각 간격(stepX)과 크기가 같아 격자로 딱 깔린다.
   const floorProto = (await loader.loadAsync('/assets/floor/Floor_UnevenBrick.gltf')).scene
   let floorMat = null
@@ -447,8 +460,39 @@ export async function createScene({
 
   // 물띠는 걷어냈다. 판이 바닥보다 한 단 높아(SLAB_H) 옆면이 그림자와 함께
   // 경계를 만든다 — 물까지 두르면 테두리가 두 겹이라 판이 액자에 갇힌다.
-  // 여기서 자리를 재는 값만 남긴다.
   const MOAT_W = spacing.stepX * 0.9
+
+  // 판을 두르는 **돌 앞마당**. 잔디가 돌바닥에 곧장 닿으면 판이 들판에 얹힌
+  // 판때기처럼 보인다. 전장과 같은 팩의 벽돌을 한 겹 둘러 돌이 잔디로
+  // 번지게 한다 — 경기장 바깥마당이 생긴다.
+  {
+    const apron = await loadFloor('Floor_Brick')
+    const APRON = spacing.stepX * 1.25
+    const w = arena.w + APRON * 2
+    const d = arena.d + APRON * 2
+    // 한 장으로 깔면 벽돌이 늘어나 무늬가 뭉갠다 — 판과 같은 크기로 타일링한다.
+    const nxA = Math.max(1, Math.round(w / spacing.stepX))
+    const nzA = Math.max(1, Math.round(d / spacing.stepX))
+    const sxA = w / nxA
+    const szA = d / nzA
+    const inX = arena.w / 2
+    const inZ = arena.d / 2
+    for (let ix = 0; ix < nxA; ix++) {
+      for (let iz = 0; iz < nzA; iz++) {
+        const x = arena.cx - w / 2 + sxA * (ix + 0.5)
+        const z = arena.cz - d / 2 + szA * (iz + 0.5)
+        // 판이 덮는 자리는 건너뛴다 — 두 겹이 겹치면 z-파이팅이 난다.
+        if (Math.abs(x - arena.cx) < inX && Math.abs(z - arena.cz) < inZ) continue
+        for (const geo of apron.geom) {
+          const t = new THREE.Mesh(geo, apron.mat)
+          t.scale.set(sxA / 2, 1, szA / 2)
+          t.position.set(x, SHORE_Y + 0.02, z)
+          t.receiveShadow = true
+          surroundGroup.add(t)
+        }
+      }
+    }
+  }
 
   /**
    * 나무·바위를 무리 지어 심는다.
@@ -528,50 +572,71 @@ export async function createScene({
     benchTopY = deckY
 
     benchGroup = new THREE.Group()
-    // 받침은 어둡게, 칸은 밝게. 대비가 없으면 널빤지 한 장으로 보여
-    // 어디가 한 칸인지 안 읽힌다.
-    const deckMat = new THREE.MeshStandardMaterial({ color: 0x3d2a17, roughness: 0.95 })
-    const deck = new THREE.Mesh(
-      new THREE.BoxGeometry(totalW + gap * 2, 0.55, pad + gap * 2.4),
-      deckMat,
-    )
-    deck.position.set(cx, deckY - 0.28, deckZ)
-    deck.receiveShadow = true
-    benchGroup.add(deck)
 
-    // 정사각형 칸. 육각은 전장, 네모는 대기석 — 모양만으로 둘이 갈린다.
-    // 정사각형 칸. 육각은 전장, 네모는 대기석 — 모양만으로 둘이 갈린다.
-    const padGeom = new THREE.BoxGeometry(pad, 0.16, pad)
-    for (let i = 0; i < benchSlots; i++) {
-      const m = new THREE.MeshStandardMaterial({ color: 0x8a6238, roughness: 0.85 })
-      const tile = new THREE.Mesh(padGeom, m)
-      tile.position.set(cx - totalW / 2 + pad / 2 + i * pitchStep, deckY, deckZ)
-      tile.receiveShadow = true
-      tile.userData.benchIndex = i
-      benchGroup.add(tile)
-      benchPads.push(tile)
+    // 대기석도 **마을 팩 널빤지**로 깐다. 전에는 단색 상자를 세워 뒀는데,
+    // 판은 텍스처가 있는 돌바닥이라 옆에 놓이면 대기석만 무늬 없는 판때기로
+    // 보였다. 칸은 밝은 나무, 받침은 어두운 나무 — 같은 팩이라 결이 맞는다.
+    const woodLight = await loadFloor('Floor_WoodLight')
+    const woodDark = await loadFloor('Floor_WoodDark')
+    const FLOOR_SRC = 2
+
+    /**
+     * 널빤지 한 칸. 2×2 원본을 원하는 크기로 눌러 놓는다.
+     *
+     * 재질은 칸마다 복제한다. 공유하면 한 칸을 밝힐 때 아홉 칸이 같이 밝아진다 —
+     * 드롭 목표 표시가 통째로 켜져 어디에 놓이는지가 안 읽힌다.
+     */
+    function plank({ set, x, z, w, d, y, dim = 1 }) {
+      const g = new THREE.Group()
+      const mat = set.mat.clone()
+      mat.color.multiplyScalar(dim)
+      const base = mat.color.clone()
+      for (const geo of set.geom) {
+        const t = new THREE.Mesh(geo, mat)
+        t.scale.set(w / FLOOR_SRC, 1, d / FLOOR_SRC)
+        t.receiveShadow = true
+        g.add(t)
+      }
+      g.position.set(x, y, z)
+      // 칸을 밝히는 손잡이. null 이면 원래 색으로 돌린다.
+      g.userData.tint = (hex) => {
+        if (hex === null) mat.color.copy(base)
+        else mat.color.setHex(hex)
+      }
+      return g
     }
 
-    // 상대 대기석. 판 건너편에 같은 모양으로 놓아 무대가 대칭이 된다.
-    // 어둡게 눌러 내 것과 헷갈리지 않게 한다 — 여긴 집을 수 없는 자리다.
-    const farZ = bz[0] - pad / 2 - gap * 1.5
-    const farDeck = new THREE.Mesh(
-      new THREE.BoxGeometry(totalW + gap * 2, 0.55, pad + gap * 2.4),
-      new THREE.MeshStandardMaterial({ color: 0x2c1f13, roughness: 0.95 }),
-    )
-    farDeck.position.set(cx, deckY - 0.28, farZ)
-    benchGroup.add(farDeck)
-    for (let i = 0; i < benchSlots; i++) {
-      const tile = new THREE.Mesh(
-        padGeom,
-        new THREE.MeshStandardMaterial({ color: 0x5a4028, roughness: 0.9 }),
+    /** 받침 + 칸 아홉. 내 쪽과 상대 쪽이 같은 함수를 쓴다. */
+    function buildDeck(z, { dim, pads }) {
+      // 받침은 한 장으로 깐다 — 칸마다 받침을 두면 이음매가 아홉 줄이 된다.
+      benchGroup.add(
+        plank({
+          set: woodDark,
+          x: cx,
+          z,
+          w: totalW + gap * 2,
+          d: pad + gap * 2.4,
+          y: deckY - 0.06,
+          dim,
+        }),
       )
-      // 180도 회전 대응이라 상대 벤치도 좌우가 뒤집힌다
-      tile.position.set(cx + totalW / 2 - pad / 2 - i * pitchStep, deckY, farZ)
-      tile.receiveShadow = true
-      benchGroup.add(tile)
-      enemyBenchPads.push(tile)
+      for (let i = 0; i < benchSlots; i++) {
+        // 180도 회전 대응이라 상대 벤치는 좌우가 뒤집힌다.
+        const x =
+          pads === benchPads
+            ? cx - totalW / 2 + pad / 2 + i * pitchStep
+            : cx + totalW / 2 - pad / 2 - i * pitchStep
+        const tile = plank({ set: woodLight, x, z, w: pad, d: pad, y: deckY, dim })
+        tile.userData.benchIndex = i
+        benchGroup.add(tile)
+        pads.push(tile)
+      }
     }
+
+    const farZ = bz[0] - pad / 2 - gap * 1.5
+    buildDeck(deckZ, { dim: 1, pads: benchPads })
+    // 상대 대기석은 눌러 둔다 — 여긴 집을 수 없는 자리다.
+    buildDeck(farZ, { dim: 0.62, pads: enemyBenchPads })
     scene.add(benchGroup)
     // 물가 장식은 대기석보다 **먼저** 뿌려진다 (자리를 아직 모르므로).
     // 대기석이 앉을 자리에 걸친 것만 여기서 걷어낸다 — 안 그러면 널빤지 위에
@@ -1110,8 +1175,13 @@ export async function createScene({
       ndc.x = ((clientX - r.left) / r.width) * 2 - 1
       ndc.y = -((clientY - r.top) / r.height) * 2 + 1
       raycaster.setFromCamera(ndc, camera)
-      const hits = raycaster.intersectObjects(benchPads, false)
-      if (hits.length > 0) return { where: 'bench', index: hits[0].object.userData.benchIndex }
+      // 칸이 Group 이 됐다 — 자식(메시)까지 훑고 부모에서 번호를 읽는다.
+      const hits = raycaster.intersectObjects(benchPads, true)
+      if (hits.length > 0) {
+        let o = hits[0].object
+        while (o && o.userData.benchIndex === undefined) o = o.parent
+        if (o) return { where: 'bench', index: o.userData.benchIndex }
+      }
     }
     const tile = tileAt(clientX, clientY)
     return tile === null ? null : { where: 'board', index: tile }

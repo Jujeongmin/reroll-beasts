@@ -955,8 +955,9 @@ export async function createPrep({ data, run, onFight, opponentBoard, onWatch, o
     }
   }
 
-  // 벤치 칸 색. 판의 청록 테두리와 같은 계열로 밝혀 목표가 어디인지 통일한다.
-  const BENCH_IDLE = 0x8a6238
+  // 벤치 칸을 밝히는 색. 판의 청록 테두리와 같은 계열이라 목표가 어디인지
+  // 통일된다. 되돌릴 때는 널빤지 원래 색으로 — 상수로 되돌리면 상대 대기석처럼
+  // 눌러 둔 칸이 갑자기 밝아진다.
   const BENCH_HOT = 0x4de8d8
 
   let drag = null
@@ -1018,7 +1019,7 @@ export async function createPrep({ data, run, onFight, opponentBoard, onWatch, o
       hotTile = -1
     }
     if (hotSlot) {
-      hotSlot.material.color.setHex(BENCH_IDLE)
+      hotSlot.userData.tint?.(null)
       hotSlot = null
     }
     el.shopbar.classList.remove('selling')
@@ -1035,7 +1036,7 @@ export async function createPrep({ data, run, onFight, opponentBoard, onWatch, o
       hotTile = target.index
     } else if (target.where === 'bench') {
       hotSlot = scene.benchPads[target.index] ?? null
-      hotSlot?.material.color.setHex(BENCH_HOT)
+      hotSlot?.userData.tint?.(BENCH_HOT)
     } else if (target.where === 'sell') {
       el.shopbar.classList.add('selling')
       el.ghost.classList.add('sell')

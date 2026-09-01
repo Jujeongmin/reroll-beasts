@@ -309,7 +309,10 @@
     ]
   },
   "floor": [
-    "Floor_UnevenBrick.gltf"
+    "Floor_UnevenBrick.gltf",
+    "Floor_WoodDark.gltf",
+    "Floor_WoodLight.gltf",
+    "Floor_Brick.gltf"
   ],
   "scatter": {
     "stone": [

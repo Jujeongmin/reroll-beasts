@@ -24,7 +24,7 @@ const VILLAGE = join(ART, 'q-medieval-village', 'Medieval Village MegaKit[Standa
 const NATURE = join(ART, 'q-stylized-nature', 'glTF')
 
 // 전장 바닥. 2×2 정사각이라 육각 간격(stepX)과 크기가 같아 격자로 깔린다.
-const FLOOR = ['Floor_UnevenBrick']
+const FLOOR = ['Floor_UnevenBrick', 'Floor_WoodDark', 'Floor_WoodLight', 'Floor_Brick']
 // 바닥에 흩을 얼룩. 자갈은 판 위, 풀·꽃은 가장자리에 쓴다.
 const SCATTER = {
   stone: ['Pebble_Round_1', 'Pebble_Round_3', 'Pebble_Square_2', 'Pebble_Square_5'],
