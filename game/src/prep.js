@@ -248,9 +248,31 @@ export async function createPrep({ data, run, onFight }) {
     }
   }
 
+  // 체력 색. 연속으로 섞으면 60% 와 55% 가 구별이 안 된다 — 세 단계로 끊는다.
+  // 초록(여유) · 노랑(주의) · 빨강(위험) 은 오토체스가 공유하는 관례다.
+  const HP_OK = '#5fd68a'
+  const HP_MID = '#ffd166'
+  const HP_LOW = '#e2513a'
+  // 밝은 판 위 숫자용. 고리 색을 그대로 쓰면 초록·노랑이 배경에 씻긴다.
+  const HP_OK_TEXT = '#12683c'
+  const HP_MID_TEXT = '#7a5306'
+  const HP_LOW_TEXT = '#9c2436'
+  function hpColor(ratio) {
+    if (ratio > 0.6) return HP_OK
+    if (ratio > 0.3) return HP_MID
+    return HP_LOW
+  }
+  function hpTextColor(ratio) {
+    if (ratio > 0.6) return HP_OK_TEXT
+    if (ratio > 0.3) return HP_MID_TEXT
+    return HP_LOW_TEXT
+  }
+
   function renderLobby() {
     if (!run.lobby) return
+    // 체력 내림차순. standings 가 그 순서로 준다.
     const ranked = standings(run.lobby)
+    const maxHp = Math.max(1, data.economy.startHp)
     el.lobby.replaceChildren(
       ...ranked.map((seat, i) => {
         const d = document.createElement('div')
@@ -260,10 +282,17 @@ export async function createPrep({ data, run, onFight }) {
           (seat.hp <= 0 ? ' out' : '') +
           (seat.id === run.opponentId ? ' foe' : '') +
           (seat.id === peekId ? ' open' : '')
+        // 체력이 시작값을 넘는 경우는 없지만, 넘어도 고리가 두 바퀴 돌지 않게 묶는다.
+        const ratio = Math.max(0, Math.min(1, seat.hp / maxHp))
+        d.style.setProperty('--hp', String(ratio))
+        d.style.setProperty('--hc', hpColor(ratio))
+        d.style.setProperty('--ht', hpTextColor(ratio))
         d.innerHTML =
-          `<span class="rk">${i + 1}</span><span class="n">${seat.name}</span>` +
-          `<span class="h">${seat.hp}</span>` +
-          `<span class="av">${seat.name.slice(0, 1)}</span>`
+          `<span class="rk">${i + 1}</span>` +
+          `<span class="av"><b>${seat.name.slice(0, 1)}</b></span>` +
+          `<span class="n">${seat.name}</span>` +
+          `<span class="h">${seat.hp}</span>`
+        d.title = `${seat.name} · 체력 ${seat.hp}${seat.hp <= 0 ? ' (탈락)' : ''}`
         d.addEventListener('click', () => (seat.id === peekId ? closePeek() : openPeek(seat)))
         return d
       }),
