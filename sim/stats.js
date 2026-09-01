@@ -32,6 +32,68 @@ export function resolveStats(unit, star, combatCfg) {
   }
 }
 
+/**
+ * 스탯 표에 안 들어가는 시너지 효과를 한 덩어리로 모은다.
+ *
+ * 왜 따로 두나: applyTraitEffects 가 돌려주는 건 "숫자 스탯"이고, 여기 있는
+ * 것들은 전투 중 **행동**을 바꾼다 (도약 · 관통 · 부활 …). 같은 객체에 섞으면
+ * effectiveStat 이 모르는 키를 스탯으로 읽어 조용히 NaN 을 만든다.
+ *
+ * 합치는 규칙:
+ *   퍼센트·확률 — 더한다 (여러 시너지가 겹칠 수 있다)
+ *   반경·횟수   — 큰 값을 쓴다 (더하면 3단계 하나로 판을 덮는다)
+ *   지속 틱     — 큰 값을 쓴다 (짧은 쪽이 긴 쪽을 깎으면 안 된다)
+ *   깃발        — 하나라도 켜져 있으면 켠다
+ */
+export function traitSpecials(effects) {
+  const out = {
+    critDamagePct: 0,
+    critTakenPct: 0,
+    manaCostPct: 0,
+    manaOnKill: 0,
+    aoeRadius: 0,
+    splashOnSkillPct: 0,
+    doubleStrikeChance: 0,
+    dodgePct: 0,
+    dodgeTicks: 0,
+    regenPctPer5s: 0,
+    shieldPctMaxHp: 0,
+    shieldTicks: 0,
+    deathBlastPct: 0,
+    deathBlastRadius: 0,
+    pierceCount: 0,
+    piercePct: 0,
+    leapToBackline: false,
+    reviveHpPct: 0,
+    revivePerRound: 0,
+  }
+  const SUM = [
+    'critDamagePct',
+    'critTakenPct',
+    'manaCostPct',
+    'manaOnKill',
+    'splashOnSkillPct',
+    'doubleStrikeChance',
+    'dodgePct',
+    'regenPctPer5s',
+    'shieldPctMaxHp',
+    'deathBlastPct',
+  ]
+  const MAX = ['aoeRadius', 'dodgeTicks', 'shieldTicks', 'deathBlastRadius', 'pierceCount', 'piercePct']
+
+  for (const e of effects) {
+    if (!e) continue
+    for (const k of SUM) if (e[k]) out[k] += e[k]
+    for (const k of MAX) if (e[k]) out[k] = Math.max(out[k], e[k])
+    if (e.leapToBackline) out.leapToBackline = true
+    if (e.revive) {
+      out.reviveHpPct = Math.max(out.reviveHpPct, e.revive.hpPct ?? 0)
+      out.revivePerRound = Math.max(out.revivePerRound, e.revive.perRound ?? 0)
+    }
+  }
+  return out
+}
+
 export function applyTraitEffects(base, effects) {
   const out = { ...base }
 

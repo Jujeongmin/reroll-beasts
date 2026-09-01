@@ -42,6 +42,33 @@ function castSingle(ctx, caster) {
     { tick: ctx.tick, type: 'skill_single', casterId: caster.id, targetIds: [target.id], amount: total, toShield, toHp },
   ]
 
+  // 버섯 4단계: 단일 스킬이 옆칸으로 튄다. 원래 대상은 이미 맞았으므로 뺀다.
+  const splashPct = caster.traits?.splashOnSkillPct ?? 0
+  if (splashPct > 0 && total > 0) {
+    const near = enemiesWithin(ctx, target.tile, 1, caster.team).filter((v) => v.id !== target.id)
+    const ids = []
+    const hits = []
+    let splashTotal = 0
+    for (const v of near) {
+      // 튄 피해는 **실제로 들어간 양** 기준이다. 요청값 기준으로 하면
+      // 보호막이 막은 몫까지 옆으로 퍼져 원본보다 세진다.
+      const hit = applyDamage(v, Math.floor((total * splashPct) / 100))
+      splashTotal += hit.dealt
+      hits.push({ id: v.id, toShield: hit.toShield, toHp: hit.toHp })
+      ids.push(v.id)
+    }
+    if (ids.length > 0) {
+      events.push({
+        tick: ctx.tick,
+        type: 'skill_splash',
+        casterId: caster.id,
+        targetIds: ids,
+        amount: splashTotal,
+        hits,
+      })
+    }
+  }
+
   if (p.lifestealPct) {
     // 실제로 회복된 양을 로그에 남긴다. 상한 전 값을 남기면 재생기가
     // maxHp 를 넘겨 복원해 시뮬과 어긋난다.
@@ -62,7 +89,9 @@ function castAoe(ctx, caster) {
 
   const p = caster.skill.params
   const defK = ctx.combatCfg.damage.defK
-  const victims = enemiesWithin(ctx, target.tile, p.radius ?? 0, caster.team)
+  // 마법사 5단계: 스킬 범위가 넓어진다.
+  const radius = (p.radius ?? 0) + (caster.traits?.aoeRadius ?? 0)
+  const victims = enemiesWithin(ctx, target.tile, radius, caster.team)
   if (victims.length === 0) return []
 
   const raw = Math.floor((caster.stats.power * (p.dmgPct ?? 100)) / 100)
