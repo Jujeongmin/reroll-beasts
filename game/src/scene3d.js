@@ -462,34 +462,85 @@ export async function createScene({
   // 경계를 만든다 — 물까지 두르면 테두리가 두 겹이라 판이 액자에 갇힌다.
   const MOAT_W = spacing.stepX * 0.9
 
-  // 판을 두르는 **돌 앞마당**. 잔디가 돌바닥에 곧장 닿으면 판이 들판에 얹힌
-  // 판때기처럼 보인다. 전장과 같은 팩의 벽돌을 한 겹 둘러 돌이 잔디로
-  // 번지게 한다 — 경기장 바깥마당이 생긴다.
+  // 판을 두르는 **돌 앞마당**.
+  //
+  // 잔디가 돌바닥에 곧장 닿으면 판이 들판에 얹힌 판때기처럼 보인다. 전장과
+  // 같은 팩의 벽돌을 둘러 돌이 잔디로 번지게 한다.
+  //
+  // 다만 **꽉 찬 직사각으로 깔면 안 된다** — 밝은 벽돌 액자가 하나 더 생겨
+  // 판이 두 겹 테두리에 갇힌다. 바깥으로 갈수록 확률을 떨어뜨려 돌이 잔디에
+  // 녹아 없어지게 한다. 가장자리가 들쭉날쭉해야 "닳은 바깥마당"으로 읽힌다.
+  const apronTiles = []
   {
     const apron = await loadFloor('Floor_Brick')
-    const APRON = spacing.stepX * 1.25
-    const w = arena.w + APRON * 2
-    const d = arena.d + APRON * 2
-    // 한 장으로 깔면 벽돌이 늘어나 무늬가 뭉갠다 — 판과 같은 크기로 타일링한다.
-    const nxA = Math.max(1, Math.round(w / spacing.stepX))
-    const nzA = Math.max(1, Math.round(d / spacing.stepX))
-    const sxA = w / nxA
-    const szA = d / nzA
+    // 판의 돌보다 밝아서 따로 놀았다. 눌러서 같은 돌 계열로 맞춘다.
+    const apronMat = apron.mat.clone()
+    // 판보다 **어둡게** 만든다. 비슷한 밝기면 판 경계가 사라져 어디까지가
+    // 전장인지 안 읽힌다 — 전투에서는 육각 표시도 꺼지므로 더 그렇다.
+    apronMat.color.multiplyScalar(0.55)
+
+    const RINGS = 2
+    const step = spacing.stepX
     const inX = arena.w / 2
     const inZ = arena.d / 2
+    const w = arena.w + step * RINGS * 2
+    const d = arena.d + step * RINGS * 2
+    const nxA = Math.max(1, Math.round(w / step))
+    const nzA = Math.max(1, Math.round(d / step))
+    const sxA = w / nxA
+    const szA = d / nzA
+
     for (let ix = 0; ix < nxA; ix++) {
       for (let iz = 0; iz < nzA; iz++) {
         const x = arena.cx - w / 2 + sxA * (ix + 0.5)
         const z = arena.cz - d / 2 + szA * (iz + 0.5)
         // 판이 덮는 자리는 건너뛴다 — 두 겹이 겹치면 z-파이팅이 난다.
         if (Math.abs(x - arena.cx) < inX && Math.abs(z - arena.cz) < inZ) continue
+
+        // 판에서 몇 칸 떨어졌나. 첫 칸은 반드시 깔고, 그 뒤로는 확률로 성긴다.
+        const outX = Math.max(0, Math.abs(x - arena.cx) - inX) / step
+        const outZ = Math.max(0, Math.abs(z - arena.cz) - inZ) / step
+        const out = Math.max(outX, outZ)
+        if (out > 1) {
+          // 두 번째 칸부터 성긴다. 절반쯤 남아야 "닳은 가장자리"로 보인다.
+          if (decorRng.int(100) >= 52) continue
+        }
+
         for (const geo of apron.geom) {
-          const t = new THREE.Mesh(geo, apron.mat)
+          const t = new THREE.Mesh(geo, apronMat)
           t.scale.set(sxA / 2, 1, szA / 2)
-          t.position.set(x, SHORE_Y + 0.02, z)
+          // 칸마다 아주 조금 높이를 흔든다. 완전히 평평하면 인쇄물처럼 보인다.
+          t.position.set(x, SHORE_Y + 0.02 + (decorRng.int(3) - 1) * 0.008, z)
           t.receiveShadow = true
           surroundGroup.add(t)
         }
+        apronTiles.push({ x, z, out })
+      }
+    }
+  }
+
+  // 돌과 잔디가 만나는 자리에 풀·자갈을 얹어 이음매를 흐린다.
+  // 선이 남아 있으면 아무리 성글게 깔아도 "붙여 놓은 판"으로 보인다.
+  {
+    const tufts = [...(decorBy.water ?? [])]
+    if (tufts.length > 0 && apronTiles.length > 0) {
+      for (const tile of apronTiles) {
+        // 바깥쪽 칸일수록 풀이 많다 — 돌이 잔디에 먹히는 순서다.
+        const chance = 22 + tile.out * 34
+        if (decorRng.int(100) >= chance) continue
+        const o = tufts[decorRng.int(tufts.length)].clone(true)
+        o.position.set(
+          tile.x + (decorRng.int(1000) / 1000 - 0.5) * spacing.stepX * 0.7,
+          SHORE_Y + 0.03,
+          tile.z + (decorRng.int(1000) / 1000 - 0.5) * spacing.stepZ * 0.7,
+        )
+        o.rotation.y = (decorRng.int(360) * Math.PI) / 180
+        o.scale.setScalar(0.5 + decorRng.int(40) / 100)
+        o.traverse((n) => {
+          if (n.isMesh) n.receiveShadow = true
+        })
+        o.userData.decor = true
+        surroundGroup.add(o)
       }
     }
   }
