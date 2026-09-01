@@ -345,7 +345,9 @@
       "banner_r",
       "plate_l",
       "plate_m",
-      "plate_r"
+      "plate_r",
+      "coin",
+      "gem"
     ],
     "slice": {
       "note": "9-슬라이스로 늘릴 타일의 테두리 두께(px). 32px 원본 기준. 육각·원형은 늘려 쓰므로 여기 없다.",

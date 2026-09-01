@@ -30,5 +30,10 @@
     "panel_steel": 6,
     "button": 6,
     "button_light": 6
+  },
+  "smallRoot": "Tiles/Small tiles/Thick outline",
+  "smallTiles": {
+    "coin": 76,
+    "gem": 71
   }
 }

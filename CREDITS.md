@@ -8,9 +8,13 @@
 |---|---|---|---|
 | 유닛 26종 + 3성 진화 모델 6종 | Ultimate Monsters | [Quaternius](https://quaternius.com) | CC0 1.0 |
 | 육각 타일 (풀·물), 나무·바위·수련 | [KayKit Medieval Hexagon Pack 1.0](https://kaylousberg.com) | Kay Lousberg | CC0 1.0 |
-| UI 프레임·버튼·육각 칸·배너 | [UI Pack: Pixel Adventure 2.0](https://kenney.nl) | Kenney | CC0 1.0 |
+| UI 프레임·버튼·육각 칸·배너·금화·보석 | [UI Pack: Pixel Adventure 2.0](https://kenney.nl) | Kenney | CC0 1.0 |
+| 자물쇠 아이콘 2종 | 이 저장소 (`tools/make-lock-icon.mjs`) | — | CC0 1.0 |
 
 Kenney 는 표기가 의무는 아니지만 권장이라 명시했다.
+
+자물쇠는 Kenney 팩에 없어서 같은 팔레트로 직접 찍었다. 다른 팩에서 아이콘 하나만
+끌어오면 색조가 튄다. `tools/make-lock-icon.mjs` 가 도트맵에서 PNG 를 만든다.
 
 ## 아직 안 쓰는 것
 

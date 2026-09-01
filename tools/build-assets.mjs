@@ -215,12 +215,21 @@ export async function buildAssets({ quiet = false } = {}) {
   const uiSrc = join(ART, ui.pack, ui.root)
   const uiDest = join(OUT, 'ui')
   await mkdir(uiDest, { recursive: true })
+  const tile = (n) => 'tile_' + String(n).padStart(4, '0') + '.png'
   for (const [name, index] of Object.entries(ui.tiles)) {
-    const from = join(uiSrc, 'tile_' + String(index).padStart(4, '0') + '.png')
-    await copyFile(from, join(uiDest, name + '.png'))
+    await copyFile(join(uiSrc, tile(index)), join(uiDest, name + '.png'))
     copied++
   }
-  manifest.ui = { tiles: Object.keys(ui.tiles), slice: ui.slice }
+  // 작은 타일(16px)은 아이콘용이다 — 금화·보석. 큰 타일과 폴더가 다르다.
+  const smallSrc = join(ART, ui.pack, ui.smallRoot)
+  for (const [name, index] of Object.entries(ui.smallTiles)) {
+    await copyFile(join(smallSrc, tile(index)), join(uiDest, name + '.png'))
+    copied++
+  }
+  manifest.ui = {
+    tiles: [...Object.keys(ui.tiles), ...Object.keys(ui.smallTiles)],
+    slice: ui.slice,
+  }
 
   await writeFile(join(OUT, 'manifest.json'), JSON.stringify(manifest, null, 2) + '\n')
 
