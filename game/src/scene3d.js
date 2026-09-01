@@ -134,6 +134,9 @@ export async function createScene({
   // 화면 아래쪽에 비워 둘 픽셀. 정보 줄(확률·골드·연승)이 판 위에 떠 있으므로,
   // 그만큼을 비워 두지 않으면 대기석이 그 밑에 깔린다.
   bottomInset = 0,
+  // 화면 위쪽에 비워 둘 픽셀. 라운드 띠가 판 위에 떠 있으므로, 그만큼을
+  // 비워 두지 않으면 상대 대기석이 띠 뒤로 들어간다.
+  topInset = 0,
   // 직업별 크기 배율. 마법사는 작고 탱커는 크다 — 규칙은 combat.json 이 갖고
   // 여기는 값만 받는다. scene3d 가 유닛 데이터를 알 필요는 없다.
   scaleOf = () => 1,
@@ -434,8 +437,8 @@ export async function createScene({
   const surroundGroup = new THREE.Group()
 
   // 바깥 반경. 카메라가 담는 것보다 넉넉히 잡아 가장자리가 안개에 녹게 둔다.
-  const OUT_X = arena.w * 3.2
-  const OUT_Z = arena.d * 3.2
+  const OUT_X = arena.w * 5.5
+  const OUT_Z = arena.d * 5.5
 
   // 잔디 평면 한 장. 타일 수백 개 대신 하나라 드로우콜도 하나다.
   //
@@ -472,12 +475,16 @@ export async function createScene({
   // 녹아 없어지게 한다. 가장자리가 들쭉날쭉해야 "닳은 바깥마당"으로 읽힌다.
   const apronTiles = []
   {
-    const apron = await loadFloor('Floor_Brick')
-    // 판의 돌보다 밝아서 따로 놀았다. 눌러서 같은 돌 계열로 맞춘다.
-    const apronMat = apron.mat.clone()
+    // 벽돌 한 종류로 깔면 같은 무늬가 격자로 반복돼 인쇄물처럼 보인다.
+    // 두 가지를 섞는다 — 하나는 판과 **같은 돌**이라 마당이 판의 연장으로 읽힌다.
+    const apronSets = [await loadFloor('Floor_Brick'), await loadFloor('Floor_UnevenBrick')]
     // 판보다 **뚜렷하게** 어둡게. 0.55 로는 판 자체가 이미 어두워서 차이가
     // 안 읽혔다 — 밝은 전장 / 어두운 마당 / 잔디 세 단계가 보여야 한다.
-    apronMat.color.multiplyScalar(0.42)
+    const apronMats = apronSets.map((set) => {
+      const mat = set.mat.clone()
+      mat.color.multiplyScalar(0.42)
+      return mat
+    })
 
     const RINGS = 4
     const step = spacing.stepX
@@ -508,11 +515,18 @@ export async function createScene({
         const keep = Math.pow(Math.max(0, 1 - out / RINGS), 1.5)
         if (decorRng.int(1000) >= Math.round(keep * 940)) continue
 
-        for (const geo of apron.geom) {
-          const t = new THREE.Mesh(geo, apronMat)
+        // 판에 가까울수록 판과 같은 돌을 많이 섞는다 — 마당이 판에서 번져
+        // 나온 것처럼 이어진다.
+        const pickIdx = decorRng.int(100) < Math.round(70 - out * 22) ? 1 : 0
+        for (const geo of apronSets[pickIdx].geom) {
+          const t = new THREE.Mesh(geo, apronMats[pickIdx])
           t.scale.set(sxA / 2, 1, szA / 2)
           // 칸마다 아주 조금 높이를 흔든다. 완전히 평평하면 인쇄물처럼 보인다.
           t.position.set(x, SHORE_Y + 0.02 + (decorRng.int(3) - 1) * 0.008, z)
+          // 90도 단위로 돌려 같은 무늬가 줄지어 서는 것만 막는다. 판 위에서는
+          // 이게 역효과였지만(무늬가 불규칙해 칸마다 달라 보였다), 마당은
+          // 성기게 깔려 줄이 안 보이므로 여기서는 반복을 깨는 쪽이 낫다.
+          t.rotation.y = (decorRng.int(4) * Math.PI) / 2
           t.receiveShadow = true
           surroundGroup.add(t)
         }
@@ -966,6 +980,10 @@ export async function createScene({
    * 대신 실제로 투영해 본다: 원근에서 화면상 크기는 거리에 거의 반비례하므로
    * "지금 넘친 배율"을 그대로 거리에 곱하면 몇 번 만에 수렴한다.
    */
+  // 위·아래로 비워 둔 띠를 뺀 **실제로 쓸 수 있는 세로 비율**. 프레이밍은
+  // 이 안에만 담아야 UI 뒤로 말이 숨지 않는다.
+  let usableY = 1
+
   function fitCamera() {
     const { corners, box } = frameCorners()
     const focusX = (box.minX + box.maxX) / 2
@@ -979,7 +997,7 @@ export async function createScene({
       let over = 0
       for (const c of corners) {
         const p = c.clone().project(camera)
-        over = Math.max(over, Math.abs(p.x), Math.abs(p.y))
+        over = Math.max(over, Math.abs(p.x), Math.abs(p.y) / usableY)
       }
       if (over === 0) break
       const k = over / FILL
@@ -1023,7 +1041,12 @@ export async function createScene({
     // 프러스텀을 아래로 민다. 그림이 그만큼 위로 올라가 아래쪽에 빈 띠가 생긴다.
     // 프레이밍은 이 상태로 재므로 (fitCamera 가 지금 카메라로 투영한다)
     // 대기석은 그 띠 위에 정확히 얹힌다.
-    if (bottomInset > 0) camera.setViewOffset(w, h, 0, bottomInset, w, h)
+    // 위아래로 비워 둘 띠. 남은 가운데 밴드에만 그림을 담고, 밴드 중심이
+    // 화면 중심과 어긋난 만큼 프러스텀을 밀어 둔다.
+    const band = Math.max(1, h - topInset - bottomInset)
+    usableY = band / h
+    const shift = (bottomInset - topInset) / 2
+    if (shift !== 0) camera.setViewOffset(w, h, 0, shift, w, h)
     else camera.clearViewOffset()
     camera.updateProjectionMatrix()
 

@@ -76,6 +76,8 @@ export async function createPrep({ data, run, onFight, opponentBoard, onWatch, o
     benchSlots: data.economy.benchSlots,
     // 정보 줄 높이(36) + 여유. 이만큼 아래를 비워야 대기석이 그 밑에 안 깔린다.
     bottomInset: 46,
+    // 상단 띠(28) + 여유. 이만큼 위를 비워야 상대 대기석이 띠 뒤로 안 들어간다.
+    topInset: 40,
     scaleOf: (id) => data.combat.classScale[unitById(data.units, id)?.class] ?? 1,
   })
   const thumbs = createThumbnailer()
