@@ -199,16 +199,17 @@
     font-variant-numeric: tabular-nums; font-size: 12px; line-height: 15px; color: #cbbfa6;
   }
   .trait.off { opacity: .45; }
-  /* 육각 배지 + 등급색. 안에는 시너지 이름 첫 글자 — 전용 아이콘이 없으므로
-     글자가 곧 표식이다. */
+  /* 육각 배지 + 등급색. 안에는 시너지 아이콘.
+     첫 글자를 쓰던 때는 "거인"과 "전사"가 글자로만 보면 구분이 안 됐다. */
   .trait .pip {
-    width: 19px; height: 22px; flex: none; display: grid; place-items: center;
+    width: 19px; height: 22px; flex: none;
     clip-path: polygon(50% 0, 100% 25%, 100% 75%, 50% 100%, 0 75%, 0 25%);
-    background: #4a4458; color: #0f0d16; font-size: 12px; font-weight: 800; line-height: 1;
+    background: var(--ic) center / 13px no-repeat, #4a4458;
+    image-rendering: pixelated;
   }
-  .trait.s1 .pip { background: linear-gradient(#d99154, #a5602c); }
-  .trait.s2 .pip { background: linear-gradient(#e6edf5, #a8b4c4); }
-  .trait.s3 .pip { background: linear-gradient(#ffe08a, #d9a12c); }
+  .trait.s1 .pip { background: var(--ic) center / 13px no-repeat, linear-gradient(#d99154, #a5602c); }
+  .trait.s2 .pip { background: var(--ic) center / 13px no-repeat, linear-gradient(#e6edf5, #a8b4c4); }
+  .trait.s3 .pip { background: var(--ic) center / 13px no-repeat, linear-gradient(#ffe08a, #d9a12c); }
   .trait.s1 .c { color: #f0b078; }
   .trait.s2 .c { color: #eef4ff; }
   .trait.s3 .c { color: var(--gold); }
@@ -338,6 +339,11 @@
   #traitinfo .hd {
     display: flex; align-items: center; gap: 7px; padding: 2px 0 6px;
     border-bottom: 1px solid #00000040; font-weight: 800; font-size: 13px;
+  }
+  #traitinfo .hd::before {
+    content: ''; flex: none; width: 16px; height: 16px;
+    background: var(--ic) center / contain no-repeat;
+    image-rendering: pixelated;
   }
   #traitinfo .hd .c { margin-left: auto; color: var(--gold); font-variant-numeric: tabular-nums; }
   #traitinfo .steps { padding: 5px 0; display: flex; flex-direction: column; gap: 2px; }
@@ -591,22 +597,25 @@
     filter: drop-shadow(0 3px 5px #000b);
   }
 
-  /* 특성은 좌상단에 세로로. 아트 위에 바로 얹으면 밝은 모델에서 글자가 사라져
-     스크림을 깐다 — 왼쪽만 어둡게, 오른쪽으로 사라지는 그라디언트. */
+  /* 특성은 좌상단에 세로로. 검은 스크림을 깔면 카드 왼쪽이 통째로 어두워져
+     초상화 절반이 그늘에 들어간다 — 대신 아이콘을 앞에 세우고 글자에 그림자를
+     세게 준다. 아이콘이 있으니 글자가 조금 묻혀도 무엇인지 읽힌다. */
   .card .tr {
     position: absolute; left: 0; top: 0; z-index: 2;
-    display: flex; flex-direction: column;
-    padding: 2px 10px 3px 3px;
-    background: linear-gradient(100deg, #000000b8 0%, #00000078 58%, #0000 100%);
-    font-size: 10px; line-height: 13px; font-weight: 700; color: #e4dff2;
+    display: flex; flex-direction: column; gap: 1px;
+    padding: 2px 6px 3px 2px;
+    font-size: 10px; line-height: 13px; font-weight: 700; color: #f0e6cf;
+    text-shadow: 0 1px 2px #000, 0 0 4px #000, 0 0 6px #000;
   }
   .card .tr i {
     display: flex; align-items: center; gap: 3px; font-style: normal;
     white-space: nowrap;
   }
   .card .tr i::before {
-    content: ''; flex: none; width: 6px; height: 7px; background: #d3cade;
-    clip-path: polygon(50% 0, 100% 25%, 100% 75%, 50% 100%, 0 75%, 0 25%);
+    content: ''; flex: none; width: 12px; height: 12px;
+    background: var(--ic) center / contain no-repeat;
+    image-rendering: pixelated;
+    filter: drop-shadow(0 1px 1px #000);
   }
 
   /* 하단 띠 = 이름 + 값. 티어색이 여기에만 진하게 들어간다. */

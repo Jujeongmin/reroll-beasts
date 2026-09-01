@@ -414,6 +414,9 @@ export async function createPrep({ data, run, onFight }) {
     )
   }
 
+  /** 시너지 아이콘 경로. tools/trait-icons.mjs 가 id 별로 찍어 둔다. */
+  const traitIcon = (id) => `url('/assets/ui/trait_${id}.png')`
+
   function traitLabel(id) {
     const t = [...data.traits.origins, ...data.traits.classes].find((x) => x.id === id)
     return t ? t.name.ko : id
@@ -453,8 +456,9 @@ export async function createPrep({ data, run, onFight }) {
           showTraitInfo(id, v.count)
         })
         const label = traitLabel(id)
+        d.style.setProperty('--ic', traitIcon(id))
         d.innerHTML =
-          `<span class="pip">${label.slice(0, 1)}</span>` +
+          '<span class="pip"></span>' +
           `<span class="n">${label}</span>` +
           `<span class="c">${v.count}${next ? `/${next}` : ''}</span>`
         return d
@@ -478,7 +482,9 @@ export async function createPrep({ data, run, onFight }) {
         d.style.setProperty('--tc', tierBar(u.tier))
         d.innerHTML =
           `<span class="art"><img alt="${u.name.ko}" /></span>` +
-          `<span class="tr"><i>${traitLabel(u.origin)}</i><i>${traitLabel(u.class)}</i></span>` +
+          '<span class="tr">' +
+          `<i style="--ic:${traitIcon(u.origin)}">${traitLabel(u.origin)}</i>` +
+          `<i style="--ic:${traitIcon(u.class)}">${traitLabel(u.class)}</i></span>` +
           `<span class="nm"><b>${u.name.ko}</b><span class="pr">${u.tier}</span></span>`
         thumbFor(unitId, 1).then((url) => {
           const img = d.querySelector('img')
@@ -571,6 +577,7 @@ export async function createPrep({ data, run, onFight }) {
 
   async function showTraitInfo(id, count) {
     const d = traitDetail(id, count, data, ownedUnitIds())
+    el.traitInfo.style.setProperty('--ic', traitIcon(id))
     el.traitInfo.innerHTML =
       `<div class="hd"><span>${d.name}</span><span class="c">${d.count}</span></div>` +
       '<div class="steps">' +
