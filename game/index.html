@@ -28,7 +28,7 @@
     --plate: #12101ce8;
     --edge: #ffffff1c;
 
-    --shopH: 92px;
+    --shopH: 116px;
     /* 비스듬한 판의 기울기. 한 곳에서 정해야 좌우가 대칭으로 보인다. */
     --skew: 9px;
   }
@@ -83,7 +83,7 @@
     image-rendering: pixelated;
   }
   #roundtag {
-    display: flex; align-items: center; height: 30px; padding: 0 4px;
+    display: flex; align-items: center; height: 32px; padding: 0 4px;
     font-size: 16px; font-weight: 800; letter-spacing: .5px; color: #fff2e0;
     text-shadow: 0 1px 2px #0009;
     border-style: solid; border-width: 6px; border-image-slice: 6 fill;
@@ -172,14 +172,15 @@
   /* ── 우측: 플레이어 ────────────────────────────────── */
   /* 8명이 **전부** 보여야 한다. 스크롤에 밀리면 체력이 깎여 아래로 내려간
      내 줄이 화면 밖으로 나간다. */
+  /* 8칸이 무대 높이를 나눠 갖는다. 칸 높이를 박아 두면 하단 UI 를 키울 때마다
+     아래쪽 등수가 잘려 나간다 (26×8+틈 = 215 > 무대 176). */
   #lobby {
-    position: absolute; right: 6px; top: 50px; width: 158px; z-index: 4;
+    position: absolute; right: 6px; top: 8px; bottom: 6px; width: 158px; z-index: 4;
     display: flex; flex-direction: column; gap: 1px;
   }
   .seat {
-    flex: none; line-height: 1;
-    display: flex; align-items: center; gap: 5px; height: 26px; padding: 0 0 0 2px;
-    border-width: 5px;
+    flex: 1 1 0; min-height: 0; max-height: 30px; line-height: 1;
+    display: flex; align-items: center; gap: 5px; padding: 0 0 0 2px;
     border-style: solid; border-width: 6px; border-image-slice: 6 fill;
     border-image-repeat: repeat; border-image-source: url('/assets/ui/plate_m.png');
     image-rendering: pixelated;
@@ -187,7 +188,10 @@
   }
   .seat .rk { width: 11px; font-size: 10px; color: #cdd6e4; text-align: right; }
   .seat .n { flex: 1; line-height: 15px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
-  .seat .h { font-variant-numeric: tabular-nums; font-weight: 800; color: #ff9aa4; font-size: 11px; }
+  .seat .h {
+    font-variant-numeric: tabular-nums; font-weight: 800; color: #ff9aa4;
+    font-size: 11px; line-height: 14px;
+  }
   .seat .av {
     width: 16px; height: 16px; flex: none; border-radius: 50%;
     display: grid; place-items: center; font-size: 10px; font-weight: 800;
@@ -292,7 +296,7 @@
   /* 무대 안에 띄우면 3D 대기석을 덮는다. 무대와 상점 판 **사이**의 제 줄이다.
      상점 판(갈색) 안에는 넣지 않는다 — 이건 내 상태지 상점 물건이 아니다. */
   #hudbar {
-    flex: none; height: 42px; padding: 0 6px;
+    flex: none; height: 48px; padding: 0 6px;
     display: grid; grid-template-columns: 1fr auto 1fr; align-items: center; gap: 8px;
   }
   #hudL { display: flex; align-items: center; gap: 6px; justify-self: start; }
@@ -303,7 +307,7 @@
      양끝을 먹어, 숫자가 아니라 상자가 먼저 읽힌다. 무늬 없는 판으로 바꾼다.
      차가운 강철 = 내 상태(레벨·연승), 따뜻한 나무 = 재화(골드). */
   #lvbox {
-    display: flex; align-items: center; gap: 8px; height: 38px; padding: 0 6px;
+    display: flex; align-items: center; gap: 8px; height: 42px; padding: 0 8px;
     border-style: solid; border-width: 6px; border-image-slice: 6 fill;
     border-image-repeat: repeat; border-image-source: url('/assets/ui/panel_steel.png');
     image-rendering: pixelated;
@@ -323,7 +327,7 @@
   /* 티어 확률. 참고용 숫자다 — 크게 잡으면 상점 카드보다 눈에 먼저 든다. */
   #odds { display: flex; gap: 2px; }
   #odds span {
-    width: 28px; height: 26px;
+    width: 32px; height: 30px;
     display: flex; align-items: center; justify-content: center;
     border-radius: 2px; font-size: 11px; font-weight: 800;
     font-variant-numeric: tabular-nums; color: #12100c; background: var(--oc);
@@ -333,7 +337,7 @@
 
   #gold {
     line-height: 24px;
-    display: flex; align-items: center; gap: 6px; height: 38px; padding: 0 10px;
+    display: flex; align-items: center; gap: 6px; height: 42px; padding: 0 12px;
     border-style: solid; border-width: 6px; border-image-slice: 6 fill;
     border-image-repeat: repeat; border-image-source: url('/assets/ui/panel_wood.png');
     image-rendering: pixelated;
@@ -348,7 +352,7 @@
   /* 연승·연패. 다음 라운드 수입이 이걸로 갈리는데 화면에 없었다. */
   #streak {
     line-height: 16px;
-    display: flex; align-items: center; gap: 5px; height: 38px; padding: 0 8px;
+    display: flex; align-items: center; gap: 5px; height: 42px; padding: 0 10px;
     border-style: solid; border-width: 6px; border-image-slice: 6 fill;
     border-image-repeat: repeat; border-image-source: url('/assets/ui/panel_steel.png');
     image-rendering: pixelated;
@@ -361,7 +365,7 @@
   #lock {
     line-height: 16px;
     display: flex; align-items: center; justify-content: center; gap: 5px;
-    width: 78px; height: 38px;
+    width: 88px; height: 42px;
     border-style: solid; border-width: 6px; border-image-slice: 6 fill;
     border-image-repeat: repeat; border-image-source: url('/assets/ui/button.png');
     image-rendering: pixelated;
@@ -383,16 +387,18 @@
   }
   #shopbar.selling { filter: hue-rotate(-25deg) saturate(1.8) brightness(1.15); }
 
-  #sidebtns { width: 124px; flex: none; display: flex; flex-direction: column; gap: 5px; }
+  #sidebtns { width: 138px; flex: none; display: flex; flex-direction: column; gap: 6px; }
   .btn {
     flex: 1; line-height: 1;
     display: flex; align-items: center; justify-content: center; gap: 6px;
     border-style: solid; border-width: 6px; border-image-slice: 6 fill;
     border-image-repeat: repeat; border-image-source: url('/assets/ui/button.png');
     image-rendering: pixelated;
-    font-size: 12px; font-weight: 700; color: #f3ecdd; text-shadow: 0 1px 2px #0009;
+    font-size: 13px; font-weight: 700; color: #f3ecdd; text-shadow: 0 1px 2px #0009;
   }
   .btn .cost {
+    /* 13px 글자에 13px 줄상자면 2px 모자란다 (실측 15). 명시한다. */
+    flex: none; line-height: 16px;
     display: flex; align-items: center; gap: 3px;
     color: var(--gold); font-weight: 800; font-variant-numeric: tabular-nums;
   }
@@ -430,7 +436,7 @@
   .card:not(.empty):active { transform: translateY(1px); }
   .card.poor { filter: grayscale(.55) brightness(.7); }
 
-  .card .art { position: absolute; left: 0; right: 0; top: 0; bottom: 18px; z-index: 1; }
+  .card .art { position: absolute; left: 0; right: 0; top: 0; bottom: 22px; z-index: 1; }
   .card .art img {
     width: 100%; height: 100%; object-fit: contain;
     /* 그림 자리는 128×50 인데 섬네일은 정사각이다 — contain 이면 세로에 맞춰
@@ -447,27 +453,27 @@
     display: flex; flex-direction: column;
     padding: 2px 10px 3px 3px;
     background: linear-gradient(100deg, #000000b8 0%, #00000078 58%, #0000 100%);
-    font-size: 9px; line-height: 11px; font-weight: 700; color: #e4dff2;
+    font-size: 10px; line-height: 13px; font-weight: 700; color: #e4dff2;
   }
   .card .tr i {
     display: flex; align-items: center; gap: 3px; font-style: normal;
     white-space: nowrap;
   }
   .card .tr i::before {
-    content: ''; flex: none; width: 5px; height: 6px; background: #d3cade;
+    content: ''; flex: none; width: 6px; height: 7px; background: #d3cade;
     clip-path: polygon(50% 0, 100% 25%, 100% 75%, 50% 100%, 0 75%, 0 25%);
   }
 
   /* 하단 띠 = 이름 + 값. 티어색이 여기에만 진하게 들어간다. */
   .card .nm {
-    position: absolute; left: 0; right: 0; bottom: 0; height: 18px; z-index: 2;
+    position: absolute; left: 0; right: 0; bottom: 0; height: 22px; z-index: 2;
     display: flex; align-items: center; justify-content: space-between; gap: 4px;
-    padding: 0 4px;
+    padding: 0 5px;
     background: linear-gradient(180deg,
       color-mix(in srgb, var(--tc) 66%, #0c0a12),
       color-mix(in srgb, var(--tc) 42%, #0c0a12));
     box-shadow: inset 0 1px 0 #ffffff2e;
-    font-size: 11px; line-height: 18px; font-weight: 800; color: #fff;
+    font-size: 13px; line-height: 22px; font-weight: 800; color: #fff;
     text-shadow: 0 1px 2px #000a;
   }
   .card .nm b { min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
@@ -476,7 +482,7 @@
     color: #ffe6a8; font-variant-numeric: tabular-nums;
   }
   .card .pr::before {
-    content: ''; width: 8px; height: 8px; border-radius: 50%;
+    content: ''; width: 10px; height: 10px; border-radius: 50%;
     background: radial-gradient(circle at 35% 30%, #ffe9a8, #c9932c);
   }
 
