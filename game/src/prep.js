@@ -711,17 +711,91 @@ export async function createPrep({ data, run, onFight }) {
     renderHud()
   })
 
-  el.reroll.addEventListener('click', () => {
+  // ── 단축키 ──────────────────────────────────────────────
+  //
+  // 오토체스 관례를 따른다 (W 배치 · E 판매 · D 리롤 · F 경험치).
+  // 손이 상점 버튼과 판 사이를 오가지 않아도 되는 게 이 장르의 조작 속도다.
+
+  /** 가리키는 말을 판 ↔ 대기석으로 옮긴다. */
+  function toggleSpot() {
+    const found = unitAtPointer(ptr.x, ptr.y)
+    if (!found) return hint('가리키는 말이 없다')
+    const at = findUnit(run.state, found.uid)
+    if (!at) return
+    if (at.where === 'board') {
+      const slot = run.state.bench.findIndex((c) => !c)
+      if (slot < 0) return hint('대기석이 가득 찼다')
+      const r = moveTo(run.state, found.uid, { where: 'bench', index: slot }, data)
+      if (!r.ok) return hint(r.reason)
+    } else {
+      const slot = firstFreeBoardSlot()
+      if (slot < 0) return hint(`배치 인원이 꽉 찼다 (레벨 ${run.state.level})`)
+      const r = moveTo(run.state, found.uid, { where: 'board', index: slot }, data)
+      if (!r.ok) return hint(r.reason)
+    }
+    refresh()
+  }
+
+  /** 가리키는 말을 판다. */
+  function sellPointed() {
+    const found = unitAtPointer(ptr.x, ptr.y)
+    if (!found) return hint('가리키는 말이 없다')
+    const value = sellValue(found.unit.unitId, found.unit.star, data)
+    const r = sell(run.state, run.pool, found.uid, data)
+    hint(r.ok ? `판매 +${value}골드` : r.reason)
+    refresh()
+  }
+
+  /** 남의 판 순회. dir 1 = 다음 사람, -1 = 이전 사람. */
+  function peekStep(dir) {
+    if (!run.lobby) return
+    const others = standings(run.lobby).filter((seat) => !seat.isPlayer)
+    if (others.length === 0) return
+    const cur = others.findIndex((seat) => seat.id === peekId)
+    // 아무도 안 보고 있으면 방향에 따라 양 끝에서 시작한다.
+    const from = cur >= 0 ? cur : dir > 0 ? -1 : 0
+    openPeek(others[(from + dir + others.length) % others.length])
+  }
+
+  const KEYS = {
+    KeyW: toggleSpot,
+    KeyE: sellPointed,
+    KeyD: doReroll,
+    KeyF: doBuyXp,
+    KeyQ: () => peekStep(1),
+    Digit1: () => peekStep(1),
+    KeyR: () => peekStep(-1),
+    Digit3: () => peekStep(-1),
+    Space: closePeek,
+    Digit2: closePeek,
+    Escape: closePeek,
+  }
+  addEventListener('keydown', (ev) => {
+    // 키를 누른 채로 두면 repeat 가 초당 수십 번 들어온다 — 리롤이 골드를 쓸어간다.
+    if (ev.repeat || ev.ctrlKey || ev.metaKey || ev.altKey) return
+    const act = KEYS[ev.code]
+    if (!act) return
+    // Space 는 기본이 스크롤이다.
+    ev.preventDefault()
+    // 남의 판을 보는 중에는 내 말을 못 만진다 — 화면에 없는 말이다.
+    if (peekId !== null && (ev.code === 'KeyW' || ev.code === 'KeyE')) return
+    // 전투 중에는 판을 건드릴 수 없다 (리플레이와 어긋난다).
+    if (!running && (ev.code === 'KeyW' || ev.code === 'KeyE')) return
+    act()
+  })
+
+  function doReroll() {
     const r = refreshShop(run.state, run.pool, run.rng, data)
     if (!r.ok) hint(r.reason)
     refresh()
-  })
-
-  el.buyxp.addEventListener('click', () => {
+  }
+  function doBuyXp() {
     const r = buyXp(run.state, data)
     if (!r.ok) hint(r.reason)
     refresh()
-  })
+  }
+  el.reroll.addEventListener('click', doReroll)
+  el.buyxp.addEventListener('click', doBuyXp)
 
 
   // ── 드래그 배치 ─────────────────────────────────────────
@@ -762,13 +836,43 @@ export async function createPrep({ data, run, onFight }) {
     const c = TIME_OK.map((v, i) => mix(v, TIME_LOW[i]))
     el.timeFill.style.background = `rgb(${c[0]} ${c[1]} ${c[2]})`
   }
+  /** 내 판에서 비어 있는 첫 자리. 인원이 꽉 찼으면 -1. */
+  function firstFreeBoardSlot() {
+    if (boardCount(run.state) >= run.state.level) return -1
+    return run.state.board.findIndex((c) => !c)
+  }
+
+  /**
+   * 대기석 맨 왼쪽부터 판의 빈 자리에 올린다.
+   *
+   * 말은 샀는데 판에 안 올린 채 시간이 다 가면, 예전에는 라운드가 5초씩
+   * 무한히 미뤄졌다 — 화면상 아무 일도 안 일어나서 멈춘 것처럼 보인다.
+   * 대신 갖고 있는 말로 알아서 채우고 시작한다.
+   */
+  function autoPlaceFromBench() {
+    let placed = 0
+    for (const cell of run.state.bench) {
+      if (!cell) continue
+      const slot = firstFreeBoardSlot()
+      if (slot < 0) break
+      if (moveTo(run.state, cell.uid, { where: 'board', index: slot }, data).ok) placed++
+    }
+    return placed
+  }
+
   function tickTimer(dt) {
     if (!running) return
     timeLeft = Math.max(0, timeLeft - dt)
     // 막대는 매 프레임 다시 그린다. 초가 바뀔 때만 그리면 1초씩 툭툭 끊긴다.
     paintTimer()
     if (timeLeft === 0) {
-      // 배치가 비었으면 시작할 수 없다 — 무한 루프가 된다. 그 판은 그대로 둔다.
+      // 판이 **비었을 때만**이 아니라 자리가 남을 때마다 채운다. 넷을 놓을 수
+      // 있는데 둘만 놓고 시간이 가면 그냥 손해다 — 대기석 왼쪽부터 올린다.
+      if (autoPlaceFromBench() > 0) {
+        hint('대기석에서 자동 배치')
+        refresh()
+      }
+      // 판이 그래도 비었으면(살아 있는 말이 하나도 없으면) 시작할 수 없다.
       if (boardCount(run.state) > 0) {
         running = false
         onFight(toCombatEntries(run.state))
@@ -785,6 +889,9 @@ export async function createPrep({ data, run, onFight }) {
   let drag = null
   let hotTile = -1
   let hotSlot = null
+  // 단축키는 "마우스가 가리키는 말"에 걸린다. 키를 누른 순간의 좌표를
+  // 알 방법이 없으므로 움직일 때마다 적어 둔다.
+  const ptr = { x: -1, y: -1 }
 
   /**
    * 그 자리에 서 있는 유닛. 없으면 null.
@@ -884,6 +991,9 @@ export async function createPrep({ data, run, onFight }) {
   })
 
   el.root.addEventListener('pointermove', (ev) => {
+    // 끌고 있지 않아도 좌표는 계속 적어 둔다 — 단축키가 이걸 쓴다.
+    ptr.x = ev.clientX
+    ptr.y = ev.clientY
     if (!drag) return
     if (!drag.moved && (Math.abs(ev.clientX - drag.x0) > TAP_SLOP || Math.abs(ev.clientY - drag.y0) > TAP_SLOP)) {
       drag.moved = true

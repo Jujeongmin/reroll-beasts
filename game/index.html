@@ -290,7 +290,7 @@
   /* ── 상세 패널 ─────────────────────────────────────── */
   .panel {
     position: absolute; z-index: 8;
-    border-style: solid; border-width: 12px; border-image-slice: 6;
+    border-style: solid; border-width: 10px; border-image-slice: 6;
     border-image-repeat: repeat; image-rendering: pixelated;
     border-image-source: url('/assets/ui/panel_wood.png');
     background: #c58747;
@@ -332,32 +332,34 @@
   }
 
   /* 무대보다 길어지면 아래쪽 유닛 목록이 통째로 잘린다 — 그걸 보라고 만든 패널이다. */
-  /* 시너지 상세. 판 위에 뜨는 참고 패널이라 크면 판을 통째로 가린다. */
+  /* 시너지 상세. 판 위에 뜨는 참고 패널이라 크면 판을 통째로 가린다.
+     **스크롤을 걸지 않는다** — 참고 패널을 굴려 가며 읽게 만들면 그 사이
+     마우스가 패널을 벗어나 닫힌다. 대신 가장 큰 경우(7명 · 3단계)가
+     그대로 들어가는 크기로 잡는다. */
   #traitinfo {
-    left: 150px; top: 56px; width: 178px;
-    max-height: calc(100% - 66px); overflow-y: auto;
-    font-size: 11px;
+    left: 146px; top: 46px; width: 162px;
+    font-size: 10px; line-height: 13px;
   }
   #traitinfo .hd {
-    display: flex; align-items: center; gap: 5px; padding: 0 0 4px;
-    border-bottom: 1px solid #00000040; font-weight: 800; font-size: 12px;
+    display: flex; align-items: center; gap: 4px; padding: 0 0 3px;
+    border-bottom: 1px solid #00000040; font-weight: 800; font-size: 11px;
   }
   #traitinfo .hd::before {
-    content: ''; flex: none; width: 14px; height: 14px;
+    content: ''; flex: none; width: 13px; height: 13px;
     background: var(--ic) center / contain no-repeat;
     image-rendering: pixelated;
   }
   #traitinfo .hd .c { margin-left: auto; color: var(--gold); font-variant-numeric: tabular-nums; }
-  #traitinfo .steps { padding: 4px 0; display: flex; flex-direction: column; gap: 1px; }
-  #traitinfo .step { display: flex; gap: 6px; line-height: 1.2; opacity: .45; }
+  #traitinfo .steps { padding: 3px 0; display: flex; flex-direction: column; gap: 1px; }
+  #traitinfo .step { display: flex; gap: 5px; line-height: 1.15; opacity: .45; }
   #traitinfo .step.on { opacity: 1; }
   #traitinfo .step b { flex: none; width: 12px; text-align: right; color: #cbbfa6; }
   #traitinfo .step.on b { color: var(--gold); }
   /* 유닛 목록. 필요한 건 **몇 티어이고 어떻게 생겼나** 둘뿐이다 —
      이름표를 빼고 테두리 색으로 티어를 말한다 (상점 카드 이름띠와 같은 색). */
-  #traitinfo .mem { display: flex; flex-wrap: wrap; gap: 3px; padding: 4px 0 0; border-top: 1px solid #ffffff1a; }
+  #traitinfo .mem { display: flex; flex-wrap: wrap; gap: 3px; padding: 3px 0 0; border-top: 1px solid #ffffff1a; }
   #traitinfo .mem figure {
-    position: relative; width: 30px; height: 30px; border-radius: 4px;
+    position: relative; width: 26px; height: 26px; border-radius: 4px;
     background: color-mix(in srgb, var(--tc) 24%, #1a1420);
     box-shadow: inset 0 0 0 1px var(--tc);
   }
@@ -376,9 +378,9 @@
     display: flex; align-items: center; gap: 4px;
     /* min-height 로 두면 글자가 들어올 때 4px 늘어난다. 패널 높이가 튀면
        아래쪽에 있던 마우스가 패널 밖으로 떨어져 패널이 닫힌다. 못 박는다. */
-    height: 15px; margin-top: 4px; padding-top: 4px;
+    height: 14px; margin-top: 3px; padding-top: 3px;
     border-top: 1px solid #ffffff1a;
-    font-size: 10px; line-height: 15px; font-weight: 700; color: #f0e6cf;
+    font-size: 10px; line-height: 14px; font-weight: 700; color: #f0e6cf;
   }
   #traitinfo .pick .t {
     flex: none; min-width: 12px; height: 11px; border-radius: 3px;

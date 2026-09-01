@@ -18,10 +18,19 @@ export function streakBonus(streak, economy) {
   return best
 }
 
-/** 라운드 정산. 항목을 쪼개 돌려주므로 화면이 "왜 이만큼인지" 그대로 보여준다. */
-export function roundIncome({ gold, streak, won }, economy) {
+/**
+ * 라운드 정산. 항목을 쪼개 돌려주므로 화면이 "왜 이만큼인지" 그대로 보여준다.
+ *
+ * 기본 수입은 **라운드마다 다르다** — 첫 판은 없고 서서히 올라 baseIncome 에서
+ * 멈춘다. round 를 안 받으면 1라운드에도 만액이 나가므로 없으면 던진다.
+ */
+export function roundIncome({ gold, streak, won, round }, economy) {
+  if (!Number.isInteger(round) || round < 1) {
+    throw new Error(`roundIncome: round 가 1 이상 정수여야 한다 (${round})`)
+  }
+  const ramp = economy.incomeRamp ?? []
   const parts = {
-    base: economy.baseIncome,
+    base: round <= ramp.length ? ramp[round - 1] : economy.baseIncome,
     interest: interest(gold, economy),
     streak: streakBonus(streak, economy),
     win: won ? economy.winBonus : 0,

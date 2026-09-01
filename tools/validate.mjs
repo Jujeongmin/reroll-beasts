@@ -125,6 +125,24 @@ export function validate(data) {
 
   // 12. 벤치 칸이 배치 상한보다 넓다. 좁으면 합성 재료를 들고 있을 자리가 없다.
   const maxPop = lvKeys[lvKeys.length - 1] + 1
+  // 램프는 라운드 수보다 길면 안 되고, 마지막 칸에서 baseIncome 으로 이어져야
+  // 한다 — 램프가 baseIncome 을 넘으면 중간 라운드가 후반보다 부유해진다.
+  const ramp = economy.incomeRamp ?? []
+  if (!Array.isArray(ramp)) {
+    errors.push('economy.json > incomeRamp 가 배열이 아니다')
+  } else {
+    for (const [i, v] of ramp.entries()) {
+      if (!Number.isInteger(v) || v < 0) {
+        errors.push(`economy.json > incomeRamp[${i}] 가 0 이상 정수가 아니다 (${v})`)
+      }
+      if (v > economy.baseIncome) {
+        errors.push(
+          `economy.json > incomeRamp[${i}] = ${v} 가 baseIncome ${economy.baseIncome} 보다 크다`,
+        )
+      }
+    }
+  }
+
   if (economy.benchSlots < maxPop) {
     errors.push(`벤치 ${economy.benchSlots} 칸이 최대 배치 인원 ${maxPop} 보다 좁다`)
   }

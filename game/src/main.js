@@ -140,7 +140,10 @@ try {
       data,
     })
 
-    s.gold += roundIncome({ gold: s.gold, streak: s.streak, won }, data.economy).total
+    s.gold += roundIncome(
+      { gold: s.gold, streak: s.streak, won, round: run.index },
+      data.economy,
+    ).total
 
     // 매 라운드 자동 XP. 구매와 같은 함수를 타야 레벨업 연쇄가 똑같이 돈다.
     const next = addXp(s.level, s.xp, data.levels.xpPerRound, data.levels)

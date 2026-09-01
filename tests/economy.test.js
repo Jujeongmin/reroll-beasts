@@ -34,32 +34,50 @@ describe('연승·연패 보너스', () => {
     // atLeast 를 > 로 잘못 쓰면 여기서 한 칸씩 밀린다
     expect(streakBonus(1, eco)).toBe(0)
     expect(streakBonus(2, eco)).toBe(1)
-    expect(streakBonus(3, eco)).toBe(2)
-    expect(streakBonus(4, eco)).toBe(3)
-    expect(streakBonus(5, eco)).toBe(4)
+    expect(streakBonus(5, eco)).toBe(2)
+    expect(streakBonus(6, eco)).toBe(3)
+  })
+
+  it('구간 사이는 평평하다 — 2~4 연승은 값이 같다', () => {
+    // 선형으로 잘못 만들면 3 이 2, 4 가 3 이 되어 여기서 걸린다
+    expect(streakBonus(3, eco)).toBe(1)
+    expect(streakBonus(4, eco)).toBe(1)
   })
 
   it('표의 마지막 구간을 넘어도 상한에서 멈춘다', () => {
-    expect(streakBonus(12, eco)).toBe(4)
+    expect(streakBonus(12, eco)).toBe(3)
   })
 })
 
 describe('라운드 정산', () => {
   it('항목별 값과 합계가 맞는다', () => {
-    const r = roundIncome({ gold: 32, streak: 3, won: true }, eco)
+    const r = roundIncome({ gold: 32, streak: 5, won: true, round: 9 }, eco)
     expect(r).toEqual({ base: 5, interest: 3, streak: 2, win: 1, total: 11 })
   })
 
   it('패배하면 승리 보너스가 빠진다 — 연패 보너스는 남는다', () => {
-    const r = roundIncome({ gold: 0, streak: 4, won: false }, eco)
+    const r = roundIncome({ gold: 0, streak: 6, won: false, round: 9 }, eco)
     expect(r.win).toBe(0)
     expect(r.streak).toBe(3)
     expect(r.total).toBe(r.base + r.interest + r.streak)
   })
 
-  it('스펙의 라운드 최대 수입 15 를 넘지 않는다', () => {
-    const r = roundIncome({ gold: 999, streak: 99, won: true }, eco)
-    expect(r.total).toBe(15)
+  it('기본 수입은 초반에 낮았다가 baseIncome 에서 멈춘다', () => {
+    // 램프를 통째로 무시하고 baseIncome 만 쓰면 1라운드가 5 로 나와 걸린다
+    const base = (round) => roundIncome({ gold: 0, streak: 0, won: false, round }, eco).base
+    expect(eco.incomeRamp.map((_, i) => base(i + 1))).toEqual(eco.incomeRamp)
+    expect(base(eco.incomeRamp.length + 1)).toBe(eco.baseIncome)
+    expect(base(99)).toBe(eco.baseIncome)
+  })
+
+  it('라운드를 안 주면 던진다 — 조용히 만액을 주면 1라운드가 부유해진다', () => {
+    expect(() => roundIncome({ gold: 0, streak: 0, won: false }, eco)).toThrow(/round/)
+    expect(() => roundIncome({ gold: 0, streak: 0, won: false, round: 0 }, eco)).toThrow(/round/)
+  })
+
+  it('스펙의 라운드 최대 수입 14 를 넘지 않는다', () => {
+    const r = roundIncome({ gold: 999, streak: 99, won: true, round: 99 }, eco)
+    expect(r.total).toBe(14)
   })
 })
 
@@ -101,9 +119,12 @@ describe('레벨 · XP', () => {
   })
 
   it('한 번에 여러 레벨을 연쇄로 올린다', () => {
-    // 3→4 가 2, 4→5 가 6. 8 을 한 번에 넣으면 5레벨이어야 한다.
-    expect(addXp(3, 0, 8, levels)).toEqual({ level: 5, xp: 0 })
-    expect(addXp(3, 0, 9, levels)).toEqual({ level: 5, xp: 1 })
+    // 3→4 가 4, 4→5 가 6. 10 을 한 번에 넣으면 5레벨이어야 한다.
+    expect(addXp(3, 0, 10, levels)).toEqual({ level: 5, xp: 0 })
+    expect(addXp(3, 0, 11, levels)).toEqual({ level: 5, xp: 1 })
+    // 한 칸만 오르는 경우도 같이 본다 — 연쇄만 맞고 단일이 틀릴 수 있다.
+    expect(addXp(3, 0, 4, levels)).toEqual({ level: 4, xp: 0 })
+    expect(addXp(3, 0, 9, levels)).toEqual({ level: 4, xp: 5 })
   })
 
   it('최대 레벨에서는 남는 XP 를 버린다', () => {
