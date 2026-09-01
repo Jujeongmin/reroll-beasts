@@ -253,19 +253,10 @@ export async function createPrep({ data, run, onFight }) {
   const HP_OK = '#5fd68a'
   const HP_MID = '#ffd166'
   const HP_LOW = '#e2513a'
-  // 밝은 판 위 숫자용. 고리 색을 그대로 쓰면 초록·노랑이 배경에 씻긴다.
-  const HP_OK_TEXT = '#12683c'
-  const HP_MID_TEXT = '#7a5306'
-  const HP_LOW_TEXT = '#9c2436'
   function hpColor(ratio) {
     if (ratio > 0.6) return HP_OK
     if (ratio > 0.3) return HP_MID
     return HP_LOW
-  }
-  function hpTextColor(ratio) {
-    if (ratio > 0.6) return HP_OK_TEXT
-    if (ratio > 0.3) return HP_MID_TEXT
-    return HP_LOW_TEXT
   }
 
   function renderLobby() {
@@ -286,7 +277,6 @@ export async function createPrep({ data, run, onFight }) {
         const ratio = Math.max(0, Math.min(1, seat.hp / maxHp))
         d.style.setProperty('--hp', String(ratio))
         d.style.setProperty('--hc', hpColor(ratio))
-        d.style.setProperty('--ht', hpTextColor(ratio))
         d.innerHTML =
           `<span class="n">${seat.name}</span>` +
           `<span class="h">${seat.hp}</span>` +
