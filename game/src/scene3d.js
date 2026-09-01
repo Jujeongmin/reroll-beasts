@@ -477,8 +477,10 @@ export async function createScene({
   // 대기석 깊이는 벤치 블록이 정하지만 여기서 먼저 필요하므로 같은 식으로 잰다:
   //   칸(0.74) + 틈(0.1)×1.5 + 반 칸 = 판 끝에서 약 1.3칸.
   const BENCH_OUT = spacing.stepZ * 1.3
-  const PLAZA_X = arena.w / 2 + spacing.stepX * 1.95
-  const PLAZA_Z = arena.d / 2 + BENCH_OUT + spacing.stepZ * 1.6
+  // 랜드마크(집·천막)가 **마당 안**에 서야 하므로 그만큼 자리를 준다.
+  // 좁으면 집이 판이나 대기석에 붙어 말을 가린다.
+  const PLAZA_X = arena.w / 2 + spacing.stepX * 3.4
+  const PLAZA_Z = arena.d / 2 + BENCH_OUT + spacing.stepZ * 2.6
   /** 울타리 안인가. 나무·랜드마크가 여기 들어오면 안 된다. */
   const inPlaza = (x, z, pad = 0) =>
     Math.abs(x - arena.cx) <= PLAZA_X + pad && Math.abs(z - arena.cz) <= PLAZA_Z + pad
@@ -504,7 +506,9 @@ export async function createScene({
       return mat
     })
 
-    const RINGS = 5
+    // 마당이 판 밖으로 몇 칸까지 가는지. 울타리(PLAZA)를 덮고도 남게 잡는다 —
+    // 모자라면 마당 구석이 잔디로 뚫린다.
+    const RINGS = Math.ceil(Math.max(PLAZA_X - arena.w / 2, PLAZA_Z - arena.d / 2) / spacing.stepX) + 1
     const step = spacing.stepX
     const inX = arena.w / 2
     const inZ = arena.d / 2
@@ -527,16 +531,9 @@ export async function createScene({
         const outZ = Math.max(0, Math.abs(z - arena.cz) - inZ) / step
         const out = Math.max(outX, outZ)
 
-        // 울타리 **안**은 빈틈없이 깐다 — 마당이니까. 밖으로 나가서야
-        // 성기게 흩어 잔디로 녹인다. 경계는 울타리가 이미 그어 준다.
-        if (!inPlaza(x, z)) {
-          const past = Math.max(
-            Math.abs(x - arena.cx) - PLAZA_X,
-            Math.abs(z - arena.cz) - PLAZA_Z,
-          ) / step
-          const keep = Math.pow(Math.max(0, 1 - past / 1.6), 1.5)
-          if (decorRng.int(1000) >= Math.round(keep * 900)) continue
-        }
+        // 돌은 **울타리 안에서 끝난다.** 밖으로 흘려 보면 울타리 너머에 돌이
+        // 남아 "울타리가 무엇을 두르는지"가 흐려진다. 경계는 울타리가 긋는다.
+        if (!inPlaza(x, z)) continue
 
         // 판에 가까울수록 판과 같은 돌을 많이 섞는다 — 마당이 판에서 번져
         // 나온 것처럼 이어진다.
@@ -615,7 +612,7 @@ export async function createScene({
           const z = arena.cz + sz + jz
           // 울타리 안에는 안 심는다 — 마당에 숲이 자라면 마당이 아니다.
           // 울타리 **바로 바깥**도 비운다. 딱 붙여 심으면 가지가 울타리를 뚫는다.
-          if (inPlaza(x, z, spacing.stepX * 1.15)) continue
+          if (inPlaza(x, z, spacing.stepX * 0.9)) continue
           d.position.set(x, SHORE_Y, z)
           d.rotation.y = (decorRng.int(360) * Math.PI) / 180
           // 멀수록 크게. 가까운 것이 작아야 판을 안 가린다.
@@ -778,10 +775,16 @@ export async function createScene({
     markGroup.name = 'landmarks'
     const rng = createRng(0xb00c)
 
-    /** 하나 세운다. 마당 안이나 대기석과 겹치면 버린다. */
-    function place(proto, x, z, { scale = 1, faceIn = true, allowPlaza = false } = {}) {
+    /**
+     * 하나 세운다. **마당 안**(돌 위)에만 선다.
+     *
+     * 잔디에 세우면 집이 들판에 홀로 서 있는 그림이고, 울타리 밖이면
+     * 마당과 상관없는 배경이 된다. 판·대기석과 겹치는 것만 걸러 낸다.
+     */
+    function place(proto, x, z, { scale = 1, faceIn = true } = {}) {
       if (!proto) return
-      if (!allowPlaza && inPlaza(x, z)) return
+      // 마당 밖이면 버린다 — 돌이 거기서 끝나므로 설 자리가 없다.
+      if (!inPlaza(x, z, -spacing.stepX * 1.2)) return
       const clear = benchExtent
       if (
         clear &&
@@ -808,23 +811,29 @@ export async function createScene({
 
     const halfX = arena.w / 2
     const halfZ = arena.d / 2
-    const outZ = halfZ + spacing.stepZ * 3.0
-    const outX = halfX + spacing.stepX * 3.0
+    // 대기석 바깥 ~ 울타리 안쪽 사이. 정가운데에 놓으면 건물 폭 때문에 울타리에
+    // 닿으므로 판 쪽으로 당겨 놓는다 (0.5 → 0.38).
+    const mid = (inner, outer) => inner + (outer - inner) * 0.38
+    const outZ = mid(halfZ + BENCH_OUT, PLAZA_Z)
+    const outX = mid(halfX, PLAZA_X)
 
     // 이 팩의 모델은 육각 한 칸(약 1)을 기준으로 만들어졌는데 우리 칸은 그
     // 두 배쯤이다. 그대로 두면 집이 통보다 작아 배경으로 안 읽힌다.
     const KIT = spacing.unitStep / 1.0
 
-    // 내 뒤(가까운 쪽)와 상대 뒤(먼 쪽). 대기석 바깥으로 밀어 둔다.
-    place(pick(ally, 0), arena.cx - halfX * 0.55, arena.cz + outZ, { scale: KIT * 1.5 })
-    place(pick(ally, 1), arena.cx + halfX * 0.5, arena.cz + outZ * 1.2, { scale: KIT * 1.3 })
-    place(pick(foe, 0), arena.cx + halfX * 0.55, arena.cz - outZ, { scale: KIT * 1.5 })
-    place(pick(foe, 1), arena.cx - halfX * 0.5, arena.cz - outZ * 1.2, { scale: KIT * 1.3 })
+    // 상대 뒤(먼 쪽)는 대기석 바깥 띠에 그대로 세운다 — 화면 위쪽에 잘 보인다.
+    place(pick(foe, 0), arena.cx + halfX * 0.6, arena.cz - outZ, { scale: KIT * 1.2 })
+    place(pick(foe, 1), arena.cx - halfX * 0.55, arena.cz - outZ, { scale: KIT * 1.05 })
+    // 내 뒤는 사정이 다르다. 같은 자리(z = +outZ)에 세우면 **하단 UI 아래로
+    // 완전히 내려가** 한 픽셀도 안 보인다. 화면에 남는 아래 두 모서리로 뺀다.
+    const nearZ = arena.cz + halfZ * 0.9
+    place(pick(ally, 0), arena.cx - outX - spacing.stepX * 0.5, nearZ, { scale: KIT * 1.2 })
+    place(pick(ally, 1), arena.cx + outX + spacing.stepX * 0.5, nearZ, { scale: KIT * 1.05 })
 
     // 좌우는 화면에 가장 크게 걸리는 자리다. 색이 다른 집을 하나씩 세워
     // 양쪽이 대칭으로 안 보이게 한다.
-    place(pick(side, 0), arena.cx - outX, arena.cz - halfZ * 0.35, { scale: KIT * 1.6 })
-    place(pick(side, 1), arena.cx + outX, arena.cz + halfZ * 0.3, { scale: KIT * 1.6 })
+    place(pick(side, 0), arena.cx - outX, arena.cz - halfZ * 0.35, { scale: KIT * 1.3 })
+    place(pick(side, 1), arena.cx + outX, arena.cz + halfZ * 0.3, { scale: KIT * 1.3 })
 
     // 울타리. **사방을 두른다.**
     //
@@ -885,16 +894,20 @@ export async function createScene({
       const proto = pick(props, rng.int(Math.max(1, props.length)))
       // 판과 울타리 사이 띠 안에서만 고른다 — 판 위에는 못 놓는다.
       const onSide = i % 2 === 0
-      const sgn = rng.int(2) === 0 ? -1 : 1
+      // 난수로 좌우를 고르면 한쪽에 쏠린다(실제로 5:2 였다). 번갈아 준다.
+      // 앞뒤 띠는 뒤쪽만 쓴다 — 앞쪽은 대기석과 하단 UI가 다 덮는다.
+      const sgn = onSide ? (i % 4 === 0 ? -1 : 1) : -1
       const gapX = spacing.stepX * (0.55 + rng.int(110) / 100)
-      const gapZ = spacing.stepZ * (0.5 + rng.int(90) / 100)
+      // 뒤쪽 띠는 **대기석 바깥**부터 시작해야 한다. 판 기준으로 재면 전부
+      // 대기석 위에 떨어져 통째로 걸러지고, 그래서 뒤 띠가 텅 비어 있었다.
+      const gapZ = BENCH_OUT + spacing.stepZ * (0.4 + rng.int(50) / 100)
       const x = onSide
         ? arena.cx + sgn * (halfX + gapX)
         : arena.cx + (rng.int(2000) / 1000 - 1) * halfX * 0.95
       const z = onSide
         ? arena.cz + (rng.int(2000) / 1000 - 1) * halfZ * 1.0
         : arena.cz + sgn * (halfZ + gapZ)
-      place(proto, x, z, { scale: KIT * 1.1, faceIn: false, allowPlaza: true })
+      place(proto, x, z, { scale: KIT * 1.1, faceIn: false })
     }
 
     scene.add(markGroup)
