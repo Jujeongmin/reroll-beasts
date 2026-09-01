@@ -699,8 +699,8 @@ export async function createPrep({ data, run, onFight }) {
     el.timer.classList.toggle('warn', warn)
     el.timebar.classList.toggle('warn', warn)
     const k = timeTotal > 0 ? Math.max(0, Math.min(1, timeLeft / timeTotal)) : 0
-    // 지나간 만큼 찬다 — 좌에서 우로.
-    el.timeFill.style.width = `${(1 - k) * 100}%`
+    // 남은 만큼 칠한다. 오른쪽에 붙어 있으므로 빈 칸이 좌 → 우로 밀고 들어온다.
+    el.timeFill.style.width = `${k * 100}%`
     const mix = (a, b) => Math.round(b + (a - b) * k)
     const c = TIME_OK.map((v, i) => mix(v, TIME_LOW[i]))
     el.timeFill.style.background = `rgb(${c[0]} ${c[1]} ${c[2]})`

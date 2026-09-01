@@ -103,11 +103,13 @@
      띠 바로 밑에 깔아 상단 묶음이 한 덩어리로 읽히게 한다. */
   #timebar {
     height: 5px; margin: -3px 7px 0; border-radius: 3px; overflow: hidden;
+    display: flex; justify-content: flex-end;
     background: #0b0f1eb0; box-shadow: inset 0 0 0 1px #ffffff26;
   }
-  /* **지나간** 시간이 좌 → 우로 찬다. 남은 쪽을 칠하면 막대가 오른쪽 끝에서
-     줄어들어, 눈이 매번 끝을 찾아야 한다. 색은 남은 비율로 JS 가 섞는다. */
-  #timebar i { display: block; height: 100%; width: 0; }
+  /* 가득 찬 상태에서 시작해 **빈 칸이 좌 → 우로** 밀고 들어온다.
+     그래서 칠한 쪽을 오른쪽에 붙인다 (justify-content: flex-end).
+     색은 남은 비율로 JS 가 섞는다. */
+  #timebar i { display: block; height: 100%; width: 100%; }
   #timebar.warn i { animation: pulse .6s steps(2, end) infinite; }
 
   #topbar {
