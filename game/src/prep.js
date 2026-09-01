@@ -539,13 +539,10 @@ export async function createPrep({ data, run, onFight }) {
   // 끌면 배치, 탭하면 정보. 같은 포인터를 나눠 쓰므로 **움직인 거리**로 가른다.
   const TAP_SLOP = 6
   let infoUid = null
-  // 시너지 패널에서 연 미리보기인지. 내 말 정보와 닫는 조건이 다르다.
-  let infoPreview = false
 
   function hideInfo() {
     el.info.hidden = true
     infoUid = null
-    infoPreview = false
     scene.setRange(null)
   }
 
@@ -563,22 +560,11 @@ export async function createPrep({ data, run, onFight }) {
     return out
   }
 
-  function showInfo(cell) {
-    return renderUnitInfo(cell.unitId, cell.star, cell)
-  }
-
-  /**
-   * 유닛 정보 패널.
-   *
-   * cell 이 있으면 **내 말** 이다 — 사거리를 판에 그리고 판매가를 적는다.
-   * cell 이 없으면 **미리보기** 다 (시너지 패널에서 아직 없는 말을 짚은 경우).
-   * 그때 판매가·사거리를 그대로 보여 주면 있지도 않은 말이 판 위에 있는 것처럼
-   * 읽힌다.
-   */
-  async function renderUnitInfo(unitId, star, cell = null) {
+  /** 내 말 정보 패널. 사거리를 판에 그리고 판매가를 적는다. */
+  async function showInfo(cell) {
+    const { unitId, star } = cell
     const i = unitInfo(unitId, star, data)
-    infoUid = cell ? cell.uid : null
-    infoPreview = !cell
+    infoUid = cell.uid
     el.info.style.setProperty('--tc', tierBar(i.unit.tier))
     el.info.style.setProperty('--sc', STAR_COLOR[star - 1] ?? STAR_COLOR[0])
     el.info.innerHTML =
@@ -599,11 +585,9 @@ export async function createPrep({ data, run, onFight }) {
       `<span>치명<b>${Math.round(i.stats.critChance * 100)}%</b></span>` +
       '</div>' +
       `<div class="sk"><em>스킬</em> ${i.skill}</div>` +
-      (cell
-        ? `<div class="sell">판매 <b>+${sellValue(unitId, star, data)}골드</b> · 상점 바로 끌기</div>`
-        : `<div class="sell">상점 확률 <b>${i.unit.tier}티어</b> · 아직 보유하지 않음</div>`)
+      `<div class="sell">판매 <b>+${sellValue(unitId, star, data)}골드</b> · 상점 바로 끌기</div>`
     el.info.hidden = false
-    scene.setRange(cell ? rangeTiles(cell.uid, i.stats.range) : null)
+    scene.setRange(rangeTiles(cell.uid, i.stats.range))
     const url = await thumbFor(unitId, star)
     const img = el.info.querySelector('img')
     if (img) img.src = url
@@ -628,8 +612,9 @@ export async function createPrep({ data, run, onFight }) {
       d.members
         .map(
           (mm) =>
-            `<figure class="${mm.owned ? '' : 'no'}" data-unit="${mm.id}">` +
-            `<img alt="${mm.name}" /><figcaption>${mm.name}</figcaption></figure>`,
+            `<figure class="${mm.owned ? '' : 'no'}" data-unit="${mm.id}"` +
+            ` style="--tc:${tierBar(mm.tier)}" title="${mm.name} · ${mm.tier}티어">` +
+            `<img alt="${mm.name}" /><figcaption>${mm.tier}</figcaption></figure>`,
         )
         .join('') +
       '</div>'
@@ -658,27 +643,14 @@ export async function createPrep({ data, run, onFight }) {
     clearTimeout(traitHideTimer)
     traitHideTimer = setTimeout(hideTraitInfo, 180)
   }
-  // 미리보기는 **패널을 벗어날 때만** 닫는다. 유닛에서 유닛으로 옮길 때마다
-  // 닫으면 옮기는 사이에 깜빡여서 읽을 수가 없다.
   function hideTraitInfo() {
     clearTimeout(traitHideTimer)
     el.traitInfo.hidden = true
-    // 미리보기는 이 패널에 딸린 것이다. 같이 닫는다.
-    if (infoPreview) hideInfo()
   }
 
   el.traitInfo.addEventListener('pointerenter', keepTraitInfo)
   el.traitInfo.addEventListener('pointerleave', scheduleHideTraitInfo)
   // 유닛 하나하나에 리스너를 달지 않는다 — 패널은 매번 새로 그려진다.
-  el.traitInfo.addEventListener('pointerover', (ev) => {
-    const fig = ev.target.closest('[data-unit]')
-    if (fig) renderUnitInfo(fig.dataset.unit, 1)
-  })
-  // 터치: hover 가 없으니 눌러서 연다
-  el.traitInfo.addEventListener('click', (ev) => {
-    const fig = ev.target.closest('[data-unit]')
-    if (fig) renderUnitInfo(fig.dataset.unit, 1)
-  })
 
   let hintTimer = 0
   function hint(text) {
