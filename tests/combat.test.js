@@ -284,3 +284,40 @@ describe('이동 주기', () => {
     expect(gapOf(15)).toBe(15)
   })
 })
+
+describe('마나 로그', () => {
+  it('spawn 이 시작 마나와 최대치를 싣는다', () => {
+    // 화면이 마나를 다시 계산하면 규칙이 두 군데 살게 된다 — 로그가 말해야 한다.
+    const r = simulate({ boardA: GOLDEN_A, boardB: GOLDEN_B, seed: 7, data })
+    for (const sp of r.log.filter((e) => e.type === 'spawn')) {
+      expect(sp.manaFull).toBe(data.combat.mana.full)
+      expect(sp.mana).toBeGreaterThanOrEqual(0)
+      expect(sp.mana).toBeLessThanOrEqual(sp.manaFull)
+    }
+  })
+
+  it('마나 이벤트는 값이 바뀔 때만 나온다', () => {
+    // 매 틱 전원을 실으면 로그가 스무 배로 불어난다. 같은 값이 연달아 나오면
+    // 그 조건이 빠진 것이다.
+    const r = simulate({ boardA: GOLDEN_A, boardB: GOLDEN_B, seed: 7, data })
+    const last = new Map()
+    for (const e of r.log) {
+      if (e.type !== 'mana') continue
+      expect(e.value, `${e.casterId} 가 같은 값을 두 번 실었다`).not.toBe(last.get(e.casterId))
+      last.set(e.casterId, e.value)
+    }
+    expect(last.size, '마나가 한 번도 안 움직였다').toBeGreaterThan(0)
+  })
+
+  it('스킬을 쓰면 마나가 0 으로 떨어진 것이 로그에 남는다', () => {
+    const r = simulate({ boardA: GOLDEN_A, boardB: GOLDEN_B, seed: 7, data })
+    const full = data.combat.mana.full
+    for (const e of r.log) {
+      if (e.type !== 'mana') continue
+      expect(e.value).toBeGreaterThanOrEqual(0)
+      expect(e.value).toBeLessThanOrEqual(full)
+    }
+    expect(r.log.some((e) => e.type === 'mana' && e.value === 0)).toBe(true)
+  })
+})
+

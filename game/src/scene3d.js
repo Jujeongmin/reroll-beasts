@@ -806,7 +806,7 @@ export async function createScene({
    */
   function makeBadge({ team, star, withHp }) {
     const W = 128
-    const H = withHp ? 42 : 20
+    const H = withHp ? 52 : 20
     const cv = document.createElement('canvas')
     cv.width = W
     cv.height = H
@@ -830,6 +830,9 @@ export async function createScene({
     const g = cv.getContext('2d')
     const starColor = STAR_COLOR[star - 1] ?? STAR_COLOR[0]
     const hpColor = team === 'A' ? '#63d68a' : '#e8654f'
+    // 마나는 양쪽 다 파랑이다. 팀 색으로 나누면 체력과 헷갈린다 —
+    // "내 편 초록 / 상대 빨강" 은 체력만 쓰는 약속이다.
+    const MANA_COLOR = '#5aa9ff'
 
     function star5(cx, cy, r) {
       g.beginPath()
@@ -858,25 +861,30 @@ export async function createScene({
       }
     }
 
+    /** 값 하나짜리 띠. 테두리는 성급 색 — 별을 못 볼 만큼 작아도 색은 읽힌다. */
+    function bar(y, h, frac, color) {
+      g.fillStyle = starColor
+      g.fillRect(0, y, W, h)
+      g.fillStyle = '#0d0b12'
+      g.fillRect(2, y + 2, W - 4, h - 4)
+      g.fillStyle = color
+      g.fillRect(2, y + 2, (W - 4) * Math.max(0, Math.min(1, frac)), h - 4)
+    }
+
     /** hp 가 null 이면 별만 그린다 (배치 단계). */
-    function draw({ hp = null, maxHp = 1, shield = 0 } = {}) {
+    function draw({ hp = null, maxHp = 1, shield = 0, mana = 0, manaFull = 0 } = {}) {
       g.clearRect(0, 0, W, H)
       drawStars()
       if (withHp && hp !== null) {
-        const y = 24
-        const h = 15
-        // 테두리도 성급 색이다. 별을 못 볼 만큼 작게 보일 때도 색은 읽힌다.
-        g.fillStyle = starColor
-        g.fillRect(0, y, W, h)
-        g.fillStyle = '#0d0b12'
-        g.fillRect(2, y + 2, W - 4, h - 4)
-        const frac = Math.max(0, Math.min(1, hp / maxHp))
-        g.fillStyle = hpColor
-        g.fillRect(2, y + 2, (W - 4) * frac, h - 4)
+        bar(24, 15, hp / maxHp, hpColor)
+        // 보호막은 체력 위에 겹쳐 얹는다 — 칸을 따로 주면 띠가 세 줄이 된다.
         if (shield > 0) {
           g.fillStyle = '#d8d2ff'
-          g.fillRect(2, y + 2, (W - 4) * Math.min(1, shield / maxHp), 4)
+          g.fillRect(2, 26, (W - 4) * Math.min(1, shield / maxHp), 4)
         }
+        // 마나는 더 얇게. 언제 스킬이 터지는지만 보면 되고, 체력보다 굵으면
+        // 눈이 먼저 그쪽으로 간다.
+        if (manaFull > 0) bar(41, 10, mana / manaFull, MANA_COLOR)
       }
       tex.needsUpdate = true
     }

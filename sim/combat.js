@@ -152,6 +152,8 @@ export function simulate({ boardA, boardB, seed, data }) {
       tile: c.tile,
       star: c.star,
       maxHp: c.maxHp,
+      mana: c.mana,
+      manaFull: cfg.mana.full,
     })
   }
 
@@ -176,6 +178,9 @@ export function simulate({ boardA, boardB, seed, data }) {
   for (tick = 1; tick <= cfg.maxTicks; tick++) {
     const occupied = new Map()
     for (const c of all) if (c.alive) occupied.set(c.tile, c.id)
+    // 이 틱에 마나가 얼마나 변했는지 끝에서 비교해 로그에 싣는다.
+    // 화면이 마나를 다시 계산하면 규칙이 두 군데 살게 된다 — 로그가 말해야 한다.
+    for (const c of all) c.manaAtTickStart = c.mana
 
     // id 오름차순 고정 순회. 배열 순서에 의존하지 않는다.
     for (const c of all) {
@@ -272,6 +277,13 @@ export function simulate({ boardA, boardB, seed, data }) {
         target.deathLogged = true
         occupied.delete(target.tile)
         log.push({ tick, type: 'death', casterId: target.id })
+      }
+    }
+
+    // 바뀐 것만 싣는다. 매 틱 전원을 실으면 로그가 스무 배로 불어난다.
+    for (const c of all) {
+      if (c.mana !== c.manaAtTickStart) {
+        log.push({ tick, type: 'mana', casterId: c.id, value: c.mana })
       }
     }
 

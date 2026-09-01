@@ -44,7 +44,13 @@ export async function createBattle({ data, scene }) {
   // 그리기는 scene3d 의 makeBadge 가 한다 — 배치 화면의 별 표시와 같은 그림이어야
   // 같은 유닛이 단계에 따라 달라 보이지 않는다.
   function drawBar(v, st) {
-    v.badge.draw({ hp: st.hp, maxHp: st.maxHp, shield: st.shield })
+    v.badge.draw({
+      hp: st.hp,
+      maxHp: st.maxHp,
+      shield: st.shield,
+      mana: st.mana,
+      manaFull: st.manaFull,
+    })
     v.badge.sprite.visible = st.alive
     v.badge.sprite.position.y = v.height + scene.spacing.stepX * 0.16
   }
@@ -65,6 +71,9 @@ export async function createBattle({ data, scene }) {
         maxHp: sp.maxHp,
         hp: sp.maxHp,
         shield: 0,
+        // 마나도 spawn 이 실어 온다. 화면이 다시 계산하면 규칙이 두 군데 산다.
+        mana: sp.mana ?? 0,
+        manaFull: sp.manaFull ?? 0,
         alive: true,
         anim: 'idle',
         animUntil: 0,
@@ -77,6 +86,11 @@ export async function createBattle({ data, scene }) {
   }
 
   function applyEvent(e) {
+    if (e.type === 'mana') {
+      const st = unitState.get(e.casterId)
+      if (st) st.mana = e.value
+      return
+    }
     const v = views.get(e.casterId)
     const st = unitState.get(e.casterId)
 
