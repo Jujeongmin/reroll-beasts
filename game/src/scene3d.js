@@ -465,6 +465,15 @@ export async function createScene({
   // 경계를 만든다 — 물까지 두르면 테두리가 두 겹이라 판이 액자에 갇힌다.
   const MOAT_W = spacing.stepX * 0.9
 
+  // 울타리가 두르는 **마당**. 이 안은 전부 돌이고 나무는 안 자란다 —
+  // 울타리 안에 숲이 있으면 마당이 아니라 그냥 들판이다.
+  // 울타리를 세우는 쪽(랜드마크)도 같은 값을 써야 돌 경계와 울타리가 맞물린다.
+  const PLAZA_X = arena.w / 2 + spacing.stepX * 2.9
+  const PLAZA_Z = arena.d / 2 + spacing.stepZ * 2.2
+  /** 울타리 안인가. 나무·랜드마크가 여기 들어오면 안 된다. */
+  const inPlaza = (x, z, pad = 0) =>
+    Math.abs(x - arena.cx) <= PLAZA_X + pad && Math.abs(z - arena.cz) <= PLAZA_Z + pad
+
   // 판을 두르는 **돌 앞마당**.
   //
   // 잔디가 돌바닥에 곧장 닿으면 판이 들판에 얹힌 판때기처럼 보인다. 전장과
@@ -486,7 +495,7 @@ export async function createScene({
       return mat
     })
 
-    const RINGS = 4
+    const RINGS = 5
     const step = spacing.stepX
     const inX = arena.w / 2
     const inZ = arena.d / 2
@@ -509,11 +518,16 @@ export async function createScene({
         const outZ = Math.max(0, Math.abs(z - arena.cz) - inZ) / step
         const out = Math.max(outX, outZ)
 
-        // **첫 칸부터** 성긴다. 한 겹이라도 꽉 채우면 판 바깥에 직선 띠가
-        // 하나 더 생겨, 아무리 바깥을 흩어도 액자로 보인다.
-        // 멀어질수록 급하게 줄여 넓고 자연스러운 그러데이션을 만든다.
-        const keep = Math.pow(Math.max(0, 1 - out / RINGS), 1.5)
-        if (decorRng.int(1000) >= Math.round(keep * 940)) continue
+        // 울타리 **안**은 빈틈없이 깐다 — 마당이니까. 밖으로 나가서야
+        // 성기게 흩어 잔디로 녹인다. 경계는 울타리가 이미 그어 준다.
+        if (!inPlaza(x, z)) {
+          const past = Math.max(
+            Math.abs(x - arena.cx) - PLAZA_X,
+            Math.abs(z - arena.cz) - PLAZA_Z,
+          ) / step
+          const keep = Math.pow(Math.max(0, 1 - past / 1.6), 1.5)
+          if (decorRng.int(1000) >= Math.round(keep * 900)) continue
+        }
 
         // 판에 가까울수록 판과 같은 돌을 많이 섞는다 — 마당이 판에서 번져
         // 나온 것처럼 이어진다.
@@ -542,7 +556,8 @@ export async function createScene({
     if (tufts.length > 0 && apronTiles.length > 0) {
       for (const tile of apronTiles) {
         // 바깥쪽 칸일수록 풀이 많다 — 돌이 잔디에 먹히는 순서다.
-        const chance = 22 + tile.out * 34
+        // 마당 안은 쓸어 놓은 자리라 거의 없다 (돌 틈 잡초 정도).
+        const chance = inPlaza(tile.x, tile.z) ? 5 : 22 + tile.out * 34
         if (decorRng.int(100) >= chance) continue
         const o = tufts[decorRng.int(tufts.length)].clone(true)
         o.position.set(
@@ -589,8 +604,8 @@ export async function createScene({
           const jz = (decorRng.int(2000) / 1000 - 1) * spacing.stepZ * 1.1
           const x = arena.cx + sx + jx
           const z = arena.cz + sz + jz
-          // 판이나 물띠 위에는 안 심는다.
-          if (Math.abs(x - arena.cx) < halfX + 0.4 && Math.abs(z - arena.cz) < halfZ + 0.4) continue
+          // 울타리 안에는 안 심는다 — 마당에 숲이 자라면 마당이 아니다.
+          if (inPlaza(x, z, spacing.stepX * 0.4)) continue
           d.position.set(x, SHORE_Y, z)
           d.rotation.y = (decorRng.int(360) * Math.PI) / 180
           // 멀수록 크게. 가까운 것이 작아야 판을 안 가린다.
@@ -751,9 +766,10 @@ export async function createScene({
     const markGroup = new THREE.Group()
     const rng = createRng(0xb00c)
 
-    /** 하나 세운다. 판·대기석과 겹치면 버린다. */
-    function place(proto, x, z, { scale = 1, faceIn = true } = {}) {
+    /** 하나 세운다. 마당 안이나 대기석과 겹치면 버린다. */
+    function place(proto, x, z, { scale = 1, faceIn = true, allowPlaza = false } = {}) {
       if (!proto) return
+      if (!allowPlaza && inPlaza(x, z)) return
       const clear = benchExtent
       if (
         clear &&
@@ -805,13 +821,13 @@ export async function createScene({
       // 사이가 벌어져 점선처럼 보인다 (원본 길이 1.15).
       const fScale = KIT * 1.15
       const stepF = 1.15 * fScale
-      const fz0 = arena.cz - halfZ - spacing.stepZ * 0.5
-      const n = Math.max(2, Math.ceil((halfZ * 2 + spacing.stepZ) / stepF))
+      const fz0 = arena.cz - PLAZA_Z
+      const n = Math.max(2, Math.ceil((PLAZA_Z * 2) / stepF))
       for (let i = 0; i <= n; i++) {
         const z = fz0 + stepF * i
         for (const sx of [-1, 1]) {
-          // 앞마당 **바깥**에 세운다. 돌 위에 서면 떠 있는 것처럼 보인다.
-          const x = arena.cx + sx * (halfX + spacing.stepX * 2.9)
+          // 마당 경계 위에 정확히 세운다 — 돌이 여기서 끝난다.
+          const x = arena.cx + sx * PLAZA_X
           const o = fence.clone(true)
           o.position.set(x, SHORE_Y, z)
           o.scale.setScalar(fScale)
@@ -832,9 +848,10 @@ export async function createScene({
     for (let i = 0; i < 14; i++) {
       const proto = pick(props, rng.int(Math.max(1, props.length)))
       const sx = rng.int(2) === 0 ? -1 : 1
-      const x = arena.cx + sx * (halfX + spacing.stepX * (0.6 + rng.int(90) / 100))
+      // 마당 안, 판과 울타리 사이에 둔다.
+      const x = arena.cx + sx * (halfX + spacing.stepX * (0.7 + rng.int(150) / 100))
       const z = arena.cz + (rng.int(2000) / 1000 - 1) * halfZ * 1.05
-      place(proto, x, z, { scale: KIT * 1.1, faceIn: false })
+      place(proto, x, z, { scale: KIT * 1.1, faceIn: false, allowPlaza: true })
     }
 
     scene.add(markGroup)
