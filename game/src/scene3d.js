@@ -484,10 +484,11 @@ export async function createScene({
   /** 울타리 안인가. 나무·랜드마크가 여기 들어오면 안 된다. */
   const inPlaza = (x, z, pad = 0) =>
     Math.abs(x - arena.cx) <= PLAZA_X + pad && Math.abs(z - arena.cz) <= PLAZA_Z + pad
-  // 돌이 **실제로** 끝나는 선. inPlaza 는 타일 중심으로 거르므로 가장 바깥
-  // 타일은 반 칸 더 나간다. 울타리는 이 값 위에 서야 돌과 맞는다.
-  let stoneEdgeX = PLAZA_X
-  let stoneEdgeZ = PLAZA_Z
+  // 돌이 **실제로** 끝나는 선. PLAZA 는 상한일 뿐이다 — 격자가 칸 단위로
+  // 떨어지므로 마지막 타일은 PLAZA 보다 한참 안쪽에서 끝날 수 있다 (실측
+  // 0.7 차이). 반드시 깔린 타일에서 잰 값만 쓴다.
+  let stoneEdgeX = 0
+  let stoneEdgeZ = 0
 
   // 판을 두르는 **돌 앞마당**.
   //
@@ -855,8 +856,8 @@ export async function createScene({
       // 돌이 실제로 끝나는 선에 세운다. PLAZA 값으로 세우면 가장 바깥 타일이
       // 반 칸 더 나가 울타리 밖에 돌 띠가 남는다. 살짝(0.12) 안쪽으로 들여
       // 기둥이 온전히 돌 위에 서게 한다.
-      const fx = stoneEdgeX - 0.12
-      const fz = stoneEdgeZ - 0.12
+      const fx = (stoneEdgeX || PLAZA_X) - 0.12
+      const fz = (stoneEdgeZ || PLAZA_Z) - 0.12
 
       const addFence = (x, z, rotY) => {
         const o = fence.clone(true)
