@@ -79,6 +79,8 @@ try {
     onFight: startFight,
     opponentBoard: () => mm.opponentBoard(run.index),
     onWatch: watchFight,
+    // battle 은 prep 다음에 만들어진다. 화살표 안에서 읽으므로 그때는 이미 있다.
+    onPickUnit: (x, y) => battle?.unitAt(x, y) ?? null,
   })
   const battle = await createBattle({ data, scene: prep.scene })
 

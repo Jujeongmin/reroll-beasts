@@ -37,7 +37,7 @@ const STAR = ['', '★', '★★', '★★★']
 // 성급 색. scene3d 의 STAR_COLOR 와 같은 값이어야 배지와 패널이 안 어긋난다.
 const STAR_COLOR = ['#d99154', '#e6edf5', '#ffd166']
 
-export async function createPrep({ data, run, onFight, opponentBoard, onWatch }) {
+export async function createPrep({ data, run, onFight, opponentBoard, onWatch, onPickUnit }) {
   const el = {
     root: document.getElementById('prep'),
     stage: document.getElementById('stage'),
@@ -594,10 +594,20 @@ export async function createPrep({ data, run, onFight, opponentBoard, onWatch })
   }
 
   /** 내 말 정보 패널. 사거리를 판에 그리고 판매가를 적는다. */
-  async function showInfo(cell) {
-    const { unitId, star } = cell
+  function showInfo(cell) {
+    return showUnitCard(cell.unitId, cell.star, { cell })
+  }
+
+  /**
+   * 유닛 카드.
+   *
+   * cell 이 있으면 **내 말**이다 — 사거리를 판에 그리고 판매가를 적는다.
+   * 없으면 전투 중에 집은 말이다 (상대 말일 수도 있다). 그때 판매가를 적으면
+   * 팔 수 있는 것처럼 읽히고, 사거리는 그릴 칸이 없다.
+   */
+  async function showUnitCard(unitId, star, { cell = null, team = 'A' } = {}) {
     const i = unitInfo(unitId, star, data)
-    infoUid = cell.uid
+    infoUid = cell ? cell.uid : null
     el.info.style.setProperty('--tc', tierBar(i.unit.tier))
     el.info.style.setProperty('--sc', STAR_COLOR[star - 1] ?? STAR_COLOR[0])
     el.info.innerHTML =
@@ -618,9 +628,11 @@ export async function createPrep({ data, run, onFight, opponentBoard, onWatch })
       `<span>치명<b>${Math.round(i.stats.critChance * 100)}%</b></span>` +
       '</div>' +
       `<div class="sk"><em>스킬</em> ${i.skill}</div>` +
-      `<div class="sell">판매 <b>+${sellValue(unitId, star, data)}골드</b> · 상점 바로 끌기</div>`
+      (cell
+        ? `<div class="sell">판매 <b>+${sellValue(unitId, star, data)}골드</b> · 상점 바로 끌기</div>`
+        : `<div class="sell">${team === 'A' ? '내' : '상대'} 진영 · 전투 중</div>`)
     el.info.hidden = false
-    scene.setRange(rangeTiles(cell.uid, i.stats.range))
+    scene.setRange(cell ? rangeTiles(cell.uid, i.stats.range) : null)
     const url = await thumbFor(unitId, star)
     const img = el.info.querySelector('img')
     if (img) img.src = url
@@ -1027,6 +1039,17 @@ export async function createPrep({ data, run, onFight, opponentBoard, onWatch })
   el.root.addEventListener('pointerdown', (ev) => {
     if (ev.target.closest('#shopbar') || ev.target.closest('#top') || ev.target.closest('#info')) {
       return
+    }
+    // 전투 중에는 판 위의 말이 로그에서 나온다 — 로스터에는 없으므로 따로 집는다.
+    // 양쪽 진영 다 열린다: 상대가 뭘 세웠는지 보는 게 다음 라운드 준비다.
+    if (!running) {
+      const shown = onPickUnit?.(ev.clientX, ev.clientY)
+      if (shown) {
+        // 여기서 끝낸다. 아래로 흘려보내면 로스터에 없는 말이라 found 가 null 이
+        // 되고, 그 줄의 hideInfo() 가 방금 연 패널을 도로 닫는다.
+        showUnitCard(shown.unitId, shown.star, { team: shown.team })
+        return
+      }
     }
     const found = unitAtPointer(ev.clientX, ev.clientY)
     if (!found) {

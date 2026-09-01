@@ -425,7 +425,11 @@
   /* 누를 수 있는 것만 포인터를 받는다 — 나머지는 뒤의 판을 그대로 집게 둔다. */
   #lock { pointer-events: auto; }
   #hudL { display: flex; align-items: center; gap: 6px; justify-self: start; }
-  #hudR { display: flex; align-items: center; gap: 6px; justify-self: end; }
+  /* 골드가 절대 배치(가운데)라 흐름으로는 오른쪽 칸이 안 밀린다.
+     잠금도 같이 못 박아 화면 오른쪽 끝에 붙인다. */
+  #hudR {
+    position: absolute; right: 0; display: flex; align-items: center; gap: 6px;
+  }
   /* 확률 · 골드 · 연승은 **한 덩어리**로 가운데. 같은 질문("지금 뭘 살 수 있나")에
      답하는 값들이라 눈이 한 번만 가야 한다. */
   /* 골드는 흐름에서 빼서 화면 정가운데에 못 박는다. 격자의 auto 칸에 두면
@@ -474,20 +478,20 @@
   /* 색은 보석이 나르고 숫자는 배경 없이 읽힌다.
      보석 그림을 **마스크로** 쓴다 — 팩에 보라(4티어)가 없어서 색깔별 타일을
      골라 쓸 수가 없다. 모양은 에셋에서, 색은 티어에서 온다. */
-  #odds { display: flex; gap: 6px; padding: 0 3px; }
+  #odds { display: flex; gap: 3px; padding: 0 2px; }
   #odds span {
-    display: flex; align-items: center; gap: 3px;
-    font-size: 12px; line-height: 12px; font-weight: 800;
+    display: flex; align-items: center; gap: 2px;
+    font-size: 10px; line-height: 10px; font-weight: 800;
     font-variant-numeric: tabular-nums; color: #f0e6cf; text-shadow: 0 1px 2px #0009;
   }
   #odds span i {
-    width: 12px; height: 12px; flex: none; background: var(--oc);
+    width: 10px; height: 10px; flex: none; background: var(--oc);
     -webkit-mask: url('/assets/ui/gem.png') center / contain no-repeat;
     mask: url('/assets/ui/gem.png') center / contain no-repeat;
   }
   /* 자릿수가 달라 폭이 흔들리면 다섯 칸이 줄을 안 선다. 폭을 못 박고 가운데. */
   #odds span b {
-    width: 26px; text-align: center; font-weight: 800;
+    width: 21px; text-align: center; font-weight: 800;
   }
   #odds span.zero { color: #8d8371; }
   #odds span.zero i { background: #6b6353; opacity: .5; }
@@ -671,14 +675,15 @@
     position: absolute; left: 0; right: 0; bottom: 0; height: 22px; z-index: 2;
     display: flex; align-items: center; justify-content: space-between; gap: 4px;
     padding: 0 5px;
-    /* 반투명. 불투명하면 초상화 발밑이 통째로 잘려 나간다 —
-       아트를 키워 넘치게 두는 방식과 맞물려 더 티가 난다. */
+    /* 진짜 반투명. 불투명한 색끼리 섞으면(#0c0a12cc 처럼 알파가 있어도)
+       결과 알파가 0.9 를 넘어 아무것도 안 비친다 — transparent 와 섞는다.
+       불투명하면 초상화 발밑이 통째로 잘려 나간다. */
     background: linear-gradient(180deg,
-      color-mix(in srgb, var(--tc) 62%, #0c0a12cc),
-      color-mix(in srgb, var(--tc) 40%, #0c0a12b3));
+      color-mix(in srgb, var(--tc) 40%, transparent),
+      color-mix(in srgb, var(--tc) 22%, transparent));
     box-shadow: inset 0 1px 0 #ffffff2e;
     font-size: 11px; line-height: 22px; font-weight: 800; color: #fff;
-    letter-spacing: -.3px; text-shadow: 0 1px 2px #000a;
+    letter-spacing: -.3px; text-shadow: 0 1px 2px #000, 0 0 4px #000c;
   }
   .card .nm b { min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
   .card .pr {

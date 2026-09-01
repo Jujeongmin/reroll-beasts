@@ -288,6 +288,29 @@ export async function createBattle({ data, scene }) {
     /** 지금 재생 위치. 관전에서 판을 갈아탈 때 이어 보려면 필요하다. */
     tick: () => tick,
 
+    /**
+     * 화면 좌표가 가리키는 말. 양쪽 진영 다 잡는다.
+     *
+     * 전투 중 말은 로스터가 아니라 로그에서 나온다 — 배치 화면의 unitAtPointer
+     * 가 보는 run.state 에는 없다. 그래서 여기서 따로 집어 준다.
+     */
+    unitAt(x, y) {
+      if (!active) return null
+      const roots = [...views.values()].map((v) => v.root)
+      let hit = scene.pickObjects(roots, x, y)
+      while (hit) {
+        for (const [id, v] of views) {
+          if (v.root !== hit) continue
+          const st = unitState.get(id)
+          if (!st || !st.alive) return null
+          const sp = spawns.find((e) => e.casterId === id)
+          return sp ? { unitId: sp.unitId, star: sp.star, team: sp.team } : null
+        }
+        hit = hit.parent
+      }
+      return null
+    },
+
     async load(nextResult, { onBack, atTick = 0 } = {}) {
       for (const v of views.values()) v.dispose()
       views = new Map()
