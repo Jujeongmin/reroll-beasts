@@ -4,6 +4,7 @@
 // 무대를 **직접 만들지 않고 받는다.** 배치 화면과 같은 판·카메라·조명을 이어 써야
 // 전투가 "다른 화면으로 넘어가는 일"이 아니라 "그 자리에서 시작되는 일"이 된다.
 
+import * as THREE from 'three'
 import { unitById } from '@sim/data.js'
 import { resolveStats } from '@sim/stats.js'
 
@@ -85,7 +86,80 @@ export async function createBattle({ data, scene }) {
     cursor = 0
   }
 
+  /** 그 말이 서 있는 월드 좌표. 이펙트를 몸 높이에 띄운다. */
+  function fxAt(id, lift = 0.45) {
+    const st = unitState.get(id)
+    const v = views.get(id)
+    if (!st || !v) return null
+    const t = tileOf(st.tile)
+    return new THREE.Vector3(t.x, scene.topY + v.height * lift, t.z)
+  }
+
+  /**
+   * 로그 사건을 눈에 보이게 한다.
+   *
+   * **재생 중일 때만** 띄운다. seekTo 가 지나간 구간을 한 번에 적용할 때도
+   * applyEvent 를 타는데, 거기서 터뜨리면 관전으로 판을 갈아탄 순간
+   * 수백 개가 한꺼번에 터진다.
+   */
+  function fxFor(e) {
+    if (!liveEvents) return
+    switch (e.type) {
+      case 'leap': {
+        // 도약은 **떠난 자리**에 잔상을 남긴다. 도착점은 이미 말이 서 있다.
+        const at = fxAt(e.casterId, 0.5)
+        if (at) scene.spawnFx('trail', at, { color: 0xb98cff, size: 1.1, grow: 2.2, life: 0.4 })
+        break
+      }
+      case 'shield': {
+        const at = fxAt(e.casterId, 0.45)
+        // amount 0 은 만료다 — 터뜨릴 게 없다.
+        if (at && e.amount > 0) {
+          scene.spawnFx('ring', at, { color: 0x8fd8ff, size: 1.4, grow: 1.15, life: 0.6, rise: 0 })
+        }
+        break
+      }
+      case 'dodge': {
+        const at = fxAt(e.casterId, 0.5)
+        if (at) scene.spawnFx('wisp', at, { color: 0xdff0ff, size: 0.9, grow: 1.6, life: 0.3 })
+        break
+      }
+      case 'revive': {
+        const at = fxAt(e.casterId, 0.3)
+        if (at) {
+          scene.spawnFx('glow', at, { color: 0xffe08a, size: 1.6, grow: 1.4, life: 0.7, rise: 0.5 })
+          scene.spawnFx('ring_thick', at, { color: 0xffd166, size: 0.8, grow: 3, life: 0.6, rise: 0 })
+        }
+        break
+      }
+      case 'death_blast': {
+        const at = fxAt(e.casterId, 0.35)
+        if (at) {
+          scene.spawnFx('burst', at, { color: 0xff8a5c, size: 1.5, grow: 2.4, life: 0.5, spin: 1.2 })
+        }
+        break
+      }
+      case 'skill_splash': {
+        for (const id of e.targetIds ?? []) {
+          const at = fxAt(id, 0.55)
+          if (at) scene.spawnFx('spark', at, { color: 0xb98cff, size: 0.7, grow: 2, life: 0.35 })
+        }
+        break
+      }
+      case 'attack': {
+        // 치명타만 표시한다. 매 평타마다 띄우면 난전에서 화면이 하얘진다.
+        if (!e.crit) break
+        const at = fxAt(e.targetIds?.[0], 0.5)
+        if (at) scene.spawnFx('slash', at, { color: 0xffd166, size: 0.9, grow: 1.5, life: 0.25 })
+        break
+      }
+      default:
+        break
+    }
+  }
+
   function applyEvent(e) {
+    fxFor(e)
     if (e.type === 'mana') {
       const st = unitState.get(e.casterId)
       if (st) st.mana = e.value
@@ -95,6 +169,15 @@ export async function createBattle({ data, scene }) {
     const st = unitState.get(e.casterId)
 
     switch (e.type) {
+      case 'leap':
+        // 도약은 걷는 게 아니라 순간이동이다 — 보간하면 판을 가로질러 미끄러진다.
+        // prevTile 도 도착지로 맞춰 render 가 이동 중으로 보지 않게 한다.
+        if (!st) break
+        st.tile = e.tile
+        st.prevTile = e.tile
+        st.moveTick = -99
+        break
+
       case 'move':
         if (!st) break
         st.prevTile = st.tile
@@ -193,11 +276,16 @@ export async function createBattle({ data, scene }) {
     scene.spawnBolt(from, to, color)
   }
 
+  // 이펙트를 띄워도 되는 구간인가. 되감기·이어보기는 로그를 한 번에
+  // 적용하므로 그때 터뜨리면 수백 개가 동시에 터진다.
+  let liveEvents = true
+
   function seekTo(target) {
     if (target < tick) {
       resetState()
       tick = 0
       scene.clearBolts()
+      scene.clearFx()
     }
     while (cursor < result.log.length && result.log[cursor].tick <= target) {
       applyEvent(result.log[cursor])
@@ -235,6 +323,7 @@ export async function createBattle({ data, scene }) {
       drawBar(v, st)
     }
     scene.updateBolts(dt)
+    scene.updateFx(dt)
 
     // 남은 수 표시는 뺐다. 말 위에 체력바가 이미 있고 죽으면 사라진다 —
     // 판을 보면 되는 걸 숫자로 다시 말하면 눈이 판에서 떨어진다.
@@ -344,7 +433,11 @@ export async function createBattle({ data, scene }) {
       playing = true
       speed = speedFor(result.ticks)
       // 이어보기. seekTo 가 로그를 그 지점까지 한 번에 적용한다.
-      if (atTick > 0) seekTo(Math.min(result.ticks, atTick))
+      if (atTick > 0) {
+        liveEvents = false
+        seekTo(Math.min(result.ticks, atTick))
+        liveEvents = true
+      }
       last = performance.now()
     },
     hide() {
@@ -355,6 +448,7 @@ export async function createBattle({ data, scene }) {
       active = false
       playing = false
       scene.clearBolts()
+      scene.clearFx()
       scene.setBattleMode(false)
     },
   }

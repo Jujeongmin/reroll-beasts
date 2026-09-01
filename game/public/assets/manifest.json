@@ -358,5 +358,15 @@
       "button": 6,
       "button_light": 6
     }
-  }
+  },
+  "fx": [
+    "ring",
+    "ring_thick",
+    "burst",
+    "glow",
+    "trail",
+    "wisp",
+    "spark",
+    "slash"
+  ]
 }

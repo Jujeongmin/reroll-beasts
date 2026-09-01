@@ -893,6 +893,101 @@ export async function createScene({
     return { sprite, draw, height: (w * H) / W }
   }
 
+  // ── 이펙트 ──────────────────────────────────────────────
+  //
+  // 시너지 효과(도약 · 보호막 · 부활 · 폭발 …)는 로그에는 남는데 화면에는
+  // 아무 일도 안 일어났다. 무슨 일이 왜 벌어졌는지가 안 읽힌다.
+  //
+  // 스프라이트는 **무채색 한 장**을 색만 바꿔 쓴다. 색깔별 파일을 두면 같은
+  // 그림이 여덟 벌 생기고, 티어색처럼 값이 바뀔 때마다 다시 뽑아야 한다.
+  const fxTex = new Map()
+  const fxLoader = new THREE.TextureLoader()
+  function fxTexture(kind) {
+    if (!fxTex.has(kind)) {
+      const t = fxLoader.load(`/assets/fx/${kind}.png`)
+      t.colorSpace = THREE.SRGBColorSpace
+      fxTex.set(kind, t)
+    }
+    return fxTex.get(kind)
+  }
+
+  // 살아 있는 이펙트. 매 프레임 나이를 먹이고 다 자란 것은 지운다.
+  const fxLive = []
+  // 다 쓴 스프라이트는 모아 뒀다 다시 쓴다 — 전투 한 판에 수백 개가 생긴다.
+  const fxPool = []
+
+  /**
+   * 한 번 터지고 사라지는 이펙트.
+   *
+   * @param {string} kind   /assets/fx 의 파일 이름
+   * @param {THREE.Vector3} at 월드 좌표
+   * @param {object} o
+   * @param {number} o.color  입힐 색
+   * @param {number} o.size   시작 크기 (칸 폭 기준 배수)
+   * @param {number} o.grow   끝날 때 크기 배수 (1 이면 안 커진다)
+   * @param {number} o.life   지속 초
+   * @param {number} o.rise   위로 뜨는 거리
+   * @param {number} o.spin   회전 속도 (라디안/초)
+   */
+  function spawnFx(kind, at, { color = 0xffffff, size = 1, grow = 1.8, life = 0.45, rise = 0.2, spin = 0 } = {}) {
+    const sprite = fxPool.pop() ?? new THREE.Sprite()
+    sprite.material = new THREE.SpriteMaterial({
+      map: fxTexture(kind),
+      color,
+      transparent: true,
+      depthWrite: false,
+      depthTest: false,
+      // 더하기 합성. 곱하기면 어두운 판 위에서 빛이 안 난다.
+      blending: THREE.AdditiveBlending,
+      toneMapped: false,
+      fog: false,
+    })
+    sprite.renderOrder = 12
+    sprite.position.copy(at)
+    sprite.scale.setScalar(spacing.unitStep * size)
+    scene.add(sprite)
+    fxLive.push({
+      sprite,
+      age: 0,
+      life,
+      from: spacing.unitStep * size,
+      to: spacing.unitStep * size * grow,
+      rise,
+      spin,
+      y0: at.y,
+    })
+  }
+
+  function updateFx(dt) {
+    for (let i = fxLive.length - 1; i >= 0; i--) {
+      const f = fxLive[i]
+      f.age += dt
+      const k = f.age / f.life
+      if (k >= 1) {
+        scene.remove(f.sprite)
+        f.sprite.material.dispose()
+        fxPool.push(f.sprite)
+        fxLive.splice(i, 1)
+        continue
+      }
+      // 크기는 앞부분에서 빠르게 자라고, 투명도는 뒤에서 빠르게 빠진다.
+      const size = f.from + (f.to - f.from) * (1 - (1 - k) * (1 - k))
+      f.sprite.scale.setScalar(size)
+      f.sprite.material.opacity = 1 - k * k
+      f.sprite.position.y = f.y0 + f.rise * k
+      if (f.spin) f.sprite.material.rotation += f.spin * dt
+    }
+  }
+
+  function clearFx() {
+    for (const f of fxLive) {
+      scene.remove(f.sprite)
+      f.sprite.material.dispose()
+      fxPool.push(f.sprite)
+    }
+    fxLive.length = 0
+  }
+
   // ── 투사체 ──────────────────────────────────────────────
   //
   // 원거리 공격이 아무것도 안 날아가면 "저 멀리 있는 말이 왜 죽는가"가 안 보인다.
@@ -1001,6 +1096,9 @@ export async function createScene({
     pickAt,
     pickObjects,
     makeBadge,
+    spawnFx,
+    updateFx,
+    clearFx,
     spawnBolt,
     updateBolts,
     clearBolts,

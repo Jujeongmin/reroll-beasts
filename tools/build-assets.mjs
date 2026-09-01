@@ -231,6 +231,29 @@ export async function buildAssets({ quiet = false } = {}) {
     slice: ui.slice,
   }
 
+  // ── 이펙트 스프라이트 ──────────────────────────────────
+  // 원본은 256px 무채색이다. 색은 코드가 입힌다 — 색깔별 파일을 따로 두면
+  // 같은 그림이 여덟 벌 생기고, 티어색처럼 값이 바뀔 때마다 다시 뽑아야 한다.
+  const FX = {
+    ring: 'circle_04',
+    ring_thick: 'circle_03',
+    burst: 'scorch_02',
+    glow: 'light_01',
+    trail: 'trace_01',
+    wisp: 'trace_02',
+    spark: 'star_04',
+    slash: 'slash_03',
+  }
+  const fxSrc = join(ART, 'kenney_particle-pack', 'PNG (Transparent)')
+  const fxDest = join(OUT, 'fx')
+  await mkdir(fxDest, { recursive: true })
+  for (const [name, file] of Object.entries(FX)) {
+    const small = downscale(await readFile(join(fxSrc, file + '.png')), 128)
+    await writeFile(join(fxDest, name + '.png'), small ?? (await readFile(join(fxSrc, file + '.png'))))
+    copied++
+  }
+  manifest.fx = Object.keys(FX)
+
   await writeFile(join(OUT, 'manifest.json'), JSON.stringify(manifest, null, 2) + '\n')
 
   if (!quiet) {

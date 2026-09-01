@@ -817,10 +817,16 @@ export async function createPrep({ data, run, onFight, opponentBoard, onWatch, o
     if (!run.lobby) return
     const others = standings(run.lobby).filter((seat) => !seat.isPlayer)
     if (others.length === 0) return
-    const cur = others.findIndex((seat) => seat.id === peekId)
+    // **지금 보고 있는 사람에서 이어 간다.** 마우스로 고른 것도 보고 있는 것이다 —
+    // peekId(배치) 든 run.watchId(전투 관전) 든 하나만 보면 둘이 따로 놀아,
+    // 마우스로 고른 뒤 Q 를 누르면 두 사람이 동시에 선택된 것처럼 보였다.
+    const nowId = running ? peekId : (run.watchId ?? null)
+    const cur = others.findIndex((seat) => seat.id === nowId)
     // 아무도 안 보고 있으면 방향에 따라 양 끝에서 시작한다.
     const from = cur >= 0 ? cur : dir > 0 ? -1 : 0
-    openPeek(others[(from + dir + others.length) % others.length])
+    const next = others[(from + dir + others.length) % others.length]
+    if (running) openPeek(next)
+    else onWatch?.(next.id)
   }
 
   const KEYS = {
