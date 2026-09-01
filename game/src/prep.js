@@ -73,7 +73,6 @@ export async function createPrep({ data, run, onFight }) {
     mount: el.stage,
     boardCfg: data.combat.board,
     pitchDeg: 46,
-    phase: 'prep',
     benchSlots: data.economy.benchSlots,
     // 정보 줄 높이(36) + 여유. 이만큼 아래를 비워야 대기석이 그 밑에 안 깔린다.
     bottomInset: 46,

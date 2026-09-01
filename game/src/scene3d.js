@@ -130,7 +130,6 @@ export async function createScene({
   mount,
   boardCfg,
   pitchDeg = 42,
-  phase = 'battle',
   benchSlots = 0,
   // 화면 아래쪽에 비워 둘 픽셀. 정보 줄(확률·골드·연승)이 판 위에 떠 있으므로,
   // 그만큼을 비워 두지 않으면 대기석이 그 밑에 깔린다.
@@ -139,10 +138,9 @@ export async function createScene({
   // 여기는 값만 받는다. scene3d 가 유닛 데이터를 알 필요는 없다.
   scaleOf = () => 1,
 }) {
-  // 배치(prep)와 전투(battle)는 **같은 판 전체**를 그린다. 배치 때 상대 절반을
-  // 숨기면 판이 커지는 대신 "어느 쪽이 내 자리인가"가 색으로 안 읽힌다.
-  // 대신 배치에서는 상대 절반을 어둡게 눌러 두고 내 칸에만 테두리를 켠다.
-  const isPrep = phase === 'prep'
+  // 배치와 전투는 **같은 판 전체**를 그린다. 배치 때 상대 절반을 숨기면 판이
+  // 커지는 대신 "어느 쪽이 내 자리인가"가 안 읽힌다. 대신 배치에서는 내 칸에만
+  // 테두리를 켠다 (setBattleMode).
   const scene = new THREE.Scene()
   // 배경은 CSS 그라디언트가 그린다 — 단색 하늘은 판을 허공에 띄운 것처럼 보인다.
   scene.background = null
@@ -272,24 +270,10 @@ export async function createScene({
   base.receiveShadow = true
   boardGroup.add(base)
 
-  // 진영 색은 바닥 **위에 덮는** 얇은 판으로 준다. 돌 질감을 살린 채 색만 민다.
-  const tintMat = (hex, opacity) =>
-    new THREE.MeshBasicMaterial({ color: hex, transparent: true, opacity, depthWrite: false, toneMapped: false })
-  const halfTint = (z0, z1, mat) => {
-    const mesh = new THREE.Mesh(new THREE.PlaneGeometry(arena.w, z1 - z0), mat)
-    mesh.rotation.x = -Math.PI / 2
-    mesh.position.set(arena.cx, 0.012, (z0 + z1) / 2)
-    boardGroup.add(mesh)
-    return mesh
-  }
-  // 배치에서는 양쪽이 같은 색이다 — 내 자리는 육각 표시로 이미 갈린다.
-  const matEnemySlabDim = tintMat(0x000000, 0)
-  const matEnemySlabLit = tintMat(0xff5a3c, 0.22)
-  const enemySlab = halfTint(arena.minZ, frontZ, isPrep ? matEnemySlabDim : matEnemySlabLit)
-
+  // 상대 절반을 붉게 덮던 판을 뺐다. 돌바닥 위에서 그냥 싸우는 그림이
+  // 맞다 — 어느 쪽이 누구인지는 말의 방향과 체력바 색이 이미 말한다.
   // 교전선. 판 한가운데를 가로지르는 선은 돌바닥을 두 장으로 갈라 보이게 한다 —
-  // 그어 두는 대신 **경계 양쪽을 아주 옅게 물들여** 자연스러운 이음매로 만든다.
-  // 전투에서는 상대 절반이 붉게 물드니 경계는 그것만으로 읽힌다.
+  // 그어 두는 대신 경계를 아주 옅게 눌러 이음매로 만든다.
   const seam = new THREE.Mesh(
     new THREE.PlaneGeometry(arena.w, spacing.stepZ * 0.5),
     new THREE.MeshBasicMaterial({
@@ -550,7 +534,9 @@ export async function createScene({
     // 물가 장식은 대기석보다 **먼저** 뿌려진다 (자리를 아직 모르므로).
     // 대기석이 앉을 자리에 걸친 것만 여기서 걷어낸다 — 안 그러면 널빤지 위에
     // 꽃이 피어 있다.
-    const deckPad = pad * 0.5 + gap
+    // 널빤지 폭(totalW + gap*2)에 장식 한 칸을 더한 만큼 비운다. 딱 맞춰
+    // 자르면 끝자리 장식이 널빤지 모서리에 반쯤 걸쳐 남는다.
+    const deckPad = pad
     for (const d of [...surroundGroup.children]) {
       if (!d.userData.decor) continue
       const inX = Math.abs(d.position.x - cx) <= totalW / 2 + deckPad
@@ -728,7 +714,6 @@ export async function createScene({
   function setBattleMode(on) {
     if (battleMode === on) return
     battleMode = on
-    enemySlab.material = on ? matEnemySlabLit : matEnemySlabDim
     for (let i = 0; i < ringNodes.length; i++) {
       const ring = ringNodes[i]
       if (ring) ring.visible = !on && allyRows.has(board.tiles[i].row)
