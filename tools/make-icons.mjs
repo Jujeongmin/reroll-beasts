@@ -1,10 +1,10 @@
-// 자물쇠 아이콘 (16×16, 2종).
+// 직접 찍는 아이콘들 (16×16).
 //
 // Kenney UI 팩에 자물쇠가 없다. 상점 잠금은 이 게임에서 매 라운드 쓰는 버튼이라
 // 글자만으로 두면 눈에 안 들어온다. 팩 팔레트를 그대로 써서 직접 찍는다 —
 // 다른 팩에서 하나만 끌어오면 색조가 튄다.
 //
-// 실행: node tools/make-lock-icon.mjs
+// 실행: node tools/make-icons.mjs
 import { writeFile } from 'node:fs/promises'
 import { join, dirname } from 'node:path'
 import { fileURLToPath } from 'node:url'
@@ -85,6 +85,38 @@ function draw(rows) {
   return PNG.sync.write(png)
 }
 
+// 시계. 원은 도트로 그리면 어느 픽셀을 켤지 매번 틀리므로 계산으로 낸다.
+function clock() {
+  const size = 16
+  const png = new PNG({ width: size, height: size })
+  const cx = 7.5
+  const cy = 7.5
+  const put = (x, y, c) => {
+    if (x < 0 || y < 0 || x >= size || y >= size) return
+    const i = (Math.round(y) * size + Math.round(x)) * 4
+    png.data[i] = c[0]
+    png.data[i + 1] = c[1]
+    png.data[i + 2] = c[2]
+    png.data[i + 3] = c[3]
+  }
+  const face = [0xf0, 0xe4, 0xc6, 0xff]
+  const rim = PALETTE.o
+  const hand = [0x4a, 0x34, 0x18, 0xff]
+  for (let y = 0; y < size; y++) {
+    for (let x = 0; x < size; x++) {
+      const d = Math.hypot(x - cx, y - cy)
+      if (d <= 5.4) put(x, y, face)
+      else if (d <= 7.2) put(x, y, rim)
+    }
+  }
+  // 바늘: 위로 4칸(시침), 오른쪽으로 3칸(분침). 10시 10분 같은 장식보다
+  // 12시·3시가 작은 크기에서 훨씬 또렷하다.
+  for (let k = 0; k <= 4; k++) put(cx - 0.5, cy - k, hand)
+  for (let k = 0; k <= 3; k++) put(cx - 0.5 + k, cy, hand)
+  return PNG.sync.write(png)
+}
+
 await writeFile(join(OUT, 'lock_closed.png'), draw(CLOSED))
 await writeFile(join(OUT, 'lock_open.png'), draw(OPEN))
-console.log('lock_closed.png · lock_open.png')
+await writeFile(join(OUT, 'clock.png'), clock())
+console.log('lock_closed.png · lock_open.png · clock.png')

@@ -46,6 +46,8 @@ export async function createPrep({ data, run, onFight }) {
     info: document.getElementById('info'),
     traitInfo: document.getElementById('traitinfo'),
     timer: document.getElementById('timer'),
+    timebar: document.getElementById('timebar'),
+    timeFill: document.querySelector('#timebar i'),
     odds: document.getElementById('odds'),
     lock: document.getElementById('lock'),
     lobby: document.getElementById('lobby'),
@@ -317,9 +319,12 @@ export async function createPrep({ data, run, onFight }) {
       ...Array.from({ length: stage.rounds }, (_, i) => {
         const n = i + 1
         const dot = document.createElement('i')
-        if (stage.pveRounds.includes(n)) dot.classList.add('pve')
+        const pve = stage.pveRounds.includes(n)
+        if (pve) dot.classList.add('pve')
         if (n < info.roundInStage) dot.classList.add('done')
         if (n === info.roundInStage) dot.classList.add('now')
+        // 모양만으로는 마름모가 뭔지 알 수 없다.
+        dot.title = `${info.stageIndex + 1}-${n} · ${pve ? '몬스터' : '대결'}`
         return dot
       }),
     )
@@ -675,19 +680,36 @@ export async function createPrep({ data, run, onFight }) {
   // 0 이 되면 스스로 전투가 시작된다. 시간 제한이 없으면 한 판이 늘어져
   // "8~12분에 끝난다"는 설계가 무너진다.
   let timeLeft = 0
+  // 게이지를 채우려면 "얼마 중 얼마"인지 알아야 한다. 남은 시간만으로는 못 그린다.
+  let timeTotal = 1
   function resetTimer() {
     const r = data.rounds
     timeLeft = run.index === 1 ? (r.firstRoundSeconds ?? r.prepSeconds) : r.prepSeconds
+    timeTotal = Math.max(1, timeLeft)
+    paintTimer()
+  }
+  // 여유 → 촉박. 두 색을 섞어 시간이 줄수록 붉어진다. 마지막 5초에만 빨개지면
+  // 그 전까지는 막대 길이만 봐야 하는데, 길이는 눈이 대충 읽는다.
+  const TIME_OK = [0xe8, 0xb3, 0x4f]
+  const TIME_LOW = [0xe2, 0x4a, 0x33]
+  function paintTimer() {
+    const left = Math.ceil(timeLeft)
+    el.timer.textContent = String(left)
+    const warn = left <= 5
+    el.timer.classList.toggle('warn', warn)
+    el.timebar.classList.toggle('warn', warn)
+    const k = timeTotal > 0 ? Math.max(0, Math.min(1, timeLeft / timeTotal)) : 0
+    // 지나간 만큼 찬다 — 좌에서 우로.
+    el.timeFill.style.width = `${(1 - k) * 100}%`
+    const mix = (a, b) => Math.round(b + (a - b) * k)
+    const c = TIME_OK.map((v, i) => mix(v, TIME_LOW[i]))
+    el.timeFill.style.background = `rgb(${c[0]} ${c[1]} ${c[2]})`
   }
   function tickTimer(dt) {
     if (!running) return
-    const was = Math.ceil(timeLeft)
     timeLeft = Math.max(0, timeLeft - dt)
-    const now = Math.ceil(timeLeft)
-    if (now !== was) {
-      el.timer.textContent = String(now)
-      el.timer.classList.toggle('warn', now <= 5)
-    }
+    // 막대는 매 프레임 다시 그린다. 초가 바뀔 때만 그리면 1초씩 툭툭 끊긴다.
+    paintTimer()
     if (timeLeft === 0) {
       // 배치가 비었으면 시작할 수 없다 — 무한 루프가 된다. 그 판은 그대로 둔다.
       if (boardCount(run.state) > 0) {
@@ -906,8 +928,6 @@ export async function createPrep({ data, run, onFight }) {
       running = true
       boardFrozen = false
       resetTimer()
-      el.timer.textContent = String(Math.ceil(timeLeft))
-      el.timer.classList.remove('warn')
       last = performance.now()
       scene.resize()
       refresh()
@@ -921,8 +941,13 @@ export async function createPrep({ data, run, onFight }) {
     hide() {
       running = false
       boardFrozen = true
+      // 전투 중에는 배치 시간이 흐르지 않는다. 막대도 같이 비운다 —
+      // 게이지가 멈춘 채 차 있으면 아직 시간이 남은 것처럼 읽힌다.
       el.timer.textContent = '—'
       el.timer.classList.remove('warn')
+      el.timebar.classList.remove('warn')
+      el.timeFill.style.width = '0%'
+      el.timeFill.style.background = ''
       if (peekId !== null) closePeek()
       hideInfo()
       clearHighlight()
