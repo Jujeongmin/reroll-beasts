@@ -849,10 +849,15 @@ export async function createScene({
     // 네 면을 다 두르면 그 선이 전부 울타리 때문이 된다.
     const fence = pick(neutral, 1) ?? pick(neutral, 2)
     if (fence) {
-      // 울타리는 **자기 길이만큼** 띄워야 이어진다. 칸 간격으로 놓으면
-      // 사이가 벌어져 점선처럼 보인다 (원본 길이 1.15).
       const fScale = KIT * 1.15
-      const segLen = 1.15 * fScale
+      // 이 모델은 **피벗이 중심에 없다** — 실측하면 메시가 피벗에서 로컬
+      // -x 로 약 1 단위 밀려 있다. 그대로 세우면 좌우 울타리가 둘 다 세계
+      // 왼쪽으로 2 이상 밀린다(왼쪽은 잔디로, 오른쪽은 마당 안으로).
+      // 하드코딩 대신 바운딩박스로 재서 중심 오프셋을 보정한다.
+      const fbox = new THREE.Box3().setFromObject(fence)
+      const fctr = fbox.getCenter(new THREE.Vector3())
+      // 긴 축은 로컬 z. 세그먼트 길이도 실측에서 얻는다.
+      const segLen = (fbox.max.z - fbox.min.z) * fScale
       // 돌이 실제로 끝나는 선에 세운다. PLAZA 값으로 세우면 가장 바깥 타일이
       // 반 칸 더 나가 울타리 밖에 돌 띠가 남는다. 살짝(0.12) 안쪽으로 들여
       // 기둥이 온전히 돌 위에 서게 한다.
@@ -861,7 +866,11 @@ export async function createScene({
 
       const addFence = (x, z, rotY) => {
         const o = fence.clone(true)
-        o.position.set(x, SHORE_Y, z)
+        // 피벗 오프셋을 회전에 맞춰 되돌려, 메시 **중심**이 (x, z)에 오게 한다.
+        const off = new THREE.Vector3(fctr.x, 0, fctr.z)
+          .multiplyScalar(fScale)
+          .applyAxisAngle(new THREE.Vector3(0, 1, 0), rotY)
+        o.position.set(x - off.x, SHORE_Y, z - off.z)
         o.scale.setScalar(fScale)
         o.rotation.y = rotY
         o.traverse((nd) => {
@@ -873,27 +882,25 @@ export async function createScene({
         markGroup.add(o)
       }
 
-      // 좌우 — 원본이 z 방향으로 긴 모델이라 회전 없이 그대로 세운다.
-      {
-        const n = Math.max(2, Math.ceil((fz * 2) / segLen))
-        const step = (fz * 2) / n
-        for (let i = 0; i <= n; i++) {
-          const z = arena.cz - fz + step * i
-          addFence(arena.cx - fx, z, 0)
-          addFence(arena.cx + fx, z, 0)
-        }
+      // 세그먼트 **끝**이 모서리 안에서 끝나야 한다. 중심을 ±끝에 두면
+      // 반 세그먼트가 돌 밖으로 튀어나간다 — 열 전체 길이를 세그먼트
+      // 정수 개로 깔고 남는 자투리는 모서리 양쪽에 반씩 남긴다.
+      const row = (L, at) => {
+        const n = Math.max(1, Math.floor((L * 2) / segLen))
+        const start = -(n * segLen) / 2 + segLen / 2
+        for (let i = 0; i < n; i++) at(start + segLen * i)
       }
+      // 좌우 — 원본이 z 방향으로 긴 모델이라 회전 없이 그대로 세운다.
+      row(fz, (t) => {
+        addFence(arena.cx - fx, arena.cz + t, 0)
+        addFence(arena.cx + fx, arena.cz + t, 0)
+      })
       // 앞뒤 — 90도 돌려 가로로 눕힌다. 대기석이 이 안에 있으므로 울타리는
       // 대기석 **바깥**을 지난다 (PLAZA_Z 가 이미 대기석을 품는 값이다).
-      {
-        const n = Math.max(2, Math.ceil((fx * 2) / segLen))
-        const step = (fx * 2) / n
-        for (let i = 0; i <= n; i++) {
-          const x = arena.cx - fx + step * i
-          addFence(x, arena.cz - fz, Math.PI / 2)
-          addFence(x, arena.cz + fz, Math.PI / 2)
-        }
-      }
+      row(fx, (t) => {
+        addFence(arena.cx + t, arena.cz - fz, Math.PI / 2)
+        addFence(arena.cx + t, arena.cz + fz, Math.PI / 2)
+      })
     }
 
     // 소품. **마당 네 변을 따라** 흩는다. 좌우에만 두면 앞뒤가 텅 비어
