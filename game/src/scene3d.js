@@ -605,7 +605,8 @@ export async function createScene({
           const x = arena.cx + sx + jx
           const z = arena.cz + sz + jz
           // 울타리 안에는 안 심는다 — 마당에 숲이 자라면 마당이 아니다.
-          if (inPlaza(x, z, spacing.stepX * 0.4)) continue
+          // 울타리 **바로 바깥**도 비운다. 딱 붙여 심으면 가지가 울타리를 뚫는다.
+          if (inPlaza(x, z, spacing.stepX * 1.15)) continue
           d.position.set(x, SHORE_Y, z)
           d.rotation.y = (decorRng.int(360) * Math.PI) / 180
           // 멀수록 크게. 가까운 것이 작아야 판을 안 가린다.
@@ -814,32 +815,55 @@ export async function createScene({
     place(pick(side, 0), arena.cx - outX, arena.cz - halfZ * 0.35, { scale: KIT * 1.6 })
     place(pick(side, 1), arena.cx + outX, arena.cz + halfZ * 0.3, { scale: KIT * 1.6 })
 
-    // 울타리. 판 좌우를 따라 늘어세우면 "경기장"이 된다.
+    // 울타리. **사방을 두른다.**
+    //
+    // 좌우만 세웠더니 마당이 두 면만 막힌 채 앞뒤로 그냥 잘려 나갔고, 돌 마당의
+    // 앞뒤 경계가 자로 그은 직선인데 그걸 설명하는 게 아무것도 없었다.
+    // 네 면을 다 두르면 그 선이 전부 울타리 때문이 된다.
     const fence = pick(neutral, 1) ?? pick(neutral, 2)
     if (fence) {
       // 울타리는 **자기 길이만큼** 띄워야 이어진다. 칸 간격으로 놓으면
       // 사이가 벌어져 점선처럼 보인다 (원본 길이 1.15).
       const fScale = KIT * 1.15
-      const stepF = 1.15 * fScale
-      const fz0 = arena.cz - PLAZA_Z
-      const n = Math.max(2, Math.ceil((PLAZA_Z * 2) / stepF))
-      for (let i = 0; i <= n; i++) {
-        const z = fz0 + stepF * i
-        for (const sx of [-1, 1]) {
-          // 마당 경계 위에 정확히 세운다 — 돌이 여기서 끝난다.
-          const x = arena.cx + sx * PLAZA_X
-          const o = fence.clone(true)
-          o.position.set(x, SHORE_Y, z)
-          o.scale.setScalar(fScale)
-          // 울타리는 판과 나란히 서야 한다 — 판을 바라보면 옆면만 보인다.
-          o.rotation.y = 0
-          o.traverse((nd) => {
-            if (nd.isMesh) {
-              nd.castShadow = true
-              nd.receiveShadow = true
-            }
-          })
-          markGroup.add(o)
+      const segLen = 1.15 * fScale
+      // 경계선 **안쪽**으로 반 칸 들인다. 선 위에 정확히 세우면 기둥 절반이
+      // 돌, 절반이 잔디에 박혀 땅을 뚫고 선 것처럼 보인다.
+      const fx = PLAZA_X - spacing.stepX * 0.45
+      const fz = PLAZA_Z - spacing.stepZ * 0.45
+
+      const addFence = (x, z, rotY) => {
+        const o = fence.clone(true)
+        o.position.set(x, SHORE_Y, z)
+        o.scale.setScalar(fScale)
+        o.rotation.y = rotY
+        o.traverse((nd) => {
+          if (nd.isMesh) {
+            nd.castShadow = true
+            nd.receiveShadow = true
+          }
+        })
+        markGroup.add(o)
+      }
+
+      // 좌우 — 원본이 z 방향으로 긴 모델이라 회전 없이 그대로 세운다.
+      {
+        const n = Math.max(2, Math.ceil((fz * 2) / segLen))
+        const step = (fz * 2) / n
+        for (let i = 0; i <= n; i++) {
+          const z = arena.cz - fz + step * i
+          addFence(arena.cx - fx, z, 0)
+          addFence(arena.cx + fx, z, 0)
+        }
+      }
+      // 앞뒤 — 90도 돌려 가로로 눕힌다. 대기석이 이 안에 있으므로 울타리는
+      // 대기석 **바깥**을 지난다 (PLAZA_Z 가 이미 대기석을 품는 값이다).
+      {
+        const n = Math.max(2, Math.ceil((fx * 2) / segLen))
+        const step = (fx * 2) / n
+        for (let i = 0; i <= n; i++) {
+          const x = arena.cx - fx + step * i
+          addFence(x, arena.cz - fz, Math.PI / 2)
+          addFence(x, arena.cz + fz, Math.PI / 2)
         }
       }
     }
