@@ -17,6 +17,28 @@ import { createBattle } from './battle.js'
 
 const boot = document.getElementById('boot')
 
+// ── 화면 맞추기 ───────────────────────────────────────────
+//
+// 기준 판은 세로 390. 가로는 실제 화면비를 따라가되 범위를 둔다 — 아주 길쭉한
+// 화면에서 판이 띠처럼 늘어나면 판이 우표만 해지고, 정사각에 가까우면 상점 카드가
+// 세로로 눌린다. 범위 밖에서는 위아래(또는 좌우)에 여백이 생긴다.
+const DESIGN_H = 390
+const DESIGN_W_MIN = 700
+const DESIGN_W_MAX = 1040
+function fitViewport() {
+  const el = document.getElementById('viewport')
+  if (!el) return
+  const w = Math.round(
+    Math.min(DESIGN_W_MAX, Math.max(DESIGN_W_MIN, (DESIGN_H * innerWidth) / innerHeight)),
+  )
+  const k = Math.min(innerWidth / w, innerHeight / DESIGN_H)
+  el.style.width = `${w}px`
+  el.style.height = `${DESIGN_H}px`
+  el.style.transform = `translate(-50%, -50%) scale(${k})`
+}
+fitViewport()
+addEventListener('resize', fitViewport)
+
 try {
   const data = await loadData()
 
@@ -60,6 +82,15 @@ try {
   // 전투가 "다른 화면으로 넘어가는 일"이 아니라 "그 자리에서 시작되는 일"이 된다.
   const prep = await createPrep({ data, run, onFight: startFight })
   const battle = await createBattle({ data, scene: prep.scene })
+
+  // 리소스를 전부 받고 나서 연다.
+  const bootBar = boot.querySelector('.bar i')
+  const bootPct = boot.querySelector('.pct')
+  await prep.preload((t) => {
+    const pct = Math.round(t * 100)
+    if (bootBar) bootBar.style.width = `${pct}%`
+    if (bootPct) bootPct.textContent = `${pct}%`
+  })
 
   boot.remove()
   document.getElementById('prep').hidden = false

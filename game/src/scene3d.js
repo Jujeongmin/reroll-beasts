@@ -41,7 +41,7 @@ const STAR_SCALE = [0.84, 1, 1.16]
 const STAR_COLOR = ['#d99154', '#e6edf5', '#ffd166']
 
 // 화면 어디까지 채울지. 1.0 이면 판이 가장자리에 딱 닿는다.
-const FILL = 1.0
+const FILL = 1.12
 
 // 안개 색. 배경 그라디언트(CSS)의 지평선 색과 맞춰야 먼 타일이 배경에 녹는다.
 const FOG = 0x1b2440
@@ -629,7 +629,7 @@ export async function createScene({
   // 행 수·오프셋으로 역산하면 그리지 않는 절반까지 세게 되어 보드가 쪼그라든다.
   // **판과 벤치만** 담는다. 해자·물가까지 담으려고 뒤로 물러나면 말이 점만 해져
   // 판이 재미없어진다. 물가는 화면 밖으로 흘러나가도 된다 — 배경이지 정보가 아니다.
-  const frameOut = 0.15
+  const frameOut = 0.05
   // 프레임은 **단계와 무관하게 고정**이다. 배치와 전투에서 판 크기가 달라지면
   // 전투가 시작될 때 화면이 튀어, 같은 무대를 쓰는 의미가 사라진다.
   function frameBox() {
@@ -716,6 +716,10 @@ export async function createScene({
     const w = mount.clientWidth
     const h = mount.clientHeight
     if (w === 0 || h === 0) return
+    // 무대는 통째로 확대·축소된다 (#viewport). clientWidth 는 확대 전 값이라
+    // 그대로 그리면 확대된 화면에서 흐려진다 — 실제 화면 폭만큼 더 그린다.
+    const shown = mount.getBoundingClientRect().width
+    renderer.setPixelRatio(Math.min(devicePixelRatio * (shown / w || 1), 2.5))
     // updateStyle 을 끄면 캔버스 CSS 크기가 안 잡혀, devicePixelRatio 2 에서
     // 그리기 버퍼 크기(=2배)로 표시되고 좌상단 1/4 만 보인다.
     renderer.setSize(w, h)

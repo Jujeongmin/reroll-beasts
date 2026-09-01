@@ -53,7 +53,6 @@ export async function createPrep({ data, run, onFight }) {
     shop: document.getElementById('shop'),
     roundtag: document.getElementById('roundtag'),
     track: document.getElementById('track'),
-    hp: document.getElementById('hp'),
     gold: document.getElementById('goldval'),
     lvl: document.getElementById('lvl'),
     xpFill: document.querySelector('#xpbar i'),
@@ -121,6 +120,10 @@ export async function createPrep({ data, run, onFight }) {
   const BENCH_UNIT_SCALE = 0.72
 
   const views = new Map() // uid → UnitView
+
+  // 개발용 손잡이. 브라우저 콘솔에서 판 상태를 들여다보려면 이게 필요하다.
+  // 프로덕션 번들에는 들어가지 않는다.
+  if (import.meta.env.DEV) globalThis.__dev = { run, scene, views, el, data, refresh: () => refresh() }
   let syncToken = 0
 
   // 전투 중에는 판을 얼린다. 전투는 **전투 시작 시점의 판**으로 이미 계산된
@@ -326,7 +329,6 @@ export async function createPrep({ data, run, onFight }) {
     el.roundtag.textContent = run.round
     renderTrack()
 
-    el.hp.textContent = String(s.hp)
 
     const p = population(s)
     el.pop.textContent = `${p.used}/${p.cap}`
@@ -406,10 +408,17 @@ export async function createPrep({ data, run, onFight }) {
         const d = document.createElement('div')
         // 활성 단계를 클래스로 실어 등급색(동·은·금)을 CSS 가 정하게 한다
         d.className = `trait ${v.step > 0 ? `on s${v.step}` : 'off'}`
-        d.addEventListener('pointerenter', () => showTraitInfo(id, v.count))
-        d.addEventListener('pointerleave', hideTraitInfo)
+        d.addEventListener('pointerenter', () => {
+          keepTraitInfo()
+          showTraitInfo(id, v.count)
+        })
+        // 바로 닫으면 패널로 마우스를 옮기는 도중에 사라진다.
+        d.addEventListener('pointerleave', scheduleHideTraitInfo)
         // 터치에는 hover 가 없다. 눌러도 열리게 한다.
-        d.addEventListener('click', () => showTraitInfo(id, v.count))
+        d.addEventListener('click', () => {
+          keepTraitInfo()
+          showTraitInfo(id, v.count)
+        })
         const label = traitLabel(id)
         d.innerHTML =
           `<span class="pip">${label.slice(0, 1)}</span>` +
@@ -452,10 +461,13 @@ export async function createPrep({ data, run, onFight }) {
   // 끌면 배치, 탭하면 정보. 같은 포인터를 나눠 쓰므로 **움직인 거리**로 가른다.
   const TAP_SLOP = 6
   let infoUid = null
+  // 시너지 패널에서 연 미리보기인지. 내 말 정보와 닫는 조건이 다르다.
+  let infoPreview = false
 
   function hideInfo() {
     el.info.hidden = true
     infoUid = null
+    infoPreview = false
     scene.setRange(null)
   }
 
@@ -473,17 +485,30 @@ export async function createPrep({ data, run, onFight }) {
     return out
   }
 
-  async function showInfo(cell) {
-    const i = unitInfo(cell.unitId, cell.star, data)
-    infoUid = cell.uid
+  function showInfo(cell) {
+    return renderUnitInfo(cell.unitId, cell.star, cell)
+  }
+
+  /**
+   * 유닛 정보 패널.
+   *
+   * cell 이 있으면 **내 말** 이다 — 사거리를 판에 그리고 판매가를 적는다.
+   * cell 이 없으면 **미리보기** 다 (시너지 패널에서 아직 없는 말을 짚은 경우).
+   * 그때 판매가·사거리를 그대로 보여 주면 있지도 않은 말이 판 위에 있는 것처럼
+   * 읽힌다.
+   */
+  async function renderUnitInfo(unitId, star, cell = null) {
+    const i = unitInfo(unitId, star, data)
+    infoUid = cell ? cell.uid : null
+    infoPreview = !cell
     el.info.style.setProperty('--tc', tierBar(i.unit.tier))
-    el.info.style.setProperty('--sc', STAR_COLOR[cell.star - 1] ?? STAR_COLOR[0])
+    el.info.style.setProperty('--sc', STAR_COLOR[star - 1] ?? STAR_COLOR[0])
     el.info.innerHTML =
       '<div class="hd">' +
       '<img alt="" />' +
       `<div class="t"><div class="nm">${i.unit.name.ko}</div>` +
       `<div class="sub">${traitLabel(i.unit.origin)} · ${traitLabel(i.unit.class)}</div></div>` +
-      `<div class="st">${STAR[cell.star]}</div>` +
+      `<div class="st">${STAR[star]}</div>` +
       '</div>' +
       '<div class="grid">' +
       `<span>체력<b>${i.stats.hp}</b></span>` +
@@ -496,10 +521,12 @@ export async function createPrep({ data, run, onFight }) {
       `<span>치명<b>${Math.round(i.stats.critChance * 100)}%</b></span>` +
       '</div>' +
       `<div class="sk"><em>스킬</em> ${i.skill}</div>` +
-      `<div class="sell">판매 <b>+${sellValue(cell.unitId, cell.star, data)}골드</b> · 상점 바로 끌기</div>`
+      (cell
+        ? `<div class="sell">판매 <b>+${sellValue(unitId, star, data)}골드</b> · 상점 바로 끌기</div>`
+        : `<div class="sell">상점 확률 <b>${i.unit.tier}티어</b> · 아직 보유하지 않음</div>`)
     el.info.hidden = false
-    scene.setRange(rangeTiles(cell.uid, i.stats.range))
-    const url = await thumbFor(cell.unitId, cell.star)
+    scene.setRange(cell ? rangeTiles(cell.uid, i.stats.range) : null)
+    const url = await thumbFor(unitId, star)
     const img = el.info.querySelector('img')
     if (img) img.src = url
   }
@@ -539,9 +566,40 @@ export async function createPrep({ data, run, onFight }) {
     }
   }
 
-  function hideTraitInfo() {
-    el.traitInfo.hidden = true
+  /**
+   * 칩 → 패널로 마우스가 건너갈 수 있어야 한다. 패널 안 유닛을 짚어야 하니까.
+   * 칩에서 나가는 순간 닫으면 그 이동이 불가능하므로 짧은 유예를 두고,
+   * 패널에 들어오면 취소한다.
+   */
+  let traitHideTimer = 0
+  function keepTraitInfo() {
+    clearTimeout(traitHideTimer)
   }
+  function scheduleHideTraitInfo() {
+    clearTimeout(traitHideTimer)
+    traitHideTimer = setTimeout(hideTraitInfo, 180)
+  }
+  // 미리보기는 **패널을 벗어날 때만** 닫는다. 유닛에서 유닛으로 옮길 때마다
+  // 닫으면 옮기는 사이에 깜빡여서 읽을 수가 없다.
+  function hideTraitInfo() {
+    clearTimeout(traitHideTimer)
+    el.traitInfo.hidden = true
+    // 미리보기는 이 패널에 딸린 것이다. 같이 닫는다.
+    if (infoPreview) hideInfo()
+  }
+
+  el.traitInfo.addEventListener('pointerenter', keepTraitInfo)
+  el.traitInfo.addEventListener('pointerleave', scheduleHideTraitInfo)
+  // 유닛 하나하나에 리스너를 달지 않는다 — 패널은 매번 새로 그려진다.
+  el.traitInfo.addEventListener('pointerover', (ev) => {
+    const fig = ev.target.closest('[data-unit]')
+    if (fig) renderUnitInfo(fig.dataset.unit, 1)
+  })
+  // 터치: hover 가 없으니 눌러서 연다
+  el.traitInfo.addEventListener('click', (ev) => {
+    const fig = ev.target.closest('[data-unit]')
+    if (fig) renderUnitInfo(fig.dataset.unit, 1)
+  })
 
   let hintTimer = 0
   function hint(text) {
@@ -808,8 +866,29 @@ export async function createPrep({ data, run, onFight }) {
     enemyToken++
   }
 
+  /**
+   * 쓸 모델과 초상화를 **미리 전부** 만든다.
+   *
+   * 게으르게 받으면 상점을 굴릴 때마다 카드가 빈 칸으로 떴다가 채워지고,
+   * 처음 보는 말은 판에 한 박자 늦게 나타난다. 부팅에서 한 번에 치른다.
+   */
+  async function preload(onProgress) {
+    const ids = data.units.units.map((u) => u.id)
+    // 1성(기본)과 3성(진화) 모델이 다르다. 2성은 1성과 같은 모델을 쓴다.
+    const jobs = ids.flatMap((id) => [
+      () => thumbFor(id, 1),
+      () => thumbFor(id, 3),
+    ])
+    let done = 0
+    for (const job of jobs) {
+      await job()
+      onProgress?.(++done / jobs.length)
+    }
+  }
+
   return {
     refresh,
+    preload,
     scene,
     clearUnits,
     /** 배치 단계로 돌아온다. 화면 전환이 아니라 같은 무대의 상태 전환이다. */
