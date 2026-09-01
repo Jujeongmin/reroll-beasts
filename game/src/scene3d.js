@@ -254,8 +254,9 @@ export async function createScene({
           0,
           arena.minZ + stepZTile * (iz + 0.5),
         )
-        // 같은 타일이 격자로 반복되면 이음매가 눈에 띈다. 90도 단위로 돌려 흐린다.
-        t.rotation.y = (((ix * 3 + iz * 7) % 4) * Math.PI) / 2
+        // 돌리지 않는다. 벽돌 무늬가 불규칙한 타일이라 90도씩 돌리면 칸마다
+        // 무늬가 달라 보여 "다른 타일을 주워다 붙인" 그림이 된다.
+        // 같은 방향으로 깔면 이음매는 남아도 하나의 바닥으로 읽힌다.
         t.receiveShadow = true
         floorGroup.add(t)
       }
@@ -407,59 +408,118 @@ export async function createScene({
       Math.max(0, Math.abs(z - cz) - rz) / spacing.stepZ,
     )
 
-  // 단상이 덮는 자리에는 아무것도 놓지 않는다
+  // ── 판 바깥 ────────────────────────────────────────────
+  //
+  // 전에는 바깥에도 **육각 타일**을 깔았다. 판은 직사각 돌바닥인데 주변만
+  // 벌집이라 "왜 여기만 격자지"가 남고, 그 격자가 시선을 끌어 정작 봐야 할
+  // 판과 경쟁했다. 격자는 **판만** 갖는다.
+  //
+  // 대신 세 겹: 넓은 잔디 평면 → 판을 두르는 물띠 → 무리 지은 나무·바위.
   const decorRng = createRng(0x5eed)
   const surroundGroup = new THREE.Group()
 
-  const rMin = Math.floor((cz - rz) / spacing.stepZ + midRow) - SHORE_RINGS - 1
-  const rMax = Math.ceil((cz + rz) / spacing.stepZ + midRow) + SHORE_RINGS + 1
-  const cMin = Math.floor((cx - rx) / spacing.stepX + midCol) - SHORE_RINGS - 1
-  const cMax = Math.ceil((cx + rx) / spacing.stepX + midCol) + SHORE_RINGS + 1
+  // 바깥 반경. 카메라가 담는 것보다 넉넉히 잡아 가장자리가 안개에 녹게 둔다.
+  const OUT_X = arena.w * 3.2
+  const OUT_Z = arena.d * 3.2
 
-  for (let r = rMin; r <= rMax; r++) {
-    for (let c = cMin; c <= cMax; c++) {
-      const x = latticeX(r, c)
-      const z = latticeZ(r)
-      // 판이 직사각이므로 최대노름을 쓴다. 원형 거리로 재면 모서리에서만
-      // 물이 좁아져 테두리가 찌그러진다.
-      const ring = ringOf(x, z)
-      // 판이 직사각이므로 최대노름을 쓴다. 원형 거리로 재면 모서리에서만
-      // 물이 좁아져 테두리가 찌그러진다.
-      if (ring <= 0 || ring > SHORE_RINGS + 0.01) continue
+  // 잔디 평면 한 장. 타일 수백 개 대신 하나라 드로우콜도 하나다.
+  const groundMat = new THREE.MeshStandardMaterial({ color: 0x6f8f45, roughness: 1 })
+  const ground = new THREE.Mesh(new THREE.PlaneGeometry(OUT_X, OUT_Z), groundMat)
+  ground.rotation.x = -Math.PI / 2
+  ground.position.set(arena.cx, SHORE_Y, arena.cz)
+  ground.receiveShadow = true
+  surroundGroup.add(ground)
 
-      const isMoat = ring <= MOAT_RINGS + 0.01
-      const y = isMoat ? 0 : SHORE_Y
-      const tile = (isMoat ? waterProto : hexProto).clone(true)
-      tile.position.set(x, y, z)
-      tile.scale.x = STRETCH_X
-      tile.traverse((o) => {
-        if (!o.isMesh) return
-        o.receiveShadow = true
-        // 물가 풀은 어둡게 눌러 전장 타일이 도드라지게 한다.
-        // 같은 색이면 어디부터가 판인지 안 보인다.
-        if (!isMoat) o.material = matShore
-      })
-      surroundGroup.add(tile)
+  // 판을 두르는 물띠. 경계를 물로 끊어야 "여기까지가 전장"이 한눈에 읽힌다 —
+  // 육각 물타일을 늘어놓던 자리를 띠 하나가 대신한다.
+  const MOAT_W = spacing.stepX * 1.15
+  const waterMat = new THREE.MeshStandardMaterial({
+    color: 0x2f7fc4,
+    roughness: 0.35,
+    metalness: 0.1,
+  })
+  {
+    const w = arena.w + MOAT_W * 2
+    const d = arena.d + MOAT_W * 2
+    const moat = new THREE.Mesh(new THREE.PlaneGeometry(w, d), waterMat)
+    moat.rotation.x = -Math.PI / 2
+    // 잔디보다 위, 판보다 아래. 판이 물 위에 얹힌 고원이 된다.
+    moat.position.set(arena.cx, SHORE_Y + 0.14, arena.cz)
+    moat.receiveShadow = true
+    surroundGroup.add(moat)
+  }
 
-      // 물가는 촘촘히, 물 위는 드물게 장식한다. 다 채우면 시야가 막힌다.
-      const pool = isMoat ? decorBy.water : decorBy.land
-      const chancePct = isMoat ? 18 : 45
-      if (pool.length > 0 && decorRng.int(100) < chancePct) {
-        const d = pool[decorRng.int(pool.length)].clone(true)
-        // 물 타일 윗면은 풀 타일보다 0.2 낮다
-        d.position.set(x, isMoat ? -0.2 : SHORE_Y, z)
-        d.rotation.y = (decorRng.int(6) * Math.PI) / 3
+  /**
+   * 나무·바위를 무리 지어 심는다.
+   *
+   * 칸마다 확률로 하나씩 놓으면 균일하게 흩뿌려져 "배경"이 아니라 "격자에
+   * 얹은 장식"으로 보인다. 씨앗 몇 개를 두고 그 둘레에 모으면 숲처럼 뭉친다.
+   * 판에서 멀수록 크게 — 가까운 것이 작아야 원근이 생기고 판을 안 가린다.
+   */
+  {
+    const pool = decorBy.land
+    const near = decorBy.water
+    if (pool.length > 0) {
+      const CLUMPS = 44
+      const halfX = arena.w / 2 + MOAT_W
+      const halfZ = arena.d / 2 + MOAT_W
+      for (let i = 0; i < CLUMPS; i++) {
+        // 씨앗 하나 = 무리 하나. 판 둘레 띠 안에서 고른다.
+        const side = decorRng.int(4)
+        const along = (decorRng.int(2000) / 1000 - 1) * 1.25
+        const out = 0.25 + decorRng.int(1000) / 1000
+        const sx = side < 2 ? along * halfX * 1.3 : (side === 2 ? -1 : 1) * (halfX + out * arena.w * 0.5)
+        const sz = side < 2 ? (side === 0 ? -1 : 1) * (halfZ + out * arena.d * 0.4) : along * halfZ * 1.3
+        const count = 2 + decorRng.int(4)
+        for (let k = 0; k < count; k++) {
+          const d = pool[decorRng.int(pool.length)].clone(true)
+          const jx = (decorRng.int(2000) / 1000 - 1) * spacing.stepX * 1.1
+          const jz = (decorRng.int(2000) / 1000 - 1) * spacing.stepZ * 1.1
+          const x = arena.cx + sx + jx
+          const z = arena.cz + sz + jz
+          // 판이나 물띠 위에는 안 심는다.
+          if (Math.abs(x - arena.cx) < halfX + 0.4 && Math.abs(z - arena.cz) < halfZ + 0.4) continue
+          d.position.set(x, SHORE_Y, z)
+          d.rotation.y = (decorRng.int(360) * Math.PI) / 180
+          // 멀수록 크게. 가까운 것이 작아야 판을 안 가린다.
+          const far = Math.max(
+            Math.abs(x - arena.cx) / halfX,
+            Math.abs(z - arena.cz) / halfZ,
+          )
+          d.scale.setScalar(0.75 + Math.min(1.4, far) * 0.75)
+          d.traverse((o) => {
+            if (o.isMesh) {
+              o.castShadow = true
+              o.receiveShadow = true
+            }
+          })
+          d.userData.decor = true
+          surroundGroup.add(d)
+        }
+      }
+    }
+
+    // 물 위 수련. 띠가 넓어 비면 허전하다 — 판 둘레를 따라 드문드문.
+    if (near.length > 0) {
+      for (let i = 0; i < 16; i++) {
+        const d = near[decorRng.int(near.length)].clone(true)
+        const onX = decorRng.int(2) === 0
+        const t = (decorRng.int(2000) / 1000 - 1) * 0.95
+        const sideSign = decorRng.int(2) === 0 ? -1 : 1
+        const x = arena.cx + (onX ? (t * arena.w) / 2 : sideSign * (arena.w / 2 + MOAT_W * 0.55))
+        const z = arena.cz + (onX ? sideSign * (arena.d / 2 + MOAT_W * 0.55) : (t * arena.d) / 2)
+        d.position.set(x, SHORE_Y + 0.12, z)
+        d.rotation.y = (decorRng.int(360) * Math.PI) / 180
+        d.scale.setScalar(0.7)
         d.traverse((o) => {
-          if (o.isMesh) {
-            o.castShadow = true
-            o.receiveShadow = true
-          }
+          if (o.isMesh) o.receiveShadow = true
         })
         d.userData.decor = true
         surroundGroup.add(d)
       }
     }
   }
+
   scene.add(surroundGroup)
 
   // ── 벤치 단상 ──────────────────────────────────────────
