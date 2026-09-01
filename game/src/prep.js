@@ -466,6 +466,37 @@ export async function createPrep({ data, run, onFight }) {
     )
   }
 
+  /**
+   * 이 카드를 사면 무슨 일이 생기는가.
+   *
+   * 세 장이 모이면 한 단계 위로 합쳐지고, 그게 또 세 장이면 한 번 더 오른다
+   * (sim/roster.js 의 resolveMerges 와 같은 규칙 — 여기서는 **재기만** 한다).
+   * 카드에 이걸 안 적으면 "이미 두 장 있는 말"과 처음 보는 말이 똑같이 생겼다.
+   */
+  function buyPreview(unitId) {
+    const owned = allUnits(run.state).filter((u) => u.unitId === unitId)
+    const at = (star) => owned.filter((u) => u.star === star).length
+    const maxStar = data.combat.starMultiplier.length
+    const before = [at(1), at(2), at(3)]
+    const after = [before[0] + 1, before[1], before[2]]
+    for (let i = 0; i + 1 < maxStar; i++) {
+      while (after[i] >= 3) {
+        after[i] -= 3
+        after[i + 1] += 1
+      }
+    }
+    // 오르는 별 중 **가장 높은 것**을 보여 준다. 2성을 거쳐 3성이 되면
+    // 3성이라고 적어야 한다 — 2성이라고 적으면 거짓말이 된다.
+    let up = 0
+    for (let star = maxStar; star >= 2; star--) {
+      if (after[star - 1] > before[star - 1]) {
+        up = star
+        break
+      }
+    }
+    return { count: owned.length, up }
+  }
+
   function renderShop() {
     el.shop.replaceChildren(
       ...run.state.shop.map((unitId, i) => {
@@ -478,10 +509,18 @@ export async function createPrep({ data, run, onFight }) {
         }
         const u = unitById(data.units, unitId)
         if (run.state.gold < u.tier) d.classList.add('poor')
+        const pv = buyPreview(unitId)
+        if (pv.up > 0) d.classList.add('up')
+        d.style.setProperty('--sc', STAR_COLOR[pv.up - 1] ?? STAR_COLOR[0])
         // 티어색을 변수로 넘긴다 — 테두리·이름띠·후광이 한 값을 같이 쓴다
         d.style.setProperty('--tc', tierBar(u.tier))
         d.innerHTML =
           `<span class="art"><img alt="${u.name.ko}" /></span>` +
+          (pv.up > 0
+            ? `<span class="own up">${STAR[pv.up]}</span>`
+            : pv.count > 0
+              ? `<span class="own">×${pv.count}</span>`
+              : '') +
           '<span class="tr">' +
           `<i style="--ic:${traitIcon(u.origin)}">${traitLabel(u.origin)}</i>` +
           `<i style="--ic:${traitIcon(u.class)}">${traitLabel(u.class)}</i></span>` +

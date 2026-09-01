@@ -585,6 +585,26 @@
   .card.empty { --tc: #6a6252; opacity: .28; }
   .card.empty::before { display: none; }
   .card:not(.empty):active { transform: translateY(1px); }
+
+  /* 이미 갖고 있는 말인지, 사면 승급하는지.
+     이게 없으면 두 장 모아 둔 말과 처음 보는 말이 카드에서 똑같이 생겼다. */
+  .card .own {
+    position: absolute; right: 2px; top: 2px; z-index: 3;
+    height: 14px; padding: 0 4px; border-radius: 7px;
+    display: flex; align-items: center;
+    background: #e8dcc0; color: #2a1d08;
+    box-shadow: 0 1px 3px #000a;
+    font-size: 9px; line-height: 14px; font-weight: 800;
+    font-variant-numeric: tabular-nums;
+  }
+  /* 승급은 별 색으로 — 은(2성) · 금(3성). 셋을 모으는 게 이 게임의 목표라
+     카드 테두리까지 같이 밝힌다. */
+  .card .own.up {
+    height: 15px; padding: 0 5px; letter-spacing: -1px;
+    background: var(--sc); color: #2a1d08;
+    box-shadow: 0 0 6px var(--sc), 0 1px 3px #000a;
+  }
+  .card.up { box-shadow: inset 0 0 0 2px var(--sc), 0 0 10px color-mix(in srgb, var(--sc) 55%, transparent); }
   .card.poor { filter: grayscale(.55) brightness(.7); }
 
   .card .art { position: absolute; left: 0; right: 0; top: 0; bottom: 22px; z-index: 1; }
