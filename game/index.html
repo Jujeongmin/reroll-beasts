@@ -67,6 +67,13 @@
 
   /* 9-슬라이스 도우미. 원본 32px, 테두리 6px.
      테두리가 좌우 2×BW · 상하 2×BW 를 먹으므로 크기를 잡을 때 그만큼 더한다. */
+  /* 금화. 값이 골드라는 걸 아이콘 하나로 말한다 — 쓰는 곳마다 다시 그리지 않게
+     여기 한 번만 적는다. */
+  .coin {
+    background: url('/assets/ui/coin.png') center / contain no-repeat;
+    image-rendering: pixelated;
+  }
+
   .n9 {
     border-style: solid; border-width: var(--bw, 10px);
     border-image-slice: 6 fill; border-image-repeat: repeat;
@@ -239,6 +246,13 @@
   #info .sk em { color: #8fd8ff; font-style: normal; font-weight: 700; }
   #info .sell { padding: 5px 0 0; border-top: 1px solid #ffffff1a; color: #b3a894; font-size: 10px; }
   #info .sell b { color: var(--gold); }
+  #info .sell b::before,
+  #streak .bn::before {
+    content: ''; display: inline-block; vertical-align: -1px;
+    width: 10px; height: 10px; margin-right: 2px;
+    background: url('/assets/ui/coin.png') center / contain no-repeat;
+    image-rendering: pixelated;
+  }
 
   /* 무대보다 길어지면 아래쪽 유닛 목록이 통째로 잘린다 — 그걸 보라고 만든 패널이다. */
   #traitinfo {
@@ -402,23 +416,20 @@
   #streak .bn { color: var(--gold); }
 
   #lock {
-    line-height: 16px;
-    display: flex; align-items: center; justify-content: center; gap: 4px;
-    width: 76px; height: 30px;
+    display: flex; align-items: center; justify-content: center;
+    width: 34px; height: 30px;
     border-style: solid; border-width: 6px; border-image-slice: 6 fill;
     border-image-repeat: repeat; border-image-source: url('/assets/ui/button.png');
     image-rendering: pixelated;
     font-size: 11px; font-weight: 700; color: #f3ecdd; text-shadow: 0 1px 2px #0009;
   }
   #lock::before {
-    content: ''; width: 14px; height: 14px; flex: none;
+    content: ''; width: 16px; height: 16px; flex: none;
     background: url('/assets/ui/lock_open.png') center / contain no-repeat;
     image-rendering: pixelated;
   }
-  #lock .st { font-size: 9px; opacity: .75; }
-  #lock.on { border-image-source: url('/assets/ui/button_light.png'); color: #5a4212; }
+  #lock.on { border-image-source: url('/assets/ui/button_light.png'); }
   #lock.on::before { background-image: url('/assets/ui/lock_closed.png'); }
-  #lock.on .st { opacity: 1; }
 
   /* ── 상점 판 ───────────────────────────────────────── */
   /* 이 판에는 **살 것만** 들어간다. 카드와 그걸 굴리는 버튼 둘. */
@@ -448,8 +459,9 @@
     color: var(--gold); font-weight: 800; font-variant-numeric: tabular-nums;
   }
   .btn .cost::before {
-    content: ''; width: 9px; height: 9px; border-radius: 50%;
-    background: radial-gradient(circle at 35% 30%, #ffe9a8, #c9932c);
+    content: ''; width: 12px; height: 12px; flex: none;
+    background: url('/assets/ui/coin.png') center / contain no-repeat;
+    image-rendering: pixelated;
   }
   .btn:active { transform: translateY(1px); }
   .btn:disabled { filter: grayscale(.7) brightness(.62); cursor: default; }
@@ -527,8 +539,9 @@
     color: #ffe6a8; font-variant-numeric: tabular-nums;
   }
   .card .pr::before {
-    content: ''; width: 10px; height: 10px; border-radius: 50%;
-    background: radial-gradient(circle at 35% 30%, #ffe9a8, #c9932c);
+    content: ''; width: 11px; height: 11px; flex: none;
+    background: url('/assets/ui/coin.png') center / contain no-repeat;
+    image-rendering: pixelated;
   }
 
   /* ── 전투 조작 ─────────────────────────────────────── */
@@ -617,7 +630,7 @@
           <div id="streak" class="none"></div>
         </div>
         <div id="hudR">
-          <button id="lock"><b>잠금</b><span class="st">해제</span></button>
+          <button id="lock" type="button" aria-label="상점 잠금"></button>
         </div>
       </div>
     </div>

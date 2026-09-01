@@ -350,7 +350,10 @@ export async function createPrep({ data, run, onFight }) {
     el.reroll.disabled = s.gold < data.shop.rerollCost || !running
     el.lock.disabled = !running
     el.lock.classList.toggle('on', s.shopLocked)
-    el.lock.querySelector('.st').textContent = s.shopLocked ? '켬' : '해제'
+    // 글자는 뺐다 — 자물쇠 모양과 버튼 색이 이미 상태를 말한다.
+    // 다만 눈으로만 알 수 있으면 안 되므로 이름표는 남긴다.
+    el.lock.title = s.shopLocked ? '상점 잠금 켜짐 — 다음 라운드에도 유지' : '상점 잠금 꺼짐'
+    el.lock.setAttribute('aria-pressed', String(s.shopLocked))
   }
 
   // 연승·연패. 다음 라운드 수입이 이걸로 갈리는데 화면에 없었다.
