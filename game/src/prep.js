@@ -92,6 +92,18 @@ export async function createPrep({ data, run, onFight, opponentBoard, onWatch, o
   }
   const fieldToLocal = new Map(localToField.map((f, i) => [f, i]))
 
+  // 상대 진영의 로컬 좌표 → 전장 타일. 두 진영은 180도 회전 대응이므로
+  // 행을 뒤집고 열도 뒤집는다 — sim/combat.js 의 toFieldTile 과 같은 규칙이다.
+  const enemyLocalToField = []
+  for (const row of [...data.combat.board.enemyRows].reverse()) {
+    const width = data.combat.board.rows[row]
+    for (let i = 0; i < width; i++) {
+      enemyLocalToField.push(
+        scene.board.tiles.findIndex((t) => t.row === row && t.col === width - 1 - i),
+      )
+    }
+  }
+
   // 헥스 거리는 인접 홉 수다 — 시야 좌표의 유클리드 거리로는 못 잰다.
   // 전투가 쓰는 것과 **같은 표**를 써야 화면의 사거리와 실제 사거리가 같다.
   const simBoard = buildBoard(data.combat.board)
@@ -315,26 +327,38 @@ export async function createPrep({ data, run, onFight, opponentBoard, onWatch, o
   const enemyViews = []
   let enemyToken = 0
 
-  async function syncEnemyBench() {
+  /**
+   * 이번 라운드 상대의 **진형**을 건너편 판에 세운다.
+   *
+   * 전에는 상대 대기석 위에 줄지어 세웠다. 그때는 몬스터 편성이라 자리가
+   * 없었기 때문인데, 지금은 진짜 상대의 판이라 tile 이 있다 — 대기석에
+   * 세우면 "상대가 아직 안 놓았다"는 거짓말이 된다. 배치 중에 상대 진형을
+   * 보고 대비하는 게 이 장르의 핵심이다.
+   */
+  async function syncEnemyBoard() {
     const token = ++enemyToken
     for (const v of enemyViews) v.dispose()
     enemyViews.length = 0
 
-    // **실제로 붙을 진형**을 세운다. 전에는 라운드 종류와 무관하게 몬스터를
-    // 세워서, 사람과 붙는 라운드에도 건너편에 몹이 서 있었다 — 그러니 지금
-    // 누구와 붙는지가 화면으로는 전혀 안 읽혔다.
     const roster = opponentBoard()
 
-    for (let i = 0; i < roster.length; i++) {
-      const spot = scene.benchSpot(i, 'enemy')
-      if (!spot) break
-      const v = await scene.makeUnit(roster[i].unitId, roster[i].star, 'B')
+    for (const e of roster) {
+      const field = enemyLocalToField[e.tile]
+      const t = field === undefined ? null : scene.board.tiles[field]
+      if (!t) continue
+      const v = await scene.makeUnit(e.unitId, e.star, 'B')
       if (token !== enemyToken) {
         v.dispose()
         return
       }
-      v.root.position.set(spot.x, spot.y, spot.z)
-      v.root.scale.setScalar(BENCH_UNIT_SCALE)
+      v.root.position.set(t.x, scene.topY, t.z)
+      // 나를 마주 본다. 배치에서는 내 말이 0도(상대 쪽)를 보므로 반대다.
+      v.root.rotation.y = Math.PI
+      if (e.star > 1) {
+        v.badge = scene.makeBadge({ team: 'B', star: e.star, withHp: false })
+        v.badge.sprite.position.y = v.height + scene.spacing.stepX * 0.16
+        v.root.add(v.badge.sprite)
+      }
       v.play(v.anims.idle)
       scene.scene.add(v.root)
       enemyViews.push(v)
@@ -1191,7 +1215,7 @@ export async function createPrep({ data, run, onFight, opponentBoard, onWatch, o
       scene.resize()
       refresh()
       // 라운드가 넘어가면 상대도 바뀐다
-      syncEnemyBench()
+      syncEnemyBoard()
     },
     /**
      * 전투에 판을 넘긴다. 루프는 battle 이 돌린다.
