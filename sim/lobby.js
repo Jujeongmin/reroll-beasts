@@ -50,6 +50,9 @@ export function createLobby(data, rng) {
     isPlayer: i === 0,
     hp: data.economy.startHp,
     board: i === 0 ? [] : botBoard(1, rng, data),
+    // 연속 승/패. 화면이 "지금 누가 달리고 있나"를 표시하려면 결과만으로는 모자란다.
+    streak: 0,
+    lastWon: null,
   }))
 }
 
@@ -81,23 +84,54 @@ export function opponentOf(pairs, playerId = 0) {
  * 봇끼리도 같은 simulate 를 쓴다. 따로 대충 계산하면 봇 순위가 내가 겪는
  * 전투와 다른 규칙을 따르게 되어, 화면의 등수가 거짓이 된다.
  */
-export function resolveOthers(lobby, pairs, { playerId = 0, seed, stageDamage, data }) {
-  const results = []
+/** 연속 기록. 승패 방향이 바뀌면 1 부터 다시 센다 — 연승도 연패도 같은 표를 쓴다. */
+export function bumpStreak(seat, won) {
+  seat.streak = seat.lastWon === won ? seat.streak + 1 : 1
+  seat.lastWon = won
+}
+
+/**
+ * 남의 대진을 **돌려만 본다.** 체력은 건드리지 않고 로그를 통째로 돌려준다.
+ *
+ * 적용과 나눈 이유: 내 전투가 재생되는 동안 남의 판도 구경할 수 있어야 하는데,
+ * 그러려면 로그가 그때 이미 있어야 한다. 반면 체력은 내 판정이 끝난 뒤에
+ * 한꺼번에 반영해야 순위표가 중간에 흔들리지 않는다.
+ */
+export function simulateOthers(lobby, pairs, { playerId = 0, seed, data }) {
+  const out = []
   for (const [a, b] of pairs) {
     if (a === playerId || b === playerId) continue
-    const pa = lobby[a]
-    const pb = lobby[b]
-    const r = simulate({
-      boardA: pa.board,
-      boardB: pb.board,
+    const result = simulate({
+      boardA: lobby[a].board,
+      boardB: lobby[b].board,
       seed: (seed + a * 131 + b * 977) >>> 0,
       data,
     })
+    out.push({ a, b, winner: result.winner, result })
+  }
+  return out
+}
+
+/** simulateOthers 가 낸 결과를 체력·연승에 반영한다. */
+export function applyOthers(lobby, fights, { stageDamage }) {
+  for (const f of fights) {
+    const pa = lobby[f.a]
+    const pb = lobby[f.b]
+    const r = f.result
     if (r.winner === 'A') pb.hp = Math.max(0, pb.hp - defeatDamage(r.survivorsA, stageDamage))
     else if (r.winner === 'B') pa.hp = Math.max(0, pa.hp - defeatDamage(r.survivorsB, stageDamage))
-    results.push({ a, b, winner: r.winner })
+    // 무승부면 연속 기록을 건드리지 않는다 — 이기지도 지지도 않았다.
+    if (r.winner !== null) {
+      bumpStreak(pa, r.winner === 'A')
+      bumpStreak(pb, r.winner === 'B')
+    }
   }
-  return results
+  return fights.map(({ a, b, winner }) => ({ a, b, winner }))
+}
+
+/** 돌리고 바로 반영한다. 구경할 필요가 없는 쪽(테스트·정산 일괄)이 쓴다. */
+export function resolveOthers(lobby, pairs, { playerId = 0, seed, stageDamage, data }) {
+  return applyOthers(lobby, simulateOthers(lobby, pairs, { playerId, seed, data }), { stageDamage })
 }
 
 /** 라운드가 넘어갈 때 봇들의 보드를 다시 짠다. */

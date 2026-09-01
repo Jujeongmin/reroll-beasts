@@ -11,7 +11,14 @@ import { simulate } from '@sim/combat.js'
 import { startRun, refreshShop } from '@sim/roster.js'
 import { roundIncome, addXp } from '@sim/economy.js'
 import { roundAt, totalRounds, pveBoard, defeatDamage } from '@sim/rounds.js'
-import { createLobby, pairUp, opponentOf, resolveOthers, growBots } from '@sim/lobby.js'
+import {
+  createLobby,
+  pairUp,
+  opponentOf,
+  simulateOthers,
+  applyOthers,
+  growBots,
+} from '@sim/lobby.js'
 import { createPrep } from './prep.js'
 import { createBattle } from './battle.js'
 
@@ -64,23 +71,37 @@ try {
   /** 라운드 시드. 대진·편성·전투가 전부 여기서 갈라져 나온다. */
   const roundSeed = (n) => (seed + n * 7919) >>> 0
 
-  /** 이번 라운드 대진을 짠다. PvE 라운드는 상대가 없다. */
+  /**
+   * 이번 라운드 대진.
+   *
+   * 전 라운드가 PvP 다. 살아 있는 사람이 홀수라 내 짝이 비면 **유령**을 세운다 —
+   * 다른 사람의 진형을 그대로 복사해 붙는 것이다 (TFT 의 유령 라운드와 같다).
+   * 중립 몹을 세우면 "지금 사람과 붙는 건가"가 매 라운드 흐려진다.
+   */
   function drawRound() {
     const info = roundAt(run.index, data.rounds)
-    if (info.isPve) {
-      run.pairs = []
-      run.opponentId = null
-      return info
-    }
     run.pairs = pairUp(run.lobby, createRng(roundSeed(run.index)))
     run.opponentId = opponentOf(run.pairs, 0)
+    run.ghostId = null
+    if (run.opponentId === null) {
+      const others = run.lobby.filter((p) => !p.isPlayer && p.hp > 0 && p.board.length > 0)
+      if (others.length > 0) {
+        run.ghostId = others[createRng(roundSeed(run.index) ^ 0x5f3a).int(others.length)].id
+      }
+    }
     return info
   }
   drawRound()
 
   // 무대는 **하나**다. 배치가 만들고 전투가 이어 쓴다 — 화면을 갈아끼우지 않으므로
   // 전투가 "다른 화면으로 넘어가는 일"이 아니라 "그 자리에서 시작되는 일"이 된다.
-  const prep = await createPrep({ data, run, onFight: startFight })
+  const prep = await createPrep({
+    data,
+    run,
+    onFight: startFight,
+    opponentBoard: () => opponentBoard(roundSeed(run.index)),
+    onWatch: watchFight,
+  })
   const battle = await createBattle({ data, scene: prep.scene })
 
   // 리소스를 전부 받고 나서 연다.
@@ -101,9 +122,9 @@ try {
     // 전투 시드를 라운드마다 다르게 준다. 같은 시드를 재사용하면
     // 치명타·타겟 순서가 매판 똑같아진다.
     const battleSeed = roundSeed(run.index)
-    // 짝이 있으면 그 사람 진형과 붙는다. PvE 라운드거나 홀수로 남으면 몬스터다.
-    const foe = run.opponentId === null ? null : run.lobby[run.opponentId]
-    const enemy = foe ? foe.board : pveBoard(info.stageIndex, createRng(battleSeed), data)
+    // 짝이 있으면 그 사람, 없으면 유령(남의 진형 복사). 둘 다 없을 때만 몹이다 —
+    // 마지막 한 명이 남는 경우뿐이라 실제로는 거의 오지 않는다.
+    const enemy = opponentBoard(battleSeed)
 
     let result
     try {
@@ -113,8 +134,45 @@ try {
       return
     }
 
+    // 남의 대진도 지금 돌려 둔다 — 내 전투를 보는 중에 아무 사람이나 눌러
+    // 그 판을 볼 수 있어야 하고, 그러려면 로그가 그때 이미 있어야 한다.
+    // 체력 반영은 정산에서 한 번에 한다.
+    run.otherFights = simulateOthers(run.lobby, run.pairs ?? [], {
+      seed: roundSeed(run.index),
+      data,
+    })
+
+    const onBack = () => settle(result, info)
+    // 지금 무대에 올린 전투. 관전에서 돌아올 자리이자 정산의 근거다.
+    run.fight = { result, onBack }
+    run.watchId = 0
+
     prep.hide()
-    await battle.load(result, { onBack: () => settle(result, info) })
+    await battle.load(result, { onBack })
+  }
+
+  /**
+   * 그 사람의 이번 라운드 전투를 무대에 올린다.
+   *
+   * 어느 판을 보고 있든 **정산은 내 결과로** 한다 — 한 라운드의 전투들은
+   * 이야기상 동시에 벌어지므로, 어느 쪽이 끝나든 라운드가 끝난 것이다.
+   */
+  function watchFight(seatId) {
+    if (!run.fight) return
+    const mine = seatId === 0 || seatId === run.opponentId
+    const f = mine ? null : (run.otherFights ?? []).find((x) => x.a === seatId || x.b === seatId)
+    if (!mine && !f) return
+    run.watchId = seatId
+    prep.refresh()
+    battle.load(mine ? run.fight.result : f.result, { onBack: run.fight.onBack })
+  }
+
+  /** 이번 라운드에 내가 붙는 진형. 화면 미리보기와 실제 전투가 같은 값을 써야 한다. */
+  function opponentBoard(battleSeed) {
+    const id = run.opponentId ?? run.ghostId
+    if (id !== null && id !== undefined) return run.lobby[id].board
+    const info = roundAt(run.index, data.rounds)
+    return pveBoard(info.stageIndex, createRng(battleSeed), data)
   }
 
   function settle(result, info) {
@@ -127,15 +185,17 @@ try {
 
     if (!won) s.hp = Math.max(0, s.hp - defeatDamage(result.survivorsB, info.damage))
     run.lobby[0].hp = s.hp
+    // 순위표가 내 연승도 같은 규칙으로 표시해야 한다.
+    run.lobby[0].streak = s.streak
+    run.lobby[0].lastWon = run.lastWon
 
     // 내가 이겼으면 상대도 잃는다. 순위표가 내 전투와 같은 규칙을 따라야 한다.
     if (won && run.opponentId !== null) {
       const foe = run.lobby[run.opponentId]
       foe.hp = Math.max(0, foe.hp - defeatDamage(result.survivorsA, info.damage))
     }
-    // 나머지 대진도 같은 simulate 로 돌린다
-    resolveOthers(run.lobby, run.pairs ?? [], {
-      seed: roundSeed(run.index),
+    // 전투를 시작할 때 이미 돌려 둔 결과를 여기서 반영한다
+    applyOthers(run.lobby, run.otherFights ?? [], {
       stageDamage: info.damage,
       data,
     })

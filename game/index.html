@@ -274,6 +274,16 @@
   .seat.me .n { display: none; }
   .seat.foe .n::after { content: ' ⚔'; color: #ff9a8c; }
 
+  /* 3연승 이상. 초상화를 금빛 고리로 두르고 옅게 떨게 한다 —
+     누가 달리고 있는지가 순위(체력)만으로는 안 보인다. 체력이 아직 높은
+     사람과 지금 몰아치는 사람은 다른 정보다. */
+  .seat.hot .av { box-shadow: 0 0 0 1px #ffd166, 0 0 6px #ffb04dcc; }
+  .seat.hot .av b { box-shadow: inset 0 0 0 1px #ffd166a6; }
+  .seat.hot .n::before {
+    content: '▲'; margin-right: 2px; font-size: 8px; color: #ffd166;
+  }
+  .seat.hot.me .n::before { color: #7a5306; }
+
   /* 탈락. 흐리게만 두면 "체력 낮은 사람"과 구분이 안 된다 — 초상화에 ✕ 를 찍는다. */
   .seat.out { filter: grayscale(1) brightness(.72); opacity: .5; cursor: default; }
   .seat.out .av b::after {

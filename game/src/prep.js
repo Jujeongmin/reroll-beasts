@@ -37,7 +37,7 @@ const STAR = ['', '★', '★★', '★★★']
 // 성급 색. scene3d 의 STAR_COLOR 와 같은 값이어야 배지와 패널이 안 어긋난다.
 const STAR_COLOR = ['#d99154', '#e6edf5', '#ffd166']
 
-export async function createPrep({ data, run, onFight }) {
+export async function createPrep({ data, run, onFight, opponentBoard, onWatch }) {
   const el = {
     root: document.getElementById('prep'),
     stage: document.getElementById('stage'),
@@ -116,7 +116,7 @@ export async function createPrep({ data, run, onFight }) {
 
   // 개발용 손잡이. 브라우저 콘솔에서 판 상태를 들여다보려면 이게 필요하다.
   // 프로덕션 번들에는 들어가지 않는다.
-  if (import.meta.env.DEV) globalThis.__dev = { run, scene, views, el, data, refresh: () => refresh(), thumbFor: (id, star) => thumbFor(id, star) }
+  if (import.meta.env.DEV) globalThis.__dev = { run, scene, views, el, data, refresh: () => refresh(), thumbFor: (id, star) => thumbFor(id, star), fight: () => { running = false; onFight(toCombatEntries(run.state)) } }
   let syncToken = 0
 
   // 전투 중에는 판을 얼린다. 전투는 **전투 시작 시점의 판**으로 이미 계산된
@@ -277,7 +277,9 @@ export async function createPrep({ data, run, onFight }) {
           (seat.isPlayer ? ' me' : '') +
           (seat.hp <= 0 ? ' out' : '') +
           (seat.id === run.opponentId ? ' foe' : '') +
-          (seat.id === peekId ? ' open' : '')
+          // 3연승부터 강조한다. 2연승은 아직 흐름이 아니다.
+          (seat.lastWon === true && (seat.streak ?? 0) >= 3 ? ' hot' : '') +
+          (seat.id === peekId || (!running && seat.id === run.watchId) ? ' open' : '')
         // 체력이 시작값을 넘는 경우는 없지만, 넘어도 고리가 두 바퀴 돌지 않게 묶는다.
         const ratio = Math.max(0, Math.min(1, seat.hp / maxHp))
         d.style.setProperty('--hp', String(ratio))
@@ -286,8 +288,16 @@ export async function createPrep({ data, run, onFight }) {
           `<span class="n">${seat.name}</span>` +
           `<span class="h">${seat.hp}</span>` +
           `<span class="av"><b>${seat.name.slice(0, 1)}</b></span>`
-        d.title = `${seat.name} · 체력 ${seat.hp}${seat.hp <= 0 ? ' (탈락)' : ''}`
-        d.addEventListener('click', () => (seat.id === peekId ? closePeek() : openPeek(seat)))
+        const run3 = seat.lastWon === true && (seat.streak ?? 0) >= 3
+        d.title =
+          `${seat.name} · 체력 ${seat.hp}` +
+          (run3 ? ` · ${seat.streak}연승 중` : '') +
+          (seat.hp <= 0 ? ' (탈락)' : '')
+        d.addEventListener('click', () => {
+          // 전투 중에는 그 사람 전투를 관전한다. 배치 중에는 진형을 들여다본다.
+          if (!running) return onWatch?.(seat.id)
+          return seat.id === peekId ? closePeek() : openPeek(seat)
+        })
         return d
       }),
     )
@@ -308,9 +318,10 @@ export async function createPrep({ data, run, onFight }) {
     for (const v of enemyViews) v.dispose()
     enemyViews.length = 0
 
-    const info = roundAt(run.index, data.rounds)
-    const battleSeed = (run.seed + run.index * 7919) >>> 0
-    const roster = pveBoard(info.stageIndex, createRng(battleSeed), data)
+    // **실제로 붙을 진형**을 세운다. 전에는 라운드 종류와 무관하게 몬스터를
+    // 세워서, 사람과 붙는 라운드에도 건너편에 몹이 서 있었다 — 그러니 지금
+    // 누구와 붙는지가 화면으로는 전혀 안 읽혔다.
+    const roster = opponentBoard()
 
     for (let i = 0; i < roster.length; i++) {
       const spot = scene.benchSpot(i, 'enemy')
@@ -434,7 +445,14 @@ export async function createPrep({ data, run, onFight }) {
    * 서 있는 말과 어긋나면, 정찰이 아니라 거짓말이 된다.
    */
   function shownBoard() {
-    return peekSeat ? peekSeat.board : run.state.board.filter(Boolean)
+    if (peekSeat) return peekSeat.board
+    // 남의 전투를 관전하는 중이면 그 사람 시너지를 띄운다. 화면에서 싸우는
+    // 말들과 좌측 시너지가 다른 사람 것이면 그건 거짓말이다.
+    if (!running && run.watchId) {
+      const seat = run.lobby?.find((x) => x.id === run.watchId)
+      if (seat) return seat.board
+    }
+    return run.state.board.filter(Boolean)
   }
 
   function renderTraits() {

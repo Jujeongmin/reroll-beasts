@@ -32,10 +32,17 @@ describe('라운드 번호', () => {
     expect(roundAt(23, R)).toMatchObject({ stage: 5, stageIndex: 4 })
   })
 
-  it('스테이지 1 은 전부 PvE, 이후는 5라운드만 PvE 다', () => {
-    for (const n of [1, 2, 3]) expect(roundAt(n, R).isPve).toBe(true)
-    for (const n of [4, 5, 6, 7]) expect(roundAt(n, R).isPve).toBe(false)
-    expect(roundAt(8, R).isPve).toBe(true)
+  it('지금은 전 라운드가 PvP 다 — pveRounds 가 비어 있다', () => {
+    // isPve 는 데이터가 정한다. pveRounds 에 뭘 넣으면 그 라운드만 true 가 된다.
+    for (let n = 1; n <= totalRounds(R); n++) expect(roundAt(n, R).isPve).toBe(false)
+  })
+
+  it('pveRounds 에 넣은 라운드만 PvE 로 잡힌다', () => {
+    // "사람 + AI 섞기" 모드가 붙으면 이 표만 채우면 된다 — 규칙은 이미 산다.
+    const mixed = { ...R, stages: R.stages.map((st, i) => (i === 0 ? { ...st, pveRounds: [2] } : st)) }
+    expect(roundAt(1, mixed).isPve).toBe(false)
+    expect(roundAt(2, mixed).isPve).toBe(true)
+    expect(roundAt(3, mixed).isPve).toBe(false)
   })
 
   it('패배 피해 계수가 스테이지를 따라 커진다', () => {
