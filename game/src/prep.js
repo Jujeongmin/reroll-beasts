@@ -1180,6 +1180,9 @@ export async function createPrep({ data, run, onFight, onWatch, onPickUnit }) {
       if (!held.moved) return
       const found = unitAtPointer(ev.clientX, ev.clientY)
       if (!found) return
+      // moveTo 와 같은 잠금이다 — 전투 중엔 판 위 말이 리플레이 스냅샷과
+      // 묶여 있다. 벤치는 리플레이와 무관하니 그대로 둔다.
+      if (!canTouch(found.uid)) return hint('싸우는 중인 말에는 못 낀다')
       const r = equipItem(run.state, found.uid, held.item.invIndex, data)
       if (!r.ok) hint(r.reason)
       else hint(`${itemById(data.items, held.item.id).name.ko} 장착`)

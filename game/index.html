@@ -418,13 +418,21 @@
   #hint.show { opacity: 1; }
 
   /* ── 아이템 바 ─────────────────────────────────────
-     좌하단. 아직 아무 유닛에도 안 낀 것들이다. 비면 줄 자체가 사라진다 —
+     무대(#stage)와 상점 판(#shopbar) 사이, 제 줄을 갖는다.
+     처음엔 무대 안에 절대좌표(bottom:6)로 띄웠는데, 그 자리는 이미
+     #hudbar(레벨·XP 줄)가 z-index 까지 같이 차지하고 있어 DOM 순서에서
+     밀려 나무판 밑에 완전히 깔렸다 — 화면엔 안 보이는데 드래그만 되는
+     유령 줄이었다. 무대 안엔 좌우로 시너지 목록(#traits)·순위표(#lobby)까지
+     바닥 코앞까지 내려와 있어 절대좌표로는 안 겹치는 틈이 없었다.
+     그래서 무대 바깥, flex 줄로 뺀다 — #stage 가 flex:1 이라 이 줄이
+     생기는 만큼 스스로 줄어들고(ResizeObserver 가 그 변화를 보고 판을
+     다시 잰다), 아무것도 가리지 않는다. 비면 줄 자체가 사라진다 —
      빈 칸을 남겨 두면 "받을 게 있는데 안 받았나"로 읽힌다. */
   #itembar {
-    position: absolute; left: 6px; bottom: 6px; z-index: 6;
-    display: flex; gap: 3px;
+    flex: none; display: flex; align-items: center; gap: 3px;
+    padding: 4px 6px;
   }
-  #itembar:empty { display: none; }
+  #itembar:empty { display: none; padding: 0; }
   #itembar .it {
     position: relative; width: 26px; height: 26px;
     background: #12101ce8; border: 1px solid #ffffff2e; border-radius: 4px;
@@ -788,7 +796,6 @@
       <div id="info" class="panel" hidden></div>
       <div id="traitinfo" class="panel" hidden></div>
       <div id="hint"></div>
-      <div id="itembar"></div>
 
       <div id="hudbar">
         <div id="hudL">
@@ -807,6 +814,8 @@
         </div>
       </div>
     </div>
+
+    <div id="itembar"></div>
 
     <div id="shopbar">
       <div id="sidebtns">
