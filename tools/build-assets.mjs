@@ -10,7 +10,7 @@
 // 팩 전체(380MB)를 public/ 에 넣지 않는다 — 거긴 빌드에 그대로 복사되는
 // 곳이라 안 쓰는 모델까지 플레이어에게 배포된다.
 
-import { readFile, writeFile, mkdir, copyFile, access } from 'node:fs/promises'
+import { readFile, writeFile, mkdir, copyFile, access, readdir, rm } from 'node:fs/promises'
 // 몬스터 모델 압축. .gltf 는 바이너리를 base64 로 텍스트에 박는 포맷이라
 // 원본이 33% 부풀어 있다 — .glb 로 바꾸면 그게 빠지고, meshopt 를 얹으면
 // 지오메트리까지 줄어 20MB 가 6MB 아래로 떨어진다. 로더 쪽은 manifest 가

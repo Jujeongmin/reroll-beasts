@@ -458,7 +458,7 @@ export async function createScene({
   // 단색이면 종이를 깐 것처럼 보인다. 회색 노이즈를 곱해 얼룩을 만든다 —
   // 텍스처는 무채색 한 장이고 색은 여기서 입힌다. 반복을 크게 잡아야
   // 구름 무늬가 뭉치지 않고 잔디처럼 잘게 흩어진다.
-  const groundTex = texLoader.load('/assets/terrain/noise.png')
+  const groundTex = texLoader.load('/assets/terrain/noise.webp')
   groundTex.colorSpace = THREE.SRGBColorSpace
   groundTex.wrapS = THREE.RepeatWrapping
   groundTex.wrapT = THREE.RepeatWrapping
@@ -1559,7 +1559,7 @@ export async function createScene({
   const fxTex = new Map()
   function fxTexture(kind) {
     if (!fxTex.has(kind)) {
-      const t = texLoader.load(`/assets/fx/${kind}.png`)
+      const t = texLoader.load(`/assets/fx/${kind}.webp`)
       t.colorSpace = THREE.SRGBColorSpace
       fxTex.set(kind, t)
     }
