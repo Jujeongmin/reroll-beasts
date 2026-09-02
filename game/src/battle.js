@@ -7,6 +7,7 @@
 import * as THREE from 'three'
 import { unitById } from '@sim/data.js'
 import { resolveStats } from '@sim/stats.js'
+import { createUnitState, applyReplayEvent } from './replay.js'
 
 const TICK_RATE = 30
 
@@ -63,22 +64,14 @@ export async function createBattle({ data, scene }) {
     unitState.clear()
     for (const sp of spawns) {
       const v = views.get(sp.casterId)
-      unitState.set(sp.casterId, {
-        tile: sp.tile,
-        prevTile: sp.tile,
-        moveTick: -99,
-        // 최대 HP 는 spawn 이벤트가 실어 온다. 로그의 피해 총합으로 역산하면
-        // 끝까지 살아남은 유닛은 하한밖에 안 나와 HP 바가 틀린 값을 그린다.
-        maxHp: sp.maxHp,
-        hp: sp.maxHp,
-        shield: 0,
-        // 마나도 spawn 이 실어 온다. 화면이 다시 계산하면 규칙이 두 군데 산다.
-        mana: sp.mana ?? 0,
-        manaFull: sp.manaFull ?? 0,
-        alive: true,
-        anim: 'idle',
-        animUntil: 0,
-      })
+      // hp·shield·mana·alive·tile 은 replay.js 가 정의하는 순수 상태다 —
+      // 여기서는 그 위에 그림쪽 필드(보간·애니메이션)만 얹는다.
+      const st = createUnitState(sp)
+      st.prevTile = sp.tile
+      st.moveTick = -99
+      st.anim = 'idle'
+      st.animUntil = 0
+      unitState.set(sp.casterId, st)
       v.current = null
       v.play(v.anims.idle)
       v.root.rotation.y = sp.team === 'A' ? 0 : Math.PI
@@ -166,8 +159,7 @@ export async function createBattle({ data, scene }) {
   function applyEvent(e) {
     fxFor(e)
     if (e.type === 'mana') {
-      const st = unitState.get(e.casterId)
-      if (st) st.mana = e.value
+      applyReplayEvent(unitState, e)
       return
     }
     const v = views.get(e.casterId)
@@ -178,7 +170,7 @@ export async function createBattle({ data, scene }) {
         // 도약은 걷는 게 아니라 순간이동이다 — 보간하면 판을 가로질러 미끄러진다.
         // prevTile 도 도착지로 맞춰 render 가 이동 중으로 보지 않게 한다.
         if (!st) break
-        st.tile = e.tile
+        applyReplayEvent(unitState, e)
         st.prevTile = e.tile
         st.moveTick = -99
         break
@@ -186,7 +178,7 @@ export async function createBattle({ data, scene }) {
       case 'move':
         if (!st) break
         st.prevTile = st.tile
-        st.tile = e.tile
+        applyReplayEvent(unitState, e)
         st.moveTick = e.tick
         // 달리기 동작은 render 가 도착 여부를 보고 건다. 여기서 고정 길이를
         // 주면 이동 주기와 어긋나 걷다가 중간에 선다.
@@ -208,63 +200,62 @@ export async function createBattle({ data, scene }) {
           }
           fireBolt(e.casterId, e.targetIds?.[0])
         }
+        // 애니메이션은 **피해가 반영되기 전** 살아있었는지로 결정한다 — 판정
+        // 순서를 그대로 따라야 죽는 순간 맞는 동작이 다시 재생되지 않는다.
         const hits = e.type === 'skill_aoe' ? (e.hits ?? []).map((h) => h.id) : (e.targetIds ?? [])
         for (const id of hits) {
           const ts = unitState.get(id)
           const tv = views.get(id)
           if (!ts || !ts.alive) continue
-          const amount =
-            e.type === 'skill_aoe'
-              ? (() => {
-                  const h = e.hits.find((x) => x.id === id)
-                  return (h?.toHp ?? 0) + (h?.toShield ?? 0)
-                })()
-              : (e.amount ?? 0)
-          ts.shield = Math.max(0, ts.shield - (e.toShield ?? 0))
-          ts.hp = Math.max(0, ts.hp - amount)
           if (tv && ts.anim !== 'death') {
             ts.anim = 'hit'
             ts.animUntil = e.tick + 10
             tv.play(tv.anims.hit, { loop: false, fade: 0.05 })
           }
         }
-        if (e.type === 'skill_buff') {
-          for (const g of e.grants ?? []) {
-            const ts = unitState.get(g.id)
-            if (ts) ts.shield += g.shieldGranted ?? 0
-          }
-        }
+        applyReplayEvent(unitState, e)
         break
       }
 
       case 'dot':
-        for (const id of e.targetIds ?? []) {
-          const ts = unitState.get(id)
-          if (ts) ts.hp = Math.max(0, ts.hp - (e.amount ?? 0))
-        }
-        break
-
-      // 반사. casterId 는 되돌린 쪽이고 피해는 targetIds 가 받는다 —
-      // 이 방향을 뒤집으면 맞은 쪽이 회복하는 것처럼 보인다.
       case 'thorns':
-        for (const id of e.targetIds ?? []) {
-          const ts = unitState.get(id)
-          if (!ts) continue
-          ts.shield = Math.max(0, ts.shield - (e.toShield ?? 0))
-          ts.hp = Math.max(0, ts.hp - (e.toHp ?? 0))
-        }
+      case 'heal':
+      case 'shield':
+        applyReplayEvent(unitState, e)
         break
 
-      case 'heal': {
-        const ts = unitState.get(e.casterId)
-        if (ts) ts.hp = Math.min(ts.maxHp, ts.hp + (e.amount ?? 0))
+      // 죽으면서 터지는 폭발 · 스킬이 옆으로 튄 피해. 캐스터는 이미 죽은
+      // 채(death_blast)거나 화면 밖 원인(splash)이라 캐스터 쪽 애니메이션은
+      // 없다 — 맞은 쪽에만 hit 반응을 준다.
+      case 'death_blast':
+      case 'skill_splash': {
+        for (const h of e.hits ?? []) {
+          const ts = unitState.get(h.id)
+          const tv = views.get(h.id)
+          if (!ts || !ts.alive) continue
+          if (tv && ts.anim !== 'death') {
+            ts.anim = 'hit'
+            ts.animUntil = e.tick + 10
+            tv.play(tv.anims.hit, { loop: false, fade: 0.05 })
+          }
+        }
+        applyReplayEvent(unitState, e)
         break
       }
 
-      case 'death':
+      case 'revive':
+        applyReplayEvent(unitState, e)
+        // 죽음 자세에서 빠져나온다. drawBar 는 st.alive 로 배지를 다시 켠다.
         if (st && v) {
-          st.alive = false
-          st.hp = 0
+          st.anim = 'idle'
+          st.animUntil = e.tick
+          v.play(v.anims.idle)
+        }
+        break
+
+      case 'death':
+        applyReplayEvent(unitState, e)
+        if (st && v) {
           st.anim = 'death'
           st.animUntil = Infinity
           v.play(v.anims.death, { loop: false, fade: 0.1 })
