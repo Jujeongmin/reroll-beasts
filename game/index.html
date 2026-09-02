@@ -310,46 +310,62 @@
   .panel[hidden] { display: none; }
 
   /* 무대가 226px 뿐이다. top 80 에서 시작하면 능력치 표 아래가 잘린다. */
+  /* 화면 **우측 끝**에 붙인다. 가운데에 띄우면 판 한복판을 덮어 정작
+     비교하려던 말들이 가려진다 — 카드를 여는 이유가 "이 말을 어디에 둘까"
+     인데 판이 안 보이면 답을 못 낸다. 우측 순위표를 가리는 대가가 더 싸다:
+     순위표는 카드를 닫으면 그대로 있고, 배치 중에 계속 볼 값도 아니다. */
   #info {
-    right: 166px; top: 56px; width: 176px; --pc: var(--tc, #6f7fd8);
-    max-height: calc(100% - 66px); overflow-y: auto;
+    right: 6px; top: 44px; width: 196px; --pc: var(--tc, #6f7fd8);
+    /* 위 44 + 하단 HUD 32 + 여유. 3성에 아이템 3개를 낀 최대 카드가
+       스크롤 없이 들어가는 높이다 — 잘리면 판매가가 안 보인다. */
+    max-height: calc(100% - 84px); overflow-y: auto;
   }
   #info .hd {
-    display: flex; align-items: center; gap: 7px; padding: 2px 0 6px;
+    display: flex; align-items: center; gap: 6px; padding: 1px 0 4px;
     border-bottom: 1px solid #00000040;
   }
-  #info .hd img { width: 30px; height: 30px; object-fit: contain; flex: none; }
+  #info .hd img { width: 24px; height: 24px; object-fit: contain; flex: none; }
   #info .hd .t { flex: 1; min-width: 0; }
   #info .hd .nm { font-weight: 800; font-size: 12px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
   #info .hd .sub { font-size: 9px; color: #b3a894; }
   #info .hd .st { color: var(--sc); font-size: 11px; letter-spacing: -1px; }
   #info .grid {
-    display: grid; grid-template-columns: 1fr 1fr; gap: 2px 8px;
-    padding: 6px 0; border-top: 1px solid #ffffff1a; font-variant-numeric: tabular-nums;
+    display: grid; grid-template-columns: 1fr 1fr; gap: 1px 8px;
+    padding: 3px 0; border-top: 1px solid #ffffff1a; font-variant-numeric: tabular-nums;
+    font-size: 11px; line-height: 13px;
   }
   #info .grid span { color: #b3a894; }
   #info .grid b { float: right; font-weight: 700; color: #fff6e4; }
   /* 스킬 설명은 문장이라 가장 길다 — 여기가 제일 커 보였다. */
   #info .sk {
-    padding: 5px 0; border-top: 1px solid #ffffff1a;
-    font-size: 9px; line-height: 1.35; color: #e6dcc8;
+    padding: 3px 0; border-top: 1px solid #ffffff1a;
+    font-size: 9px; line-height: 1.25; color: #e6dcc8;
   }
   #info .sk em { color: #8fd8ff; font-style: normal; font-weight: 700; }
   /* 아이템 한 줄에 아이콘 · 이름 · 효과 (스펙 §8) — 효과까지 넣으니 가로로
      못 묶는다. 3칸을 세로로 쌓는다. */
-  #info .items { display: flex; flex-direction: column; gap: 3px; margin-top: 3px; }
+  #info .items { display: flex; flex-direction: column; gap: 2px; margin-top: 2px; }
   #info .items span {
-    display: flex; align-items: center; gap: 5px;
-    font-size: 11px; color: var(--ink);
-    background: #ffffff1f; border-radius: 3px; padding: 2px 5px;
+    display: flex; align-items: center; gap: 4px;
+    font-size: 10px; line-height: 13px; color: var(--ink);
+    background: #ffffff1f; border-radius: 3px; padding: 1px 4px;
+    /* 3칸을 다 껴도 카드가 안 넘치게 한 줄로 못 박는다 — 줄바꿈이 생기면
+       "거인의 심 / 장" 처럼 이름이 두 동강 난다. */
+    white-space: nowrap;
   }
-  #info .items img { width: 14px; height: 14px; image-rendering: pixelated; flex: none; }
+  #info .items img { width: 12px; height: 12px; image-rendering: pixelated; flex: none; }
   /* 아이템 카드의 큰 아이콘. 초상화 자리를 그대로 쓴다 — 16px 원본이라
      늘리면 뭉개지므로 픽셀 그대로 확대한다. */
   #info .hd img.itemart { image-rendering: pixelated; object-fit: contain; padding: 4px; }
-  #info .items b { color: #fff6e4; font-weight: 700; }
-  #info .items em { font-style: normal; margin-left: auto; padding-left: 6px; color: var(--gold); font-weight: 700; }
-  #info .sell { padding: 4px 0 0; border-top: 1px solid #ffffff1a; color: #d8ceba; font-size: 10px; }
+  #info .items b {
+    color: #fff6e4; font-weight: 700;
+    min-width: 0; overflow: hidden; text-overflow: ellipsis;
+  }
+  #info .items em {
+    font-style: normal; margin-left: auto; padding-left: 5px; flex: none;
+    color: var(--gold); font-weight: 700;
+  }
+  #info .sell { padding: 2px 0 0; border-top: 1px solid #ffffff1a; color: #d8ceba; font-size: 9px; }
   #info .sell b { color: var(--gold); }
   #info .sell b::before,
   #streak .bn::before {
