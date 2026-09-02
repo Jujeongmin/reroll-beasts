@@ -7,6 +7,7 @@ import { createRng } from './rng.js'
 import { unitById } from './data.js'
 import { activeTraits } from './traits.js'
 import { resolveStats, applyTraitEffects, traitSpecials } from './stats.js'
+import { applyItems, itemSpecials, mergeSpecials } from './items.js'
 import { findTarget } from './targeting.js'
 import { stepToward } from './movement.js'
 import { physicalDamage, magicDamage, applyDamage } from './damage.js'
@@ -79,11 +80,18 @@ function buildCombatants(entries, team, data, board) {
       if (t && t.effect) effects.push(t.effect)
     }
 
+    // 아이템은 **시너지 다음**에 얹는다. 퍼센트가 계통별로 따로 곱해진다.
+    const items = e.items ?? []
+    if (items.length > data.items.slotsPerUnit) {
+      throw new Error(
+        `아이템이 칸 수를 넘는다: ${e.unitId} 가 ${items.length} 개 (최대 ${data.items.slotsPerUnit})`,
+      )
+    }
     const base = resolveStats(unit, e.star, data.combat)
-    const stats = applyTraitEffects(base, effects)
-    // 숫자 스탯이 아닌 것들(도약·관통·부활 …)은 따로 실어 둔다.
+    const stats = applyItems(applyTraitEffects(base, effects), items, data.items)
+    // 숫자 스탯이 아닌 것들(도약·관통·부활·반사·흡혈 …)은 따로 실어 둔다.
     // stats 에 섞으면 effectiveStat 이 모르는 키를 읽어 조용히 NaN 이 된다.
-    const traits = traitSpecials(effects)
+    const traits = mergeSpecials(traitSpecials(effects), itemSpecials(items, data.items))
 
     const tile = toFieldTile(board, e.tile, team, data.combat.board)
     if (tile < 0) {
@@ -98,6 +106,7 @@ function buildCombatants(entries, team, data, board) {
       team,
       unitId: unit.id,
       star: e.star,
+      items,
       skill: unit.skill,
       tile,
       hp: stats.hp,
