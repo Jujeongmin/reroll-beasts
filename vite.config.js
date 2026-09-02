@@ -16,6 +16,10 @@ import { resolve } from 'node:path'
 // 코드에서는 절대경로(`/assets/...`, `/data/...`)로 참조한다.
 export default defineConfig({
   root: 'game',
+  // .env 는 저장소 루트에 있다(플랫폼이 VITE_AGENT8_VERSE 를 거기 쓴다).
+  // root 가 game/ 이라 envDir 을 안 주면 그 파일을 못 읽어 게임서버 접속이
+  // 'default' verse 로 가서 조용히 실패한다.
+  envDir: import.meta.dirname,
   publicDir: 'public',
 
   resolve: {

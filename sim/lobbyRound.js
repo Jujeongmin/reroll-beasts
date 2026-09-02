@@ -30,6 +30,23 @@ export function roundSeed(seed, round) {
 }
 
 /**
+ * 이 라운드의 대진. **쌍 안을 좌석 번호 오름차순으로 정렬한다.**
+ *
+ * 정렬하는 이유: 전투는 A 가 선공이라 진영 배정이 결과에 섞인다. 쌍의 순서가
+ * 셔플에서 나오면 클라(내가 항상 A 로 재생)와 서버(셔플 순서대로 판정)가
+ * 다른 답을 낸다. 낮은 번호 = A 로 못 박으면 양쪽이 같은 계산을 한다.
+ */
+export function roundPairs(state) {
+  const rng = createRng(roundSeed(state.seed, state.round))
+  return pairUp(state.seats, rng).map(([x, y]) => (x < y ? [x, y] : [y, x]))
+}
+
+/** 한 판의 전투 시드. 서버 판정과 클라 재생이 같은 값을 써야 한다. */
+export function fightSeed(seed, round, a, b) {
+  return (roundSeed(seed, round) + a * 131 + b * 977) >>> 0
+}
+
+/**
  * 봇 좌석의 판을 이 라운드 세기로 다시 짠다.
  *
  * 봇은 라운드 사이에 상태를 안 들고 다닌다. 사람이 그 자리를 대체하면
@@ -53,19 +70,20 @@ export function growBotSeats(state, data) {
  * @param {number} now   지금 시각 (ms)
  * @param {object} data  규칙 데이터
  */
-export function resolveRound(state, now, data) {
+export function resolveRound(state, now, data, { early = false } = {}) {
   if (state.phase !== 'prep') return { changed: false, fights: [] }
-  if (now < state.deadline) return { changed: false, fights: [] }
+  // early: 방에 사람이 하나뿐일 때 서버가 허용한다. 봇은 정찰을 안 하므로
+  // 혼자 일찍 넘겨도 손해 보는 사람이 없다. 사람이 둘 이상이면 마감이 법이다.
+  if (!early && now < state.deadline) return { changed: false, fights: [] }
 
   const info = roundAt(state.round, data.rounds)
-  const rng = createRng(roundSeed(state.seed, state.round))
-  const pairs = pairUp(state.seats, rng)
+  const pairs = roundPairs(state)
 
   const fights = []
   for (const [a, b] of pairs) {
     const seatA = state.seats[a]
     const seatB = state.seats[b]
-    const seed = (roundSeed(state.seed, state.round) + a * 131 + b * 977) >>> 0
+    const seed = fightSeed(state.seed, state.round, a, b)
     const r = simulate({ boardA: seatA.board, boardB: seatB.board, seed, data })
     fights.push({
       a,

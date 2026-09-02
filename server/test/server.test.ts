@@ -63,13 +63,36 @@ describe('정찰 — 배치 공유', () => {
   });
 });
 
-describe('라운드 진행 — 서버가 마감 시각을 쥔다', () => {
-  test('시간이 안 됐으면 진행하지 않는다', async (server) => {
+describe('라운드 진행', () => {
+  // 1인 방은 early 가 허용된다 — 봇은 정찰을 안 하니 혼자 일찍 넘겨도
+  // 손해 보는 사람이 없다. 덕분에 테스트가 마감 45초를 기다리지 않고
+  // 진행 경로 전체를 덮는다.
+  test('1인 방은 마감 전에도 라운드가 돈다', async (server) => {
     const before = await server.joinLobby();
-    // deadline 은 지금보다 한참 뒤다. 클라가 재촉해도 넘어가면 안 된다 —
-    // 넘어가면 배치 시간을 마음대로 건너뛸 수 있다.
     const after = await server.resolveRound();
-    expect(after.round).toBe(before.round);
-    expect(after.fights.length).toBe(0);
+    expect(after.round).toBe(before.round + 1);
+    expect(after.fights.length).toBe(4);
+    // 빈 판으로 섰으니 사람은 첫 판을 진다
+    expect(after.seats[0].hp).toBeLessThan(before.seats[0].hp);
+  });
+
+  test('전투 시드가 실려 온다 — 클라가 로그를 재생성할 근거다', async (server) => {
+    await server.joinLobby();
+    const s = await server.resolveRound();
+    for (const f of s.fights) {
+      expect(typeof f.seed).toBe('number');
+      expect(['A', 'B', 'draw']).toContain(f.winner);
+    }
+  });
+
+  test('여러 라운드를 연달아 돌려도 상태가 선다', async (server) => {
+    await server.joinLobby();
+    let s = null;
+    for (let i = 0; i < 5; i++) s = await server.resolveRound();
+    expect(s.round).toBeGreaterThan(1);
+    for (const seat of s.seats) {
+      expect(seat.hp).toBeGreaterThanOrEqual(0);
+      expect(seat.alive).toBe(seat.hp > 0);
+    }
   });
 });

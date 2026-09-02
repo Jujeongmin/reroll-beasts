@@ -50,6 +50,19 @@ describe('resolveRound — 마감 판정', () => {
     expect(s.phase).toBe('prep')
   })
 
+  it('early 면 마감 전에도 넘어간다 — 1인 방 전용 허용', () => {
+    const s = fresh()
+    const r = resolveRound(s, 0, data, { early: true })
+    expect(r.changed).toBe(true)
+    expect(s.round).toBe(2)
+  })
+
+  it('early 라도 끝난 판은 안 돈다', () => {
+    const s = fresh()
+    s.phase = 'done'
+    expect(resolveRound(s, 0, data, { early: true }).changed).toBe(false)
+  })
+
   it('끝난 판은 다시 안 돈다', () => {
     const s = fresh()
     s.phase = 'done'

@@ -124,7 +124,10 @@ export class Server {
       const state = await readLobby()
       if (!state) return null
 
-      const { changed, fights } = resolveRound(state, Date.now(), DATA)
+      // 사람이 하나뿐인 방은 마감 전에도 넘어갈 수 있다. 봇은 정찰을 안 하니
+      // 혼자 일찍 넘겨도 손해 보는 사람이 없다. 사람이 둘 이상이면 마감이 법이다.
+      const humans = state.seats.filter((s: any) => !s.isBot && s.alive).length
+      const { changed, fights } = resolveRound(state, Date.now(), DATA, { early: humans <= 1 })
       if (!changed) return state
 
       await $room.updateRoomState({ lobby: state })

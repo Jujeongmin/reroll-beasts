@@ -12,6 +12,7 @@ import { startRun, refreshShop, grantItem } from '@sim/roster.js'
 import { roundIncome, addXp } from '@sim/economy.js'
 import { roundAt, totalRounds, defeatDamage, grantIndices, itemSeed } from '@sim/rounds.js'
 import { createLocalMatchmaker } from './matchmaker.js'
+import { createServerMatchmaker } from './serverMatchmaker.js'
 import { createPrep } from './prep.js'
 import { createBattle } from './battle.js'
 
@@ -48,8 +49,16 @@ try {
   const rng = createRng(seed)
 
   const { state, pool } = startRun(data, rng)
-  // 상대는 여기서만 나온다. 서버판으로 갈 때 이 한 줄이 바뀐다.
-  const mm = createLocalMatchmaker({ data, seed })
+  // 상대는 여기서만 나온다. 서버 로비가 본선이고, 접속이 안 되면(오프라인
+  // 개발·서버 미배포) 기존 봇 로비로 떨어진다 — 조용히 죽는 대신 혼자라도 돈다.
+  let mm
+  try {
+    mm = await createServerMatchmaker({ data })
+    console.log('서버 로비 접속 — seed', mm.seed)
+  } catch (err) {
+    console.warn('서버 로비 실패, 봇 로비로 진행:', err?.message)
+    mm = createLocalMatchmaker({ data, seed })
+  }
   const run = {
     state,
     pool,
@@ -120,6 +129,9 @@ try {
     // 치명타·타겟 순서가 매판 똑같아진다.
     const battleSeed = roundSeed(run.index)
     const enemy = mm.opponentBoard(run.index)
+    // 서버 로비면 최종 보드를 지금 올린다 — 서버가 같은 판으로 판정해야
+    // 결과가 일치한다. 로컬 로비면 pushBoard 가 없어 그냥 지나간다.
+    mm.pushBoard?.(entries)
 
     let result
     try {

@@ -25,6 +25,7 @@
     "vitest": "^2.1.0"
   },
   "dependencies": {
+    "@agent8/gameserver": "^1.10.2",
     "three": "^0.185.1"
   }
 }
