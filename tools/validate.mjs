@@ -3,12 +3,13 @@
 
 import { pathToFileURL } from 'node:url'
 import { loadData } from '../sim/data.js'
+import { roundAt } from '../sim/rounds.js'
 
 const SKILL_TYPES = new Set(['single', 'aoe', 'buff', 'summon'])
 
 export function validate(data) {
   const errors = []
-  const { combat, units, traits, shop, economy, levels, rounds, lobby } = data
+  const { combat, units, traits, shop, economy, levels, rounds, lobby, items } = data
   const list = units.units
 
   const originIds = new Set(traits.origins.map((o) => o.id))
@@ -194,6 +195,41 @@ export function validate(data) {
     if (g.units > perSide) errors.push(`로비 편성 ${g.units} 기가 진영 ${perSide} 칸을 넘는다`)
     if (g.star < 1 || g.star > stars) errors.push(`로비 성급 ${g.star} 이 1~${stars} 밖이다`)
     if (!combat.tierBase[String(g.maxTier)]) errors.push(`로비 maxTier ${g.maxTier} 에 tierBase 가 없다`)
+  }
+
+  // 18. 아이템 id 가 유일하다. 겹치면 뒤엣것이 앞엣것을 조용히 덮는다.
+  const itemIds = items.items.map((i) => i.id)
+  if (new Set(itemIds).size !== itemIds.length) {
+    errors.push('아이템 id 가 중복이다')
+  }
+
+  // 19. 효과 키가 화이트리스트 안이다.
+  // 오타 난 키는 아무도 읽지 않아 "효과 없는 아이템"이 조용히 출시된다.
+  const ITEM_KEYS = new Set([
+    'hp', 'def', 'mr', 'power', 'manaStart',
+    'atkPct', 'attackSpeedPct', 'critChancePct',
+    'pierceCount', 'piercePct', 'thornsPct', 'lifestealPct', 'auraAtkPct', 'auraRadius',
+  ])
+  for (const it of items.items) {
+    if (!it.name?.ko) errors.push(`아이템 ${it.id} 에 한국어 이름이 없다`)
+    for (const k of Object.keys(it.effect ?? {})) {
+      if (!ITEM_KEYS.has(k)) errors.push(`아이템 ${it.id} 의 효과 키 "${k}" 를 아무도 읽지 않는다`)
+    }
+    if (Object.keys(it.effect ?? {}).length === 0) {
+      errors.push(`아이템 ${it.id} 에 효과가 없다`)
+    }
+  }
+
+  // 20. 지급 라운드 라벨이 실재한다. 스테이지 구성이 바뀌면 여기서 걸린다.
+  const labels = new Set()
+  for (let n = 1; n <= totalRounds; n++) labels.add(roundAt(n, rounds).label)
+  for (const label of items.grantRounds) {
+    if (!labels.has(label)) errors.push(`아이템 지급 라운드 "${label}" 이 실재하지 않는다`)
+  }
+
+  // 21. 유닛당 칸 수가 1 이상 정수다.
+  if (!Number.isInteger(items.slotsPerUnit) || items.slotsPerUnit < 1) {
+    errors.push(`items.json > slotsPerUnit 이 ${items.slotsPerUnit} 이다 (1 이상 정수여야 한다)`)
   }
 
   return errors

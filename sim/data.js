@@ -2,7 +2,7 @@
 // 규칙 수치는 전량 game/public/data/*.json 이 단일소스다.
 // 브라우저에서 import 로 바꾸면 번들에 박혀 JSON 만 고쳐 배포하는 길이 막힌다.
 
-const FILES = ['combat', 'units', 'traits', 'shop', 'economy', 'levels', 'rounds', 'lobby']
+const FILES = ['combat', 'units', 'traits', 'shop', 'economy', 'levels', 'rounds', 'lobby', 'items']
 
 const isNode =
   typeof process !== 'undefined' && process.versions != null && process.versions.node != null

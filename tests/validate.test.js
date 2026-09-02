@@ -62,4 +62,16 @@ describe('validate', () => {
     bad.traits.origins[0].steps = [2, 4]
     expect(validate(bad).some((m) => m.includes('effects 길이'))).toBe(true)
   })
+
+  it('아이템 효과 키에 오타가 나면 잡아낸다', () => {
+    const bad = clone(data)
+    bad.items.items[0].effect = { atkPercent: 20 }
+    expect(validate(bad).some((m) => m.includes('아무도 읽지 않는다'))).toBe(true)
+  })
+
+  it('없는 라운드에 아이템을 지급하면 잡아낸다', () => {
+    const bad = clone(data)
+    bad.items.grantRounds = ['9-9']
+    expect(validate(bad).some((m) => m.includes('실재하지 않는다'))).toBe(true)
+  })
 })
