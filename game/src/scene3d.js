@@ -1225,10 +1225,20 @@ export async function createScene({
    */
   function makeBadge({ team, star, withHp, items = [], showStars = true }) {
     const W = 128
-    // 아이템 줄을 **항상** 비워 둔다. 아이템 유무로 캔버스 높이를 바꾸면
-    // 끼우는 순간 배지 크기가 튀어 별 위치가 흔들린다.
-    const ITEM_ROW = 18
-    const H = (withHp ? 52 : 20) + ITEM_ROW
+    // 아이콘 한 칸 28px — 게임플레이 거리에서 16px는 뭘 꼈는지 안 읽혔다.
+    const ITEM_ICON = 28
+    const ITEM_GAP = 3
+    const ITEM_ROW = ITEM_ICON + 2 // 아이콘 + 어두운 받침판 위아래 1px씩
+
+    // 별·체력 칸 높이는 고정, 아이템 줄만 있을 때만 붙는다 — 항상 비워 두지
+    // 않는다. 스프라이트를 (0.5, 0) 로 바닥 앵커해 두면 캔버스 아랫변이 곧
+    // sprite.position.y(= 머리 높이)에 고정되므로, 줄이 붙어 캔버스가 키만
+    // 자라도 위쪽(별·체력)이 그만큼 위로 밀려 올라간다 — 아이템을 끼면
+    // 체력 바가 뜨는 게 지금 원하는 동작이다.
+    const baseH = withHp ? 52 : 20
+    let worn = items.slice(0, 3)
+    let H = baseH + (worn.length > 0 ? ITEM_ROW : 0)
+
     const cv = document.createElement('canvas')
     cv.width = W
     cv.height = H
@@ -1246,6 +1256,10 @@ export async function createScene({
     })
     const sprite = new THREE.Sprite(mat)
     sprite.renderOrder = 10
+    // 바닥 앵커. 기본값(0.5, 0.5)인 중심 앵커면 캔버스가 커질 때 위아래로
+    // 반씩 자라 모델 쪽으로 파고든다 — 배지 전체가 머리 위에 떠 있어야 하므로
+    // position.y 를 캔버스의 "아랫변"으로 잡고 위로만 자라게 한다.
+    sprite.center.set(0.5, 0)
     const w = spacing.unitStep * 0.92
     sprite.scale.set(w, (w * H) / W, 1)
 
@@ -1256,8 +1270,7 @@ export async function createScene({
     // "내 편 초록 / 상대 빨강" 은 체력만 쓰는 약속이다.
     const MANA_COLOR = '#5aa9ff'
 
-    // 지금 낀 아이템과 마지막으로 그린 인자. setItems 가 같은 값으로 다시 그린다.
-    let worn = items.slice(0, 3)
+    // 마지막으로 그린 인자. setItems 가 같은 값으로 다시 그린다.
     let lastArgs = {}
 
     function star5(cx, cy, r) {
@@ -1297,11 +1310,11 @@ export async function createScene({
       g.fillRect(2, y + 2, (W - 4) * Math.max(0, Math.min(1, frac)), h - 4)
     }
 
-    /** 맨 아래 줄. 16px 아이콘을 가운데 정렬로 최대 3개. */
+    /** 캔버스 맨 아래 줄(= 바닥 앵커라 화면상으로도 맨 아래). 28px 아이콘 최대 3개, 가운데 정렬. */
     function drawItems() {
       if (worn.length === 0) return
-      const size = 16
-      const gap = 2
+      const size = ITEM_ICON
+      const gap = ITEM_GAP
       const total = worn.length * size + (worn.length - 1) * gap
       let x = (W - total) / 2
       const y = H - ITEM_ROW + 1
@@ -1342,10 +1355,22 @@ export async function createScene({
     return {
       sprite,
       draw,
-      height: (w * H) / W,
-      /** 낀 아이템이 바뀌었을 때 부른다. 배지 크기는 안 변한다. */
+      get height() {
+        return (w * H) / W
+      },
+      /**
+       * 낀 아이템이 바뀌었을 때 부른다. 아이템 유무로 캔버스 높이 자체가
+       * 바뀌므로(있으면 ITEM_ROW 만큼 커진다) 다시 그리기 전에 캔버스 크기와
+       * 스프라이트 스케일부터 맞춘다. cv.height 대입은 2D 컨텍스트 상태를
+       * 초기화하지만 draw() 가 매번 fillStyle 등을 다시 세팅하며 그리므로
+       * 문제없다. 바닥 앵커(0.5, 0) 덕에 position.y 는 그대로 두어도
+       * 캔버스가 커진 만큼 위쪽(별·체력)이 위로 밀려 올라간다.
+       */
       setItems(ids) {
         worn = (ids ?? []).slice(0, 3)
+        H = baseH + (worn.length > 0 ? ITEM_ROW : 0)
+        cv.height = H
+        sprite.scale.set(w, (w * H) / W, 1)
         draw(lastArgs)
       },
     }
