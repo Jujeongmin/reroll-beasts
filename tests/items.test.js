@@ -521,3 +521,38 @@ describe('지급 결정론', () => {
     expect(got.size).toBeGreaterThan(1)
   })
 })
+
+describe('로그만으로 체력을 복원한다', () => {
+  it('반사·흡혈이 섞인 전투에서 로그 합이 실제 체력과 맞는다', () => {
+    const r = simulate({
+      boardA: [{ unitId: 'frog', star: 1, tile: 0, items: ['thorn_armor', 'vampiric_scythe'] }],
+      boardB: [{ unitId: 'orc', star: 1, tile: 0, items: ['thorn_armor'] }],
+      seed: 13,
+      data,
+    })
+
+    // spawn 으로 초기 체력을 잡고 로그를 그대로 적용한다.
+    const hp = new Map()
+    const maxHp = new Map()
+    for (const e of r.log) {
+      if (e.type === 'spawn') {
+        hp.set(e.casterId, e.maxHp)
+        maxHp.set(e.casterId, e.maxHp)
+      }
+      if (e.type === 'attack' || e.type === 'thorns' || e.type === 'dot') {
+        for (const id of e.targetIds ?? []) {
+          hp.set(id, Math.max(0, (hp.get(id) ?? 0) - (e.toHp ?? 0)))
+        }
+      }
+      if (e.type === 'heal') {
+        hp.set(e.casterId, Math.min(maxHp.get(e.casterId), (hp.get(e.casterId) ?? 0) + e.amount))
+      }
+      if (e.type === 'death') hp.set(e.casterId, 0)
+    }
+
+    // 진 쪽은 전부 0 이어야 한다.
+    const loser = r.winner === 'A' ? 'B' : 'A'
+    const spawns = r.log.filter((e) => e.type === 'spawn' && e.team === loser)
+    for (const s of spawns) expect(hp.get(s.casterId)).toBe(0)
+  })
+})

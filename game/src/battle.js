@@ -124,6 +124,11 @@ export async function createBattle({ data, scene }) {
         if (at) scene.spawnFx('wisp', at, { color: 0xdff0ff, size: 0.9, grow: 1.6, life: 0.3 })
         break
       }
+      case 'thorns': {
+        const at = fxAt(e.targetIds?.[0], 0.4)
+        if (at) scene.spawnFx('spark', at, { color: 0xe2e8f2, size: 0.7, grow: 1.8, life: 0.25 })
+        break
+      }
       case 'revive': {
         const at = fxAt(e.casterId, 0.3)
         if (at) {
@@ -236,6 +241,17 @@ export async function createBattle({ data, scene }) {
         for (const id of e.targetIds ?? []) {
           const ts = unitState.get(id)
           if (ts) ts.hp = Math.max(0, ts.hp - (e.amount ?? 0))
+        }
+        break
+
+      // 반사. casterId 는 되돌린 쪽이고 피해는 targetIds 가 받는다 —
+      // 이 방향을 뒤집으면 맞은 쪽이 회복하는 것처럼 보인다.
+      case 'thorns':
+        for (const id of e.targetIds ?? []) {
+          const ts = unitState.get(id)
+          if (!ts) continue
+          ts.shield = Math.max(0, ts.shield - (e.toShield ?? 0))
+          ts.hp = Math.max(0, ts.hp - (e.toHp ?? 0))
         }
         break
 
