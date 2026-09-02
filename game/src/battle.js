@@ -151,6 +151,18 @@ export async function createBattle({ data, scene }) {
         if (at) scene.spawnFx('slash', at, { color: 0xffd166, size: 0.9, grow: 1.5, life: 0.25 })
         break
       }
+      case 'skill_buff': {
+        // 버프엔 재생할 클립이 없다(모델에 버프 동작 자체가 없다) — 그럼
+        // 화면에서 아무 일도 안 일어난 것처럼 보이니, 대상마다 조용히 떠오르는
+        // 빛으로 "버프가 걸렸다"만 표시한다. grants 를 쓴다 — 실제로 효과를
+        // 받은 대상 목록이고(targetIds 와 내용은 같다), 훗날 대상 필터링이
+        // 갈라지면 grants 쪽이 진실이다.
+        for (const g of e.grants ?? []) {
+          const at = fxAt(g.id, 0.55)
+          if (at) scene.spawnFx('glow', at, { color: 0x9dffc2, size: 0.9, grow: 1.25, life: 0.5, rise: 0.5 })
+        }
+        break
+      }
       default:
         break
     }
@@ -187,8 +199,7 @@ export async function createBattle({ data, scene }) {
 
       case 'attack':
       case 'skill_single':
-      case 'skill_aoe':
-      case 'skill_buff': {
+      case 'skill_aoe': {
         if (st && v && st.alive) {
           st.anim = 'attack'
           st.animUntil = e.tick + 14
@@ -212,6 +223,33 @@ export async function createBattle({ data, scene }) {
             ts.animUntil = e.tick + 10
             tv.play(tv.anims.hit, { loop: false, fade: 0.05 })
           }
+        }
+        applyReplayEvent(unitState, e)
+        break
+      }
+
+      // 버프는 attack/skill_single 과 달리 대상 쪽에 재생할 클립이 없다 —
+      // 26종 유닛의 모델을 다 뒤져도 캐스트·버프 클립은 없고 attack·death·hit·
+      // idle·run 뿐이다. hit 을 대신 쓰면 "맞았다"는 그림이 되어 아군 버프를
+      // 받은 말이 얻어맞은 것처럼 움찔거린다.
+      //
+      // 캐스터도 targetIds(=grants)에 자기 자신을 넣는 자가 버프(pink_blob 등)
+      // 가 있어서, 위 공용 hit 루프를 그대로 타면 방금 튼 attack 클립을 같은
+      // 이벤트 안에서 hit 이 곧바로 덮어써 캐스트 동작이 화면에 아예 안 뜬다 —
+      // 그래서 캐스터 처리만 하고 대상 쪽 클립은 건드리지 않는다.
+      case 'skill_buff': {
+        if (st && v && st.alive) {
+          st.anim = 'attack'
+          st.animUntil = e.tick + 14
+          v.play(v.anims.attack, { loop: false, fade: 0.08 })
+          const t = unitState.get(e.targetIds?.[0])
+          if (t) {
+            const tt = tileOf(t.tile)
+            if (tt) v.faceTo(tt.x, tt.z)
+          }
+          // fireBolt 없음 — 버프는 아군에게 거는 것이지 쏘는 게 아니다. 지금은
+          // 원거리 말에 버프 스킬이 없어 우연히 안 터지지만, 데이터가 바뀌면
+          // 아군에게 투사체를 쏘게 되므로 애초에 부르지 않는다.
         }
         applyReplayEvent(unitState, e)
         break
