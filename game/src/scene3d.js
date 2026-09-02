@@ -5,6 +5,7 @@
 
 import * as THREE from 'three'
 import { GLTFLoader } from 'three/examples/jsm/loaders/GLTFLoader.js'
+import { MeshoptDecoder } from 'three/examples/jsm/libs/meshopt_decoder.module.js'
 import { clone as cloneSkinned } from 'three/examples/jsm/utils/SkeletonUtils.js'
 import { createRng } from '@sim/rng.js'
 import { hexSpacing, buildBoard3D } from './board3d.js'
@@ -179,7 +180,10 @@ export async function createScene({
   Object.assign(sun.shadow.camera, { left: -s, right: s, top: s, bottom: -s, near: 1, far: 60 })
   scene.add(sun)
 
-  const loader = new GLTFLoader()
+  // 몬스터 모델은 meshopt 로 압축된 .glb 다 (tools/build-assets.mjs 의 bakeModel).
+  // 디코더를 안 붙이면 로더가 EXT_meshopt_compression 을 모른다고 던진다 —
+  // 모델이 하나도 안 뜨는 형태로만 드러난다.
+  const loader = new GLTFLoader().setMeshoptDecoder(MeshoptDecoder)
   // 이미지 텍스처 공용 로더. 지형·이펙트가 같이 쓴다.
   const texLoader = new THREE.TextureLoader()
 

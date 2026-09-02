@@ -3,13 +3,22 @@
 //   node tools/build-assets.mjs
 //
 // Quaternius 몬스터 glTF 는 지오메트리와 텍스처가 전부 임베드된 자체완결
-// 파일이라 그대로 복사하면 된다 (.bin·.png 딸림 파일이 없다).
+// 파일이다. 그대로 두면 개당 1.2~1.4MB(32종 20MB)라 첫 로딩이 통째로
+// 그 시간이 된다 — .glb + meshopt 로 구워 내보낸다 (bakeModel).
 // KayKit 육각 타일은 .gltf + .bin + 공유 텍스처 셋이 한 벌이다.
 //
 // 팩 전체(380MB)를 public/ 에 넣지 않는다 — 거긴 빌드에 그대로 복사되는
 // 곳이라 안 쓰는 모델까지 플레이어에게 배포된다.
 
 import { readFile, writeFile, mkdir, copyFile, access } from 'node:fs/promises'
+// 몬스터 모델 압축. .gltf 는 바이너리를 base64 로 텍스트에 박는 포맷이라
+// 원본이 33% 부풀어 있다 — .glb 로 바꾸면 그게 빠지고, meshopt 를 얹으면
+// 지오메트리까지 줄어 20MB 가 6MB 아래로 떨어진다. 로더 쪽은 manifest 가
+// 파일명을 나르므로 확장자만 바뀌면 코드 변경이 없다.
+import { NodeIO } from '@gltf-transform/core'
+import { EXTMeshoptCompression, ALL_EXTENSIONS } from '@gltf-transform/extensions'
+import { dedup, quantize, reorder } from '@gltf-transform/functions'
+import { MeshoptEncoder } from 'meshoptimizer'
 import { PNG } from 'pngjs'
 import { fileURLToPath, pathToFileURL } from 'node:url'
 import { dirname, join } from 'node:path'
@@ -113,8 +122,47 @@ async function copyAsset(from, to) {
   return writeFile(to, small)
 }
 
+/**
+ * 몬스터 모델 하나를 .glb 로 굽는다.
+ *
+ * quantize 는 정점 속성을 정수로 줄인다 — 눈에 안 보이는 정밀도를 버려
+ * 파일을 절반으로 만든다. 스킨 애니메이션이 있는 모델이라 변환 뒤에
+ * 애니메이션·메시가 그대로인지 확인하고, 하나라도 사라지면 던진다.
+ * 조용히 넘어가면 화면에서 말이 안 움직이는 걸로만 드러난다.
+ */
+async function bakeModel(io, from, to) {
+  const before = await io.read(from)
+  const beforeShape = {
+    anims: before.getRoot().listAnimations().length,
+    meshes: before.getRoot().listMeshes().length,
+  }
+
+  const doc = await io.read(from)
+  await doc.transform(dedup(), reorder({ encoder: MeshoptEncoder }), quantize())
+  doc
+    .createExtension(EXTMeshoptCompression)
+    .setRequired(true)
+    .setEncoderOptions({ method: EXTMeshoptCompression.EncoderMethod.QUANTIZE })
+
+  const afterShape = {
+    anims: doc.getRoot().listAnimations().length,
+    meshes: doc.getRoot().listMeshes().length,
+  }
+  if (afterShape.anims !== beforeShape.anims || afterShape.meshes !== beforeShape.meshes) {
+    throw new Error(
+      `모델 변환이 내용을 잃었다: ${from} — 애니 ${beforeShape.anims}→${afterShape.anims}, 메시 ${beforeShape.meshes}→${afterShape.meshes}`,
+    )
+  }
+
+  await writeFile(to, Buffer.from(await io.writeBinary(doc)))
+}
+
 export async function buildAssets({ quiet = false } = {}) {
   const map = JSON.parse(await readFile(join(HERE, 'model-map.json'), 'utf8'))
+  await MeshoptEncoder.ready
+  const io = new NodeIO()
+    .registerExtensions(ALL_EXTENSIONS)
+    .registerDependencies({ 'meshopt.encoder': MeshoptEncoder })
   const src = join(ART, map.pack, map.root)
 
   // ── 유닛 모델 ──────────────────────────────────────────
@@ -130,14 +178,14 @@ export async function buildAssets({ quiet = false } = {}) {
       const from = join(src, entry.family, 'glTF', `${f}.gltf`)
       // 계열이 달라도 파일명이 같은 모델이 있다 (Big/Cactoro vs Blob/Cactoro).
       // 계열을 파일명에 넣어 충돌을 막는다.
-      const to = join(dest, `${entry.family}_${f}.gltf`)
-      await copyFile(from, to)
+      const to = join(dest, `${entry.family}_${f}.glb`)
+      await bakeModel(io, from, to)
       copied++
     }
 
     manifest.units[id] = {
-      base: `${entry.family}_${entry.file}.gltf`,
-      evolved: entry.evolved ? `${entry.family}_${entry.evolved}.gltf` : null,
+      base: `${entry.family}_${entry.file}.glb`,
+      evolved: entry.evolved ? `${entry.family}_${entry.evolved}.glb` : null,
       anims: map.animsByFamily[entry.family],
     }
   }

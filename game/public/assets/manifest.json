@@ -1,7 +1,7 @@
 {
   "units": {
     "green_blob": {
-      "base": "Blob_GreenBlob.gltf",
+      "base": "Blob_GreenBlob.glb",
       "evolved": null,
       "anims": {
         "idle": "Idle",
@@ -12,7 +12,7 @@
       }
     },
     "pink_blob": {
-      "base": "Blob_PinkBlob.gltf",
+      "base": "Blob_PinkBlob.glb",
       "evolved": null,
       "anims": {
         "idle": "Idle",
@@ -23,7 +23,7 @@
       }
     },
     "cat": {
-      "base": "Blob_Cat.gltf",
+      "base": "Blob_Cat.glb",
       "evolved": null,
       "anims": {
         "idle": "Idle",
@@ -34,7 +34,7 @@
       }
     },
     "chicken": {
-      "base": "Blob_Chicken.gltf",
+      "base": "Blob_Chicken.glb",
       "evolved": null,
       "anims": {
         "idle": "Idle",
@@ -45,8 +45,8 @@
       }
     },
     "mushnub": {
-      "base": "Blob_Mushnub.gltf",
-      "evolved": "Blob_Mushnub_Evolved.gltf",
+      "base": "Blob_Mushnub.glb",
+      "evolved": "Blob_Mushnub_Evolved.glb",
       "anims": {
         "idle": "Idle",
         "run": "Walk",
@@ -56,7 +56,7 @@
       }
     },
     "pigeon": {
-      "base": "Flying_Pigeon.gltf",
+      "base": "Flying_Pigeon.glb",
       "evolved": null,
       "anims": {
         "idle": "Flying_Idle",
@@ -67,8 +67,8 @@
       }
     },
     "goleling": {
-      "base": "Flying_Goleling.gltf",
-      "evolved": "Flying_Goleling_Evolved.gltf",
+      "base": "Flying_Goleling.glb",
+      "evolved": "Flying_Goleling_Evolved.glb",
       "anims": {
         "idle": "Flying_Idle",
         "run": "Fast_Flying",
@@ -78,7 +78,7 @@
       }
     },
     "bunny": {
-      "base": "Big_Bunny.gltf",
+      "base": "Big_Bunny.glb",
       "evolved": null,
       "anims": {
         "idle": "Idle",
@@ -89,7 +89,7 @@
       }
     },
     "spiky_blob": {
-      "base": "Blob_GreenSpikyBlob.gltf",
+      "base": "Blob_GreenSpikyBlob.glb",
       "evolved": null,
       "anims": {
         "idle": "Idle",
@@ -100,7 +100,7 @@
       }
     },
     "cactoro_blob": {
-      "base": "Blob_Cactoro.gltf",
+      "base": "Blob_Cactoro.glb",
       "evolved": null,
       "anims": {
         "idle": "Idle",
@@ -111,7 +111,7 @@
       }
     },
     "cactoro_big": {
-      "base": "Big_Cactoro.gltf",
+      "base": "Big_Cactoro.glb",
       "evolved": null,
       "anims": {
         "idle": "Idle",
@@ -122,8 +122,8 @@
       }
     },
     "glub": {
-      "base": "Flying_Glub.gltf",
-      "evolved": "Flying_Glub_Evolved.gltf",
+      "base": "Flying_Glub.glb",
+      "evolved": "Flying_Glub_Evolved.glb",
       "anims": {
         "idle": "Flying_Idle",
         "run": "Fast_Flying",
@@ -133,8 +133,8 @@
       }
     },
     "armabee": {
-      "base": "Flying_Armabee.gltf",
-      "evolved": "Flying_Armabee_Evolved.gltf",
+      "base": "Flying_Armabee.glb",
+      "evolved": "Flying_Armabee_Evolved.glb",
       "anims": {
         "idle": "Flying_Idle",
         "run": "Fast_Flying",
@@ -144,7 +144,7 @@
       }
     },
     "ghost": {
-      "base": "Flying_Ghost.gltf",
+      "base": "Flying_Ghost.glb",
       "evolved": null,
       "anims": {
         "idle": "Flying_Idle",
@@ -155,7 +155,7 @@
       }
     },
     "frog": {
-      "base": "Big_Frog.gltf",
+      "base": "Big_Frog.glb",
       "evolved": null,
       "anims": {
         "idle": "Idle",
@@ -166,7 +166,7 @@
       }
     },
     "wizard": {
-      "base": "Blob_Wizard.gltf",
+      "base": "Blob_Wizard.glb",
       "evolved": null,
       "anims": {
         "idle": "Idle",
@@ -177,8 +177,8 @@
       }
     },
     "alpaking": {
-      "base": "Flying_Alpaking.gltf",
-      "evolved": "Flying_Alpaking_Evolved.gltf",
+      "base": "Flying_Alpaking.glb",
+      "evolved": "Flying_Alpaking_Evolved.glb",
       "anims": {
         "idle": "Flying_Idle",
         "run": "Fast_Flying",
@@ -188,7 +188,7 @@
       }
     },
     "ghost_skull": {
-      "base": "Flying_Ghost_Skull.gltf",
+      "base": "Flying_Ghost_Skull.glb",
       "evolved": null,
       "anims": {
         "idle": "Flying_Idle",
@@ -199,7 +199,7 @@
       }
     },
     "orc": {
-      "base": "Big_Orc.gltf",
+      "base": "Big_Orc.glb",
       "evolved": null,
       "anims": {
         "idle": "Idle",
@@ -210,7 +210,7 @@
       }
     },
     "ninja": {
-      "base": "Big_Ninja.gltf",
+      "base": "Big_Ninja.glb",
       "evolved": null,
       "anims": {
         "idle": "Idle",
@@ -221,7 +221,7 @@
       }
     },
     "yeti": {
-      "base": "Big_Yeti.gltf",
+      "base": "Big_Yeti.glb",
       "evolved": null,
       "anims": {
         "idle": "Idle",
@@ -232,7 +232,7 @@
       }
     },
     "mushroom_king": {
-      "base": "Big_MushroomKing.gltf",
+      "base": "Big_MushroomKing.glb",
       "evolved": null,
       "anims": {
         "idle": "Idle",
@@ -243,7 +243,7 @@
       }
     },
     "orc_skull": {
-      "base": "Big_Orc_Skull.gltf",
+      "base": "Big_Orc_Skull.glb",
       "evolved": null,
       "anims": {
         "idle": "Idle",
@@ -254,8 +254,8 @@
       }
     },
     "dragon": {
-      "base": "Flying_Dragon.gltf",
-      "evolved": "Flying_Dragon_Evolved.gltf",
+      "base": "Flying_Dragon.glb",
+      "evolved": "Flying_Dragon_Evolved.glb",
       "anims": {
         "idle": "Flying_Idle",
         "run": "Fast_Flying",
@@ -265,7 +265,7 @@
       }
     },
     "blue_demon": {
-      "base": "Big_BlueDemon.gltf",
+      "base": "Big_BlueDemon.glb",
       "evolved": null,
       "anims": {
         "idle": "Idle",
@@ -276,7 +276,7 @@
       }
     },
     "dino": {
-      "base": "Big_Dino.gltf",
+      "base": "Big_Dino.glb",
       "evolved": null,
       "anims": {
         "idle": "Idle",
