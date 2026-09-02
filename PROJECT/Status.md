@@ -18,4 +18,7 @@
 - **비동기 PvP 스냅샷** (§10). 지금 로비는 봇이다 — `sim/lobby.js` 의 보드 출처만
   실제 스냅샷으로 바꾸면 된다
 - 증강체 · 코스메틱 · 광고 · 미션
-- 서버 검증 (`server/src/server.ts`) — `sim/` 을 import 할 수 있는지 미확인
+- 서버 API — `server/src/server.ts` 골격만 있다. **`sim/` import 는 확인됐다**:
+  서버가 클라와 같은 전투 결과를 낸다 (winner·틱·로그 줄까지 일치, `server/test`).
+  데이터는 JSON 을 직접 import 한다 — `loadData` 의 Node 분기는 번들러가 IIFE 로
+  묶으며 `import.meta.url` 이 비어 못 쓴다
