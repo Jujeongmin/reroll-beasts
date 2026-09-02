@@ -452,6 +452,22 @@ describe('인벤토리와 장착', () => {
     expect(state.items).toHaveLength(3)
   })
 
+  it('합성 승계는 자리 순서를 따른다 — 보드가 벤치보다 앞서고, 벤치는 번호 순이다', () => {
+    // 서버가 같은 상태에서 항상 같은 결과를 다시 내려면 승계 순서가 배열
+    // 순서가 아니라 자리 순서로 고정돼 있어야 한다. 보드를 벤치보다,
+    // 벤치는 번호가 앞선 쪽을 먼저 두어 순서가 뒤집히면 이 테스트가 잡는다.
+    const state = createRun(data)
+    state.board[3] = { uid: state.nextUid++, unitId: 'frog', star: 1, items: ['steel_sword', 'oak_shield'] }
+    state.bench[5] = { uid: state.nextUid++, unitId: 'frog', star: 1, items: ['giant_heart'] }
+    state.bench[2] = { uid: state.nextUid++, unitId: 'frog', star: 1, items: ['sage_orb'] }
+    resolveMerges(state, data)
+    const merged = state.board.find((c) => c && c.star === 2)
+    // 자리 순서: 보드(3) → 벤치 2 → 벤치 5. 강철검·참나무 방패(보드)가 먼저,
+    // 현자의 구슬(벤치 2)까지가 3칸을 채우고, 거인의 심장(벤치 5)은 넘친다.
+    expect(merged.items).toEqual(['steel_sword', 'oak_shield', 'sage_orb'])
+    expect(state.items).toEqual(['giant_heart'])
+  })
+
   it('산 유닛은 빈 칸으로 시작한다', () => {
     const state = createRun(data)
     const pool = createPool(data)
