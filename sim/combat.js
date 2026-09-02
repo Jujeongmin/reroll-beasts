@@ -166,6 +166,7 @@ export function simulate({ boardA, boardB, seed, data }) {
       team: c.team,
       tile: c.tile,
       star: c.star,
+      items: c.items,
       maxHp: c.maxHp,
       mana: c.mana,
       manaFull: cfg.mana.full,

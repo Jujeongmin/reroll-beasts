@@ -170,13 +170,6 @@ export async function createPrep({ data, run, onFight, onWatch, onPickUnit }) {
           v.dispose()
           continue
         }
-        // 성급 별을 머리 위에 띄운다. 1성은 기본이라 표시하지 않는다 —
-        // 아홉 마리 전부에 별이 뜨면 정작 2·3성이 안 보인다.
-        if (w.star > 1) {
-          v.badge = scene.makeBadge({ team: 'A', star: w.star, withHp: false })
-          v.badge.sprite.position.y = v.height + scene.spacing.stepX * 0.16
-          v.root.add(v.badge.sprite)
-        }
         scene.scene.add(v.root)
         v.play(v.anims.idle)
         views.set(uid, v)
@@ -190,6 +183,28 @@ export async function createPrep({ data, run, onFight, onWatch, onPickUnit }) {
       v.root.scale.setScalar(w.where === 'bench' ? BENCH_UNIT_SCALE : 1)
       // 준비 단계에는 전부 상대편(화면 위쪽)을 본다
       v.root.rotation.y = 0
+
+      // 배지를 만들 이유는 둘이다 — 2성 이상이거나, 아이템을 꼈거나.
+      // 1성이라도 아이템을 끼면 그게 보여야 한다. 별은 그래도 안 그린다.
+      const worn = w.items ?? []
+      const needBadge = w.star > 1 || worn.length > 0
+      if (needBadge && !v.badge) {
+        v.badge = scene.makeBadge({
+          team: 'A',
+          star: w.star,
+          withHp: false,
+          items: worn,
+          showStars: w.star > 1,
+        })
+        v.badge.sprite.position.y = v.height + scene.spacing.stepX * 0.16
+        v.root.add(v.badge.sprite)
+      } else if (!needBadge && v.badge) {
+        // 마지막 아이템을 판 유닛에서 빼면(= 유닛을 판) 배지도 사라진다.
+        v.root.remove(v.badge.sprite)
+        v.badge = null
+      } else if (v.badge) {
+        v.badge.setItems(worn)
+      }
     }
   }
 
@@ -244,8 +259,15 @@ export async function createPrep({ data, run, onFight, onWatch, onPickUnit }) {
       if (!t) continue
       v.root.position.set(t.x, scene.topY, t.z)
       v.root.rotation.y = 0
-      if (e.star > 1) {
-        v.badge = scene.makeBadge({ team: 'A', star: e.star, withHp: false })
+      const worn = e.items ?? []
+      if (e.star > 1 || worn.length > 0) {
+        v.badge = scene.makeBadge({
+          team: 'A',
+          star: e.star,
+          withHp: false,
+          items: worn,
+          showStars: e.star > 1,
+        })
         v.badge.sprite.position.y = v.height + scene.spacing.stepX * 0.16
         v.root.add(v.badge.sprite)
       }
@@ -1130,10 +1152,10 @@ export async function createPrep({ data, run, onFight, onWatch, onPickUnit }) {
   async function preload(onProgress) {
     const ids = data.units.units.map((u) => u.id)
     // 1성(기본)과 3성(진화) 모델이 다르다. 2성은 1성과 같은 모델을 쓴다.
-    const jobs = ids.flatMap((id) => [
-      () => thumbFor(id, 1),
-      () => thumbFor(id, 3),
-    ])
+    const jobs = [
+      ...ids.flatMap((id) => [() => thumbFor(id, 1), () => thumbFor(id, 3)]),
+      () => scene.preloadItemIcons(data.items.items.map((i) => i.id)),
+    ]
     let done = 0
     for (const job of jobs) {
       await job()

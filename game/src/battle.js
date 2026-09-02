@@ -417,7 +417,12 @@ export async function createBattle({ data, scene }) {
           shooters.set(sp.casterId, BOLT_COLOR[unit.class] ?? 0xffd166)
         }
         const v = await scene.makeUnit(sp.unitId, sp.star, sp.team)
-        v.badge = scene.makeBadge({ team: sp.team, star: sp.star, withHp: true })
+        v.badge = scene.makeBadge({
+          team: sp.team,
+          star: sp.star,
+          withHp: true,
+          items: sp.items ?? [],
+        })
         v.root.add(v.badge.sprite)
         scene.scene.add(v.root)
         views.set(sp.casterId, v)

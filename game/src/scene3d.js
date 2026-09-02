@@ -1195,15 +1195,40 @@ export async function createScene({
     }
   }
 
+  // 아이템 아이콘. 배지가 캔버스로 그리므로 텍스처가 아니라 이미지가 필요하다.
+  // 로드가 늦으면 배지가 빈 칸으로 한 프레임 그려지므로 프리로드에 얹는다.
+  const itemIcons = new Map()
+
+  function loadItemIcon(id) {
+    if (itemIcons.has(id)) return Promise.resolve()
+    return new Promise((resolve) => {
+      const img = new Image()
+      // 못 받아도 게임은 돌아야 한다 — 아이콘만 빠진다.
+      img.onload = () => {
+        itemIcons.set(id, img)
+        resolve()
+      }
+      img.onerror = () => resolve()
+      img.src = `/assets/ui/item_${id}.png`
+    })
+  }
+
+  async function preloadItemIcons(ids) {
+    await Promise.all(ids.map(loadItemIcon))
+  }
+
   /**
    * 말 위에 뜨는 배지. 성급 별과 (전투에서는) 체력 바를 같이 그린다.
    *
    * 캔버스로 그리는 이유: 별 개수와 색이 성급마다 달라 스프라이트 몇 장으로는
    * 안 되고, 체력은 매 프레임 바뀐다.
    */
-  function makeBadge({ team, star, withHp }) {
+  function makeBadge({ team, star, withHp, items = [], showStars = true }) {
     const W = 128
-    const H = withHp ? 52 : 20
+    // 아이템 줄을 **항상** 비워 둔다. 아이템 유무로 캔버스 높이를 바꾸면
+    // 끼우는 순간 배지 크기가 튀어 별 위치가 흔들린다.
+    const ITEM_ROW = 18
+    const H = (withHp ? 52 : 20) + ITEM_ROW
     const cv = document.createElement('canvas')
     cv.width = W
     cv.height = H
@@ -1230,6 +1255,10 @@ export async function createScene({
     // 마나는 양쪽 다 파랑이다. 팀 색으로 나누면 체력과 헷갈린다 —
     // "내 편 초록 / 상대 빨강" 은 체력만 쓰는 약속이다.
     const MANA_COLOR = '#5aa9ff'
+
+    // 지금 낀 아이템과 마지막으로 그린 인자. setItems 가 같은 값으로 다시 그린다.
+    let worn = items.slice(0, 3)
+    let lastArgs = {}
 
     function star5(cx, cy, r) {
       g.beginPath()
@@ -1268,10 +1297,32 @@ export async function createScene({
       g.fillRect(2, y + 2, (W - 4) * Math.max(0, Math.min(1, frac)), h - 4)
     }
 
+    /** 맨 아래 줄. 16px 아이콘을 가운데 정렬로 최대 3개. */
+    function drawItems() {
+      if (worn.length === 0) return
+      const size = 16
+      const gap = 2
+      const total = worn.length * size + (worn.length - 1) * gap
+      let x = (W - total) / 2
+      const y = H - ITEM_ROW + 1
+      for (const id of worn) {
+        const img = itemIcons.get(id)
+        // 어두운 판을 먼저 깐다. 밝은 바닥 위에서는 아이콘만으로 안 읽힌다.
+        g.fillStyle = '#0d0b12c0'
+        g.fillRect(x - 1, y - 1, size + 2, size + 2)
+        if (img) g.drawImage(img, x, y, size, size)
+        x += size + gap
+      }
+    }
+
     /** hp 가 null 이면 별만 그린다 (배치 단계). */
-    function draw({ hp = null, maxHp = 1, shield = 0, mana = 0, manaFull = 0 } = {}) {
+    function draw(o = {}) {
+      lastArgs = o
+      const { hp = null, maxHp = 1, shield = 0, mana = 0, manaFull = 0 } = o
       g.clearRect(0, 0, W, H)
-      drawStars()
+      // 1성은 별을 안 그린다 — 아홉 마리 전부에 별이 뜨면 2·3성이 안 보인다.
+      // 그런데 1성도 아이템은 끼므로 배지 자체는 있을 수 있다.
+      if (showStars) drawStars()
       if (withHp && hp !== null) {
         bar(24, 15, hp / maxHp, hpColor)
         // 보호막은 체력 위에 겹쳐 얹는다 — 칸을 따로 주면 띠가 세 줄이 된다.
@@ -1283,11 +1334,21 @@ export async function createScene({
         // 눈이 먼저 그쪽으로 간다.
         if (manaFull > 0) bar(41, 10, mana / manaFull, MANA_COLOR)
       }
+      drawItems()
       tex.needsUpdate = true
     }
 
     draw()
-    return { sprite, draw, height: (w * H) / W }
+    return {
+      sprite,
+      draw,
+      height: (w * H) / W,
+      /** 낀 아이템이 바뀌었을 때 부른다. 배지 크기는 안 변한다. */
+      setItems(ids) {
+        worn = (ids ?? []).slice(0, 3)
+        draw(lastArgs)
+      },
+    }
   }
 
   // ── 이펙트 ──────────────────────────────────────────────
@@ -1497,6 +1558,7 @@ export async function createScene({
     pickAt,
     pickObjects,
     makeBadge,
+    preloadItemIcons,
     spawnFx,
     updateFx,
     clearFx,

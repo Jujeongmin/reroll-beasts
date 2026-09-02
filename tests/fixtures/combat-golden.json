@@ -10,6 +10,7 @@
       "team": "A",
       "tile": 28,
       "star": 2,
+      "items": [],
       "maxHp": 675,
       "mana": 30,
       "manaFull": 100
@@ -22,6 +23,7 @@
       "team": "A",
       "tile": 36,
       "star": 2,
+      "items": [],
       "maxHp": 1578,
       "mana": 25,
       "manaFull": 100
@@ -34,6 +36,7 @@
       "team": "B",
       "tile": 19,
       "star": 2,
+      "items": [],
       "maxHp": 720,
       "mana": 30,
       "manaFull": 100
@@ -46,6 +49,7 @@
       "team": "B",
       "tile": 27,
       "star": 2,
+      "items": [],
       "maxHp": 675,
       "mana": 30,
       "manaFull": 100

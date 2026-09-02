@@ -219,6 +219,19 @@ describe('전투 — 아이템 배선', () => {
       }),
     ).toThrow(/칸/)
   })
+
+  it('spawn 로그가 낀 아이템을 싣는다', () => {
+    const r = simulate({
+      boardA: [{ unitId: 'frog', star: 1, tile: 0, items: ['steel_sword'] }],
+      boardB: [{ unitId: 'frog', star: 1, tile: 0 }],
+      seed: 1,
+      data,
+    })
+    const a0 = r.log.find((e) => e.type === 'spawn' && e.team === 'A')
+    expect(a0.items).toEqual(['steel_sword'])
+    const b0 = r.log.find((e) => e.type === 'spawn' && e.team === 'B')
+    expect(b0.items).toEqual([])
+  })
 })
 
 describe('전투 — 흡혈과 반사', () => {

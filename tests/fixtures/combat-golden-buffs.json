@@ -10,6 +10,7 @@
       "team": "A",
       "tile": 28,
       "star": 2,
+      "items": [],
       "maxHp": 2807,
       "mana": 15,
       "manaFull": 100
@@ -22,6 +23,7 @@
       "team": "A",
       "tile": 29,
       "star": 2,
+      "items": [],
       "maxHp": 1035,
       "mana": 30,
       "manaFull": 100
@@ -34,6 +36,7 @@
       "team": "A",
       "tile": 30,
       "star": 2,
+      "items": [],
       "maxHp": 3173,
       "mana": 10,
       "manaFull": 100
@@ -46,6 +49,7 @@
       "team": "A",
       "tile": 31,
       "star": 2,
+      "items": [],
       "maxHp": 1465,
       "mana": 30,
       "manaFull": 100
@@ -58,6 +62,7 @@
       "team": "B",
       "tile": 21,
       "star": 2,
+      "items": [],
       "maxHp": 675,
       "mana": 30,
       "manaFull": 100
@@ -70,6 +75,7 @@
       "team": "B",
       "tile": 22,
       "star": 2,
+      "items": [],
       "maxHp": 675,
       "mana": 30,
       "manaFull": 100
@@ -82,6 +88,7 @@
       "team": "B",
       "tile": 23,
       "star": 2,
+      "items": [],
       "maxHp": 936,
       "mana": 25,
       "manaFull": 100
@@ -94,6 +101,7 @@
       "team": "B",
       "tile": 24,
       "star": 2,
+      "items": [],
       "maxHp": 876,
       "mana": 25,
       "manaFull": 100
