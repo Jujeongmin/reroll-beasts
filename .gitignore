@@ -7,3 +7,6 @@ art-src/
 # 에셋 원본은 커밋하지 않는다 (용량·재배포 회피). README 만 남긴다
 art-src/*
 !art-src/README.md
+
+# 에이전트 작업 스크래치(진행 리포트 등) — 정식 기록은 docs/superpowers/ 에 남긴다
+.superpowers/
