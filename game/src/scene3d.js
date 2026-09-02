@@ -818,9 +818,17 @@ export async function createScene({
           fog: false,
         })
         const sprite = new THREE.Sprite(mat)
-        // 널빤지 윗면보다 살짝 띄운다 — 딱 붙이면 z-파이팅이 난다
-        // (대기석 위 유닛을 benchTopY + 0.08 로 띄우는 것과 같은 이유).
-        sprite.position.set(x, deckY + 0.05, z)
+        // 바닥 앵커. 기본(중심) 앵커면 스프라이트 절반이 널빤지 아래로
+        // 박힌다 — depthTest 가 켜져 있어(z-파이팅 방지용 depthWrite:false와
+        // 별개) 널빤지가 그 아랫부분을 가려 아이콘이 위쪽 절반만 남은 채
+        // 잘려 보였다. makeBadge 가 같은 이유로 center(0.5,0) 바닥 앵커를
+        // 쓴다 — 여기도 같은 규칙을 따른다.
+        sprite.center.set(0.5, 0)
+        // plank() 는 y 인자를 널빤지 그룹의 원점으로 쓰고, 실제 렌더링
+        // 윗면은 거기서 0.08 위다 (benchSpot() 이 유닛 발을 놓을 때 쓰는
+        // 값과 같은 상수 — 같은 팩의 같은 두께다). 그 위에 살짝만 더 띄워
+        // 널빤지에 박히지도, 눈에 띄게 뜨지도 않게 한다.
+        sprite.position.set(x, deckY + 0.08 + 0.02, z)
         sprite.scale.set(iconW, iconW, 1)
         sprite.visible = false
         sprite.userData.invIndex = i
