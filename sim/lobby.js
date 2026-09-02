@@ -7,7 +7,7 @@
 // 순수 함수다. 무작위성은 전부 rng 로 들어온다.
 
 import { simulate } from './combat.js'
-import { defeatDamage } from './rounds.js'
+import { defeatDamage, grantIndices } from './rounds.js'
 
 /** 이 라운드에 봇이 얼마나 강한가. */
 export function growthAt(roundIndex, lobbyCfg) {
@@ -39,8 +39,26 @@ export function botBoard(roundIndex, rng, data) {
   picked.sort((a, b) => range(a) - range(b) || a.id.localeCompare(b.id))
 
   const perRow = data.combat.board.rows[data.combat.board.allyRows[0]]
-  return picked.map((u, i) => ({ unitId: u.id, star: g.star, tile: i }))
+  const board = picked
+    .map((u, i) => ({ unitId: u.id, star: g.star, tile: i, items: [] }))
     .filter((e) => e.tile < perRow * data.combat.board.allyRows.length)
+
+  // 봇도 나와 같은 라운드에 아이템을 받는다. 안 주면 내가 아이템을 끼는
+  // 만큼 후반 난이도가 통째로 내려간다.
+  //
+  // 봇의 판은 라운드마다 새로 짜이므로 "지금까지 받았을 개수"를 여기서
+  // 다시 센다. 앞줄 유닛부터 칸을 채운다 — 앞이 먼저 싸우고 먼저 죽는다.
+  const owed = [...grantIndices(data)].filter((n) => n <= roundIndex).length
+  const cap = data.items.slotsPerUnit
+  const list = data.items.items
+  let given = 0
+  for (const e of board) {
+    while (e.items.length < cap && given < owed) {
+      e.items.push(list[rng.int(list.length)].id)
+      given++
+    }
+  }
+  return board
 }
 
 export function createLobby(data, rng) {

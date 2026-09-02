@@ -147,6 +147,36 @@ describe('남의 판 정산', () => {
   })
 })
 
+describe('봇 아이템', () => {
+  it('첫 라운드에는 아무도 아이템이 없다', () => {
+    const board = botBoard(1, createRng(1), data)
+    expect(board.every((e) => e.items.length === 0)).toBe(true)
+  })
+
+  it('후반 라운드에는 아이템이 붙는다', () => {
+    const board = botBoard(23, createRng(1), data)
+    const total = board.reduce((n, e) => n + e.items.length, 0)
+    expect(total).toBeGreaterThan(0)
+  })
+
+  it('유닛당 칸 수를 넘지 않는다', () => {
+    const board = botBoard(23, createRng(1), data)
+    for (const e of board) expect(e.items.length).toBeLessThanOrEqual(data.items.slotsPerUnit)
+  })
+
+  it('지급 라운드 수를 넘게 주지 않는다', () => {
+    const board = botBoard(23, createRng(1), data)
+    const total = board.reduce((n, e) => n + e.items.length, 0)
+    expect(total).toBeLessThanOrEqual(data.items.grantRounds.length)
+  })
+
+  it('같은 시드는 같은 아이템을 낸다', () => {
+    const a = botBoard(23, createRng(9), data)
+    const b = botBoard(23, createRng(9), data)
+    expect(a).toEqual(b)
+  })
+})
+
 describe('성장 · 순위', () => {
   it('탈락자와 나는 보드를 새로 짜지 않는다', () => {
     const l = createLobby(data, createRng(9))
