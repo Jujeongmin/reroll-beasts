@@ -667,6 +667,9 @@ export async function createScene({
   let benchTopY = 0
   // 벤치가 판보다 넓다 (9칸 > 7칸). 프레이밍이 이 범위를 알아야 양 끝이 안 잘린다.
   let benchExtent = null
+  // 아이템 선반이 차지한 자리. 풀·자갈을 뿌릴 때 이 위는 비운다 —
+  // 나무 선반 위에 잔디가 자라면 판이 아니라 들판으로 읽힌다.
+  let shelfArea = null
   // 가진 아이템(아직 안 낀 것) 선반. 대기석 왼쪽에 세운다 — DOM 아이콘 줄로
   // 두면 3D 말과 2D 줄이 따로 놀아 "같은 세계"로 안 읽힌다. 벤치를 3D로
   // 세운 것과 같은 이유다. 슬롯은 고정 7개(런이 가질 수 있는 최대치)를
@@ -858,6 +861,12 @@ export async function createScene({
       // 선반이 대기석보다 왼쪽으로 더 나간 만큼, 프레이밍이 쓰는 범위도
       // 넓혀야 화면 가장자리에서 잘리지 않는다 — benchExtent 가 정확히
       // 그 용도로 있다 (주석: "프레이밍이 이 범위를 알아야 양 끝이 안 잘린다").
+      shelfArea = {
+        minX: shelfCx - gridW / 2 - gap,
+        maxX: shelfCx + gridW / 2 + gap,
+        minZ: shelfZ - gridD / 2 - gap,
+        maxZ: shelfZ + gridD / 2 + gap,
+      }
       benchExtent.minX = Math.min(benchExtent.minX, shelfCx - gridW / 2 - gap)
       benchExtent.minZ = Math.min(benchExtent.minZ, shelfZ - gridD / 2 - gap)
       benchExtent.maxZ = Math.max(benchExtent.maxZ, shelfZ + gridD / 2 + gap)
@@ -1077,6 +1086,15 @@ export async function createScene({
         const t = rng.int(2) === 0 ? -1 : 1
         const x = (t < 0 ? arena.minX : arena.maxX) + t * spacing.stepX * (0.25 + rng.int(40) / 100)
         const z = arena.minZ + (rng.int(1000) / 1000) * arena.d
+        // 선반 위는 건너뛴다. 나무 판 위에 풀이 얹히면 아이템이 수풀에
+        // 묻혀 안 보인다.
+        if (
+          shelfArea &&
+          x >= shelfArea.minX && x <= shelfArea.maxX &&
+          z >= shelfArea.minZ && z <= shelfArea.maxZ
+        ) {
+          continue
+        }
         const o = grass[rng.int(grass.length)].clone(true)
         o.position.set(x, -0.02, z)
         o.rotation.y = (rng.int(360) * Math.PI) / 180
