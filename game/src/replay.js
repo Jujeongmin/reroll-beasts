@@ -75,21 +75,25 @@ export function applyReplayEvent(unitState, e) {
       break
     }
 
+    // dot 의 top-level toShield·toHp 는 대상 하나만을 위한 값이다
+    // (sim/combat.js:361, targetIds 는 항상 [c.id] 하나뿐이다) — 배열로 순회하면
+    // 여럿에게 뿌리는 계약처럼 보이지만, 여럿에게 뿌린 피해는 hits[] 로 오는
+    // skill_aoe·death_blast·skill_splash 처럼 다른 모양을 쓴다.
     case 'dot': {
-      for (const id of e.targetIds ?? []) {
-        const ts = unitState.get(id)
-        if (!ts) continue
+      const ts = unitState.get(e.targetIds?.[0])
+      if (ts) {
         ts.shield = Math.max(0, ts.shield - (e.toShield ?? 0))
         ts.hp = Math.max(0, ts.hp - (e.toHp ?? 0))
       }
       break
     }
 
-    // 반사. casterId 는 되돌린 쪽이고 피해는 targetIds 가 받는다.
+    // 반사. casterId 는 되돌린 쪽이고, top-level toShield·toHp 는 targetIds[0]
+    // (되돌려받는 쪽) 하나만을 위한 값이다 (sim/combat.js:479 도 항상 단일
+    // 대상만 싣는다) — 여럿에게 뿌린 피해는 hits[] 를 쓰는 다른 이벤트들과 모양이 다르다.
     case 'thorns': {
-      for (const id of e.targetIds ?? []) {
-        const ts = unitState.get(id)
-        if (!ts) continue
+      const ts = unitState.get(e.targetIds?.[0])
+      if (ts) {
         ts.shield = Math.max(0, ts.shield - (e.toShield ?? 0))
         ts.hp = Math.max(0, ts.hp - (e.toHp ?? 0))
       }

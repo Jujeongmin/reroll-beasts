@@ -102,3 +102,62 @@
 
 `PROJECT/Status.md` 의 `불변식 22종 + 테스트 369개` → `383개` 로 갱신
 (`tests/replay.test.js` 14개 추가).
+
+## 후속 조치 (code review 후속 3건)
+
+### M1 — 전체 전투 테스트가 "범위 안"만 보고 "정확한 회계"는 안 보던 문제
+
+`tests/replay.test.js` `replayFullLog` 에 두 가지를 추가했다.
+
+1. `death` 이벤트를 적용하기 *전에*, 그 유닛의 hp 가 이미 0 이어야 한다는
+   assertion (`expect(st?.hp).toBe(0)`). death 는 사건이 이미 0 으로 깎아둔 걸
+   확정할 뿐, 재생기가 그 자리에서 스스로 0 으로 만드는 게 아니라는 뜻이다.
+2. 동반 불변식도 넣었다: hp 가 0 이 됐는데 아직 alive 인 유닛을 `zeroHpPending`
+   Set 에 담아두고, death 로 alive 가 꺼지면 지운다. 로그 끝까지 가도 안 풀린
+   채 남으면 실패 — 기존 "최종 상태" 검사(death 로그 없으면 hp>0)가 놓치는
+   중간 상태(0 으로 떨어졌다가 death 없이 다시 회복되는 경우)를 잡는다. 5줄
+   안으로 깔끔하게 들어가서 스킵하지 않고 넣었다.
+
+**사보타주 증거** — `game/src/replay.js` 의 `skill_splash` 를 잠시 no-op 으로
+되돌리고 버섯 픽스처만 돌렸다:
+
+```
+✗ 버섯 시너지(튄 피해) 대진 — skill_splash 를 포함해 생존자 수가 일치
+  → 유닛 5 는 death 이벤트가 오기 전부터 hp 0 이어야 한다: expected 51 to be +0
+- Expected: 0
++ Received: 51
+```
+
+리뷰어가 말한 "잔여 hp 51, 두 유닛" 중 하나와 정확히 일치. 확인 후 원복,
+`npx vitest run tests/replay.test.js` 14→17개 전부 통과 확인.
+
+### M2 — `thorns`·`heal` 이 이음매를 건넜는데 테스트가 없던 문제
+
+같은 파일에 손으로 만든 케이스 2개(테스트 3개) 추가:
+
+- `thorns` — `casterId`(반사한 쪽)는 안 건드리고 `targetIds[0]`(되돌려받는
+  쪽)의 shield·hp 만 깎이는지 확인.
+- `heal` — `casterId` 의 hp 가 amount 만큼 오르고, `maxHp` 에서 잘리는지
+  (290+50 → 300) 확인.
+
+640전 시뮬 중 두 이벤트 모두 한 번도 안 나온 픽스처였다는 리뷰 지적대로,
+`sim/combat.js`·`sim/skills.js` 를 안 건드리고 이벤트 오브젝트를 손으로
+만들어 재생기만 시험했다.
+
+### M4 — `dot`·`thorns` 가 targetIds 를 순회하며 top-level 값 하나를 매번 적용하던 문제
+
+`game/src/replay.js` 의 두 case 를 `for (const id of e.targetIds ?? [])` 에서
+`unitState.get(e.targetIds?.[0])` 로 바꿨다. 두 이벤트 모두 emitter
+(`sim/combat.js:361`, `:479`)가 항상 단일 대상만 싣는다는 사실은 그대로라 동작
+변화는 없다 — 목적은 "여럿에게 뿌린다"는 잘못된 계약을 코드 모양에서
+지우는 것. hits[] 를 쓰는 skill_aoe·death_blast·skill_splash 와 구분한다는
+한국어 주석을 남겼다.
+
+## 건너뛴 것
+
+없음. M1 의 동반 불변식(hp 0 → death/revive)도 포함해 전부 적용했다.
+
+## 참고 — 테스트 카운트 갱신
+
+`PROJECT/Status.md` 의 `불변식 22종 + 테스트 383개` → `386개`
+(`tests/replay.test.js` 14→17개, +3: thorns 1 + heal 2).

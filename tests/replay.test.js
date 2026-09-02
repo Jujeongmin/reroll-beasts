@@ -182,6 +182,51 @@ describe('replay: skill_buff — HP 를 건드리지 않는다', () => {
   })
 })
 
+describe('replay: thorns — 되돌린 쪽(casterId) 말고 되돌려받는 쪽(targetIds)이 깎인다', () => {
+  it('targetIds 의 보호막·HP 가 깎이고, casterId(반사한 쪽)는 그대로다', () => {
+    const unitState = new Map()
+    const attacker = spawnState({ casterId: 0 }) // 반사 피해를 되돌려받는 쪽
+    attacker.shield = 5
+    const reflector = spawnState({ casterId: 1 }) // 가시 갑옷으로 반사한 쪽
+    unitState.set(0, attacker)
+    unitState.set(1, reflector)
+
+    // sim/combat.js: casterId 는 victim(반사한 쪽), targetIds 는 [반사 맞는 쪽].
+    applyReplayEvent(unitState, {
+      type: 'thorns', casterId: 1, targetIds: [0], amount: 12, toShield: 5, toHp: 7,
+    })
+
+    expect(attacker.shield).toBe(0)
+    expect(attacker.hp).toBe(300 - 7)
+    expect(reflector.hp).toBe(300)
+    expect(reflector.shield).toBe(0)
+  })
+})
+
+describe('replay: heal — casterId 의 HP 를 올리고 maxHp 에서 잘린다', () => {
+  it('회복량만큼 HP 가 오른다', () => {
+    const unitState = new Map()
+    const st = spawnState()
+    st.hp = 250
+    unitState.set(0, st)
+
+    applyReplayEvent(unitState, { type: 'heal', casterId: 0, targetIds: [0], amount: 30 })
+
+    expect(st.hp).toBe(280)
+  })
+
+  it('maxHp 를 넘겨 회복하지 않는다', () => {
+    const unitState = new Map()
+    const st = spawnState()
+    st.hp = 290
+    unitState.set(0, st)
+
+    applyReplayEvent(unitState, { type: 'heal', casterId: 0, targetIds: [0], amount: 50 })
+
+    expect(st.hp).toBe(300)
+  })
+})
+
 describe('replay: shield — 절대값으로 설정, 0 은 만료', () => {
   it('shield 이벤트는 보호막을 그 값으로 설정한다', () => {
     const unitState = new Map()
@@ -229,19 +274,36 @@ describe('replay: revive — 되살리고 HP 를 로그값으로, 보호막은 �
 function replayFullLog(result) {
   const unitState = new Map()
   const teamOf = new Map()
+  // hp 가 0 이 됐는데 아직 death 로 안 풀린 유닛. death 가 오기 전, 사건이
+  // 스스로 hp 를 0 으로 깎아놓지 않으면 이 재생기가 뭘 지어냈다는 뜻이다.
+  const zeroHpPending = new Set()
   for (const e of result.log) {
     if (e.type === 'spawn') {
       unitState.set(e.casterId, createUnitState(e))
       teamOf.set(e.casterId, e.team)
       continue
     }
+
+    // death 는 사건이 이미 0 으로 만들어둔 hp 를 확정할 뿐, 재생기가 여기서
+    // 처음 0 으로 깎는 게 아니다 — 아니면 사망 직전 몫이 남몰래 안 적용된
+    // 채로 사망만 찍히는 버그(과거 skill_splash 가 그랬다)를 못 잡는다.
+    if (e.type === 'death') {
+      const st = unitState.get(e.casterId)
+      expect(st?.hp, `유닛 ${e.casterId} 는 death 이벤트가 오기 전부터 hp 0 이어야 한다`).toBe(0)
+    }
+
     applyReplayEvent(unitState, e)
     // hp 는 절대 음수도, maxHp 초과도 아니어야 한다 — 매 사건마다 검사한다.
-    for (const [, st] of unitState) {
+    for (const [id, st] of unitState) {
       expect(st.hp).toBeGreaterThanOrEqual(0)
       expect(st.hp).toBeLessThanOrEqual(st.maxHp)
+      if (st.hp === 0 && st.alive) zeroHpPending.add(id)
+      else zeroHpPending.delete(id)
     }
   }
+  // 로그 끝까지 가도록 안 풀린 채 남은 유닛이 있으면 hp 는 0인데 death 로그가
+  // 없다는 뜻 — 위 최종 상태 검사보다 먼저, 중간에 이 상태가 그대로 굳었는지를 잡는다.
+  expect([...zeroHpPending], 'hp 0 인데 death/revive 로 안 풀린 유닛이 있다').toEqual([])
   return { unitState, teamOf }
 }
 
