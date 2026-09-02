@@ -168,6 +168,25 @@ export async function createBattle({ data, scene }) {
     }
   }
 
+  /**
+   * 캐스터의 캐스트 동작(attack 클립)을 틀고 첫 대상을 바라보게 한다.
+   * attack·skill_single·skill_aoe·skill_buff 가 전부 이 절차를 공유한다.
+   *
+   * fireBolt 는 **여기 없다** — 버프는 아군에게 거는 것이지 쏘는 게 아니라서,
+   * 피해를 주는 케이스에서만 따로 부른다.
+   */
+  function playCast(st, v, e) {
+    if (!st || !v || !st.alive) return
+    st.anim = 'attack'
+    st.animUntil = e.tick + 14
+    v.play(v.anims.attack, { loop: false, fade: 0.08 })
+    const t = unitState.get(e.targetIds?.[0])
+    if (t) {
+      const tt = tileOf(t.tile)
+      if (tt) v.faceTo(tt.x, tt.z)
+    }
+  }
+
   function applyEvent(e) {
     fxFor(e)
     if (e.type === 'mana') {
@@ -200,17 +219,8 @@ export async function createBattle({ data, scene }) {
       case 'attack':
       case 'skill_single':
       case 'skill_aoe': {
-        if (st && v && st.alive) {
-          st.anim = 'attack'
-          st.animUntil = e.tick + 14
-          v.play(v.anims.attack, { loop: false, fade: 0.08 })
-          const t = unitState.get(e.targetIds?.[0])
-          if (t) {
-            const tt = tileOf(t.tile)
-            if (tt) v.faceTo(tt.x, tt.z)
-          }
-          fireBolt(e.casterId, e.targetIds?.[0])
-        }
+        playCast(st, v, e)
+        if (st && v && st.alive) fireBolt(e.casterId, e.targetIds?.[0])
         // 애니메이션은 **피해가 반영되기 전** 살아있었는지로 결정한다 — 판정
         // 순서를 그대로 따라야 죽는 순간 맞는 동작이 다시 재생되지 않는다.
         const hits = e.type === 'skill_aoe' ? (e.hits ?? []).map((h) => h.id) : (e.targetIds ?? [])
@@ -238,19 +248,10 @@ export async function createBattle({ data, scene }) {
       // 이벤트 안에서 hit 이 곧바로 덮어써 캐스트 동작이 화면에 아예 안 뜬다 —
       // 그래서 캐스터 처리만 하고 대상 쪽 클립은 건드리지 않는다.
       case 'skill_buff': {
-        if (st && v && st.alive) {
-          st.anim = 'attack'
-          st.animUntil = e.tick + 14
-          v.play(v.anims.attack, { loop: false, fade: 0.08 })
-          const t = unitState.get(e.targetIds?.[0])
-          if (t) {
-            const tt = tileOf(t.tile)
-            if (tt) v.faceTo(tt.x, tt.z)
-          }
-          // fireBolt 없음 — 버프는 아군에게 거는 것이지 쏘는 게 아니다. 지금은
-          // 원거리 말에 버프 스킬이 없어 우연히 안 터지지만, 데이터가 바뀌면
-          // 아군에게 투사체를 쏘게 되므로 애초에 부르지 않는다.
-        }
+        // fireBolt 를 부르지 않는다 — 지금은 원거리 말에 버프 스킬이 없어
+        // 우연히 안 터지지만, 데이터가 바뀌면 아군에게 투사체를 쏘게 되므로
+        // playCast 뒤에 애초에 이어 부르지 않는다(damage 케이스와 다른 점).
+        playCast(st, v, e)
         applyReplayEvent(unitState, e)
         break
       }
