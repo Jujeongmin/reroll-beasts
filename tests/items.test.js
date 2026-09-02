@@ -523,36 +523,83 @@ describe('지급 결정론', () => {
 })
 
 describe('로그만으로 체력을 복원한다', () => {
-  it('반사·흡혈이 섞인 전투에서 로그 합이 실제 체력과 맞는다', () => {
-    const r = simulate({
-      boardA: [{ unitId: 'frog', star: 1, tile: 0, items: ['thorn_armor', 'vampiric_scythe'] }],
-      boardB: [{ unitId: 'orc', star: 1, tile: 0, items: ['thorn_armor'] }],
-      seed: 13,
-      data,
-    })
+  it('thorns 를 반영해야만 로그와 화면의 체력이 맞는다', () => {
+    // frog 만 가시 갑옷을 낀다. 오크도 같이 끼우면 "casterId 가 갑옷 주인이다" 는
+    // 검사가 양쪽 다 참이 되어 방향이 뒤집혀도 못 잡는다 — 한쪽만 입혀야
+    // casterId(반사한 쪽)·targetIds[0](때린 쪽) 을 board 원본으로 확정할 수 있다.
+    const boardA = [{ unitId: 'frog', star: 1, tile: 0, items: ['thorn_armor', 'vampiric_scythe'] }]
+    const boardB = [{ unitId: 'orc', star: 1, tile: 0, items: [] }]
+    const r = simulate({ boardA, boardB, seed: 13, data })
 
-    // spawn 으로 초기 체력을 잡고 로그를 그대로 적용한다.
-    const hp = new Map()
-    const maxHp = new Map()
-    for (const e of r.log) {
-      if (e.type === 'spawn') {
-        hp.set(e.casterId, e.maxHp)
-        maxHp.set(e.casterId, e.maxHp)
-      }
-      if (e.type === 'attack' || e.type === 'thorns' || e.type === 'dot') {
-        for (const id of e.targetIds ?? []) {
-          hp.set(id, Math.max(0, (hp.get(id) ?? 0) - (e.toHp ?? 0)))
-        }
-      }
-      if (e.type === 'heal') {
-        hp.set(e.casterId, Math.min(maxHp.get(e.casterId), (hp.get(e.casterId) ?? 0) + e.amount))
-      }
-      if (e.type === 'death') hp.set(e.casterId, 0)
+    const spawns = r.log.filter((e) => e.type === 'spawn')
+    // 각 진영 한 마리뿐이라 team 매칭만으로 board 원본과 spawn 이 1:1 로 이어진다.
+    const wearerTeam = boardA[0].items.includes('thorn_armor') ? 'A' : 'B'
+    const wearerId = spawns.find((s) => s.team === wearerTeam).casterId
+    const attackerId = spawns.find((s) => s.team !== wearerTeam).casterId
+
+    const thornsEvents = r.log.filter((e) => e.type === 'thorns')
+    expect(thornsEvents.length).toBeGreaterThan(0)
+
+    // ── 방향: casterId 는 갑옷 주인, targetIds[0] 은 때린 쪽이어야 한다.
+    // 뒤집히면 맞은 쪽이 회복하는 것처럼 보이는 그 버그를 여기서 잡는다.
+    for (const e of thornsEvents) {
+      expect(e.casterId).toBe(wearerId)
+      expect(e.targetIds[0]).toBe(attackerId)
     }
 
-    // 진 쪽은 전부 0 이어야 한다.
-    const loser = r.winner === 'A' ? 'B' : 'A'
-    const spawns = r.log.filter((e) => e.type === 'spawn' && e.team === loser)
-    for (const s of spawns) expect(hp.get(s.casterId)).toBe(0)
+    // ── 재구성: 로그만으로 화면을 복원한다는 게 이 게임의 규칙이다
+    // (PROJECT/Status.md). thorns 를 반영한 재구성과 무시한 재구성을 각각
+    // 만들어 비교한다 — 화면이 thorns 를 씹어도 안 달라지는 값이면
+    // (예: 진 쪽 체력을 death 로 0 으로 덮어쓰는 값) 이 버그를 못 잡는다.
+    function reconstruct({ applyThorns }) {
+      const hp = new Map()
+      const maxHp = new Map()
+      let wearerDeathZeroTick = null
+      for (const e of r.log) {
+        if (e.type === 'spawn') {
+          hp.set(e.casterId, e.maxHp)
+          maxHp.set(e.casterId, e.maxHp)
+        }
+        // battle.js 의 attack/skill_single/skill_aoe/skill_buff/dot 묶음과 같은 대상.
+        if (['attack', 'skill_single', 'skill_aoe', 'skill_buff', 'dot'].includes(e.type)) {
+          const ids = e.type === 'skill_aoe' ? (e.hits ?? []).map((h) => h.id) : (e.targetIds ?? [])
+          for (const id of ids) {
+            const toHp =
+              e.type === 'skill_aoe' ? (e.hits.find((h) => h.id === id)?.toHp ?? 0) : (e.toHp ?? 0)
+            hp.set(id, Math.max(0, (hp.get(id) ?? 0) - toHp))
+            if (id === wearerId && hp.get(id) === 0 && wearerDeathZeroTick === null) {
+              wearerDeathZeroTick = e.tick
+            }
+          }
+        }
+        if (applyThorns && e.type === 'thorns') {
+          for (const id of e.targetIds ?? []) {
+            hp.set(id, Math.max(0, (hp.get(id) ?? 0) - (e.toHp ?? 0)))
+          }
+        }
+        if (e.type === 'heal') {
+          hp.set(e.casterId, Math.min(maxHp.get(e.casterId), (hp.get(e.casterId) ?? 0) + e.amount))
+        }
+      }
+      return { hp, wearerDeathZeroTick }
+    }
+
+    const withThorns = reconstruct({ applyThorns: true })
+    const withoutThorns = reconstruct({ applyThorns: false })
+
+    // thorns 를 반영해야만 공격자(attackerId) 체력이 맞다. 반영하지 않으면
+    // 값이 달라지고, 그 차이는 정확히 이 전투에서 받은 반사 피해 총합이다 —
+    // 이 등식이 곧 "thorns 를 무시하면 체력이 로그와 어긋난다" 는 버그의 증명이다.
+    const reflectedTotal = thornsEvents.reduce((sum, e) => sum + (e.toHp ?? 0), 0)
+    expect(reflectedTotal).toBeGreaterThan(0)
+    expect(withoutThorns.hp.get(attackerId) - withThorns.hp.get(attackerId)).toBe(reflectedTotal)
+
+    // ── 죽음 인과: 로그가 기록한 피해만으로 갑옷 주인이 실제로 0 에 닿아야,
+    // death 이벤트가 앞선 피해들이 설명하는 결과이지 체력이 그냥 사라진 게
+    // 아니라는 뜻이 된다.
+    const deathEvent = r.log.find((e) => e.type === 'death' && e.casterId === wearerId)
+    expect(deathEvent).toBeDefined()
+    expect(withThorns.wearerDeathZeroTick).not.toBeNull()
+    expect(withThorns.wearerDeathZeroTick).toBeLessThanOrEqual(deathEvent.tick)
   })
 })
