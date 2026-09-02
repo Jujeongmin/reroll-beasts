@@ -56,3 +56,23 @@ export function pveBoard(stageIndex, rng, data) {
 export function defeatDamage(survivingEnemies, stageDamage) {
   return stageDamage + survivingEnemies
 }
+
+/**
+ * 아이템 지급 라운드 라벨 → 절대 라운드 번호 집합.
+ *
+ * items.json 이 라벨("2-3")로 적는 이유: 절대 번호로 적으면 스테이지 구성을
+ * 바꿀 때 지급 시점이 소리 없이 다른 곳으로 옮겨 간다.
+ */
+export function grantIndices(data) {
+  const total = totalRounds(data.rounds)
+  const byLabel = new Map()
+  for (let n = 1; n <= total; n++) byLabel.set(roundAt(n, data.rounds).label, n)
+
+  const out = new Set()
+  for (const label of data.items.grantRounds) {
+    const n = byLabel.get(label)
+    if (n === undefined) throw new Error(`아이템 지급 라운드 "${label}" 이 실재하지 않는다`)
+    out.add(n)
+  }
+  return out
+}

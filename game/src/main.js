@@ -8,9 +8,9 @@
 import { loadData } from '@sim/data.js'
 import { createRng } from '@sim/rng.js'
 import { simulate } from '@sim/combat.js'
-import { startRun, refreshShop } from '@sim/roster.js'
+import { startRun, refreshShop, grantItem } from '@sim/roster.js'
 import { roundIncome, addXp } from '@sim/economy.js'
-import { roundAt, totalRounds, defeatDamage } from '@sim/rounds.js'
+import { roundAt, totalRounds, defeatDamage, grantIndices } from '@sim/rounds.js'
 import { createLocalMatchmaker } from './matchmaker.js'
 import { createPrep } from './prep.js'
 import { createBattle } from './battle.js'
@@ -64,6 +64,21 @@ try {
 
   const roundSeed = mm.roundSeed
 
+  // 아이템 지급이 일어나는 라운드. 한 번만 센다.
+  const itemRounds = grantIndices(data)
+
+  /**
+   * 그 라운드가 지급 라운드면 아이템 하나를 준다.
+   *
+   * **상점과 다른 RNG 스트림**을 쓴다. run.rng 에서 뽑으면 아이템을 뽑을
+   * 때마다 상점 뽑기 순서가 밀려, 같은 시드로 저장한 결과가 전부 달라진다.
+   */
+  function grantIfDue(index) {
+    if (!itemRounds.has(index)) return
+    const id = grantItem(run.state, createRng((seed ^ 0x1737 ^ (index * 2654435761)) >>> 0), data)
+    return id
+  }
+
   /** 이번 라운드 대진을 짜고 화면이 읽는 자리에 적어 둔다. */
   function drawRound() {
     const { opponentId } = mm.round(run.index)
@@ -94,6 +109,9 @@ try {
 
   boot.remove()
   document.getElementById('prep').hidden = false
+  // 1라운드도 지급 라운드일 수 있다 — settle() 은 라운드 2부터 도니 부팅 직후
+  // 한 번은 여기서 짚어야 한다. 지금 일정은 1라운드가 아니라 no-op 이다.
+  grantIfDue(run.index)
   prep.show()
 
   async function startFight(entries) {
@@ -190,6 +208,7 @@ try {
     drawRound()
     // 라운드가 넘어가면 상점은 공짜로 새로 깔린다
     refreshShop(s, run.pool, run.rng, data, { free: true })
+    grantIfDue(run.index)
     prep.show()
   }
 } catch (err) {

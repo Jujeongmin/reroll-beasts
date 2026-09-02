@@ -1,7 +1,7 @@
 import { describe, it, expect } from 'vitest'
 import { loadData } from '../sim/data.js'
 import { createRng } from '../sim/rng.js'
-import { totalRounds, roundAt, pveBoard, defeatDamage } from '../sim/rounds.js'
+import { totalRounds, roundAt, pveBoard, defeatDamage, grantIndices } from '../sim/rounds.js'
 
 const data = await loadData()
 const R = data.rounds
@@ -107,5 +107,25 @@ describe('패배 피해', () => {
     // 넘으면 후반 두 판에 탈락해 23라운드 구조가 무너진다
     const worst = defeatDamage(R.pve[4].count, R.stages[4].damage)
     expect(worst).toBeLessThanOrEqual(data.economy.startHp / 2)
+  })
+})
+
+describe('grantIndices', () => {
+  it('라벨을 절대 라운드 번호로 바꾼다', () => {
+    const set = grantIndices(data)
+    // 1스테이지가 3라운드이므로 1-2 는 2, 2-2 는 3+2 = 5 다
+    expect(set.has(2)).toBe(true)
+    expect(set.has(5)).toBe(true)
+    expect(set.size).toBe(data.items.grantRounds.length)
+  })
+
+  it('첫 라운드에는 지급이 없다', () => {
+    expect(grantIndices(data).has(1)).toBe(false)
+  })
+
+  it('없는 라벨은 무시가 아니라 오류다', () => {
+    const bad = JSON.parse(JSON.stringify(data))
+    bad.items.grantRounds = ['9-9']
+    expect(() => grantIndices(bad)).toThrow(/9-9/)
   })
 })

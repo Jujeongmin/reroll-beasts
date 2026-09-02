@@ -485,3 +485,25 @@ describe('인벤토리와 장착', () => {
     ])
   })
 })
+
+describe('지급 결정론', () => {
+  it('같은 시드·같은 라운드는 같은 아이템을 준다', () => {
+    const draw = (seed, index) => {
+      const state = createRun(data)
+      grantItem(state, createRng((seed ^ 0x1737 ^ (index * 2654435761)) >>> 0), data)
+      return state.items[0]
+    }
+    expect(draw(20260901, 5)).toBe(draw(20260901, 5))
+  })
+
+  it('라운드가 다르면 대체로 다른 아이템이 나온다', () => {
+    const draw = (index) => {
+      const state = createRun(data)
+      grantItem(state, createRng((20260901 ^ 0x1737 ^ (index * 2654435761)) >>> 0), data)
+      return state.items[0]
+    }
+    const got = new Set([2, 3, 5, 8, 11, 16, 21].map(draw))
+    // 7번 뽑아 전부 같은 것이 나오면 시드 갈래가 안 갈리고 있다는 뜻이다
+    expect(got.size).toBeGreaterThan(1)
+  })
+})
