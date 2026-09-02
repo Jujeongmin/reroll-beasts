@@ -67,7 +67,6 @@ export async function createPrep({ data, run, onFight, onWatch, onPickUnit }) {
     shopbar: document.getElementById('shopbar'),
     ghost: document.getElementById('ghost'),
     ghostImg: document.querySelector('#ghost img'),
-    itembar: document.getElementById('itembar'),
   }
 
   // 판 전체를 그리고 상대 절반은 어둡게 눌러 둔다 (TFT 와 같은 구성).
@@ -564,28 +563,6 @@ export async function createPrep({ data, run, onFight, onWatch, onPickUnit }) {
     )
   }
 
-  /**
-   * 아이템 바. 같은 아이템은 한 칸에 모아 개수를 적는다.
-   *
-   * 종류별로 묶는 이유: 런당 7개뿐이지만 같은 것이 셋 나오면 줄이 넘치고,
-   * 어차피 끌 때는 종류만 고르면 된다.
-   */
-  function renderItems() {
-    const counts = new Map()
-    run.state.items.forEach((id) => counts.set(id, (counts.get(id) ?? 0) + 1))
-    el.itembar.innerHTML = [...counts]
-      .map(([id, n]) => {
-        const item = itemById(data.items, id)
-        return (
-          `<div class="it" data-id="${id}" title="${item.name.ko}">` +
-          `<img src="/assets/ui/item_${id}.png" alt="${item.name.ko}" />` +
-          (n > 1 ? `<b>${n}</b>` : '') +
-          '</div>'
-        )
-      })
-      .join('')
-  }
-
   // ── 유닛 정보 ───────────────────────────────────────────
   //
   // 끌면 배치, 탭하면 정보. 같은 포인터를 나눠 쓰므로 **움직인 거리**로 가른다.
@@ -782,7 +759,8 @@ export async function createPrep({ data, run, onFight, onWatch, onPickUnit }) {
     renderHud()
     renderTraits()
     renderShop()
-    renderItems()
+    // 가진(아직 안 낀) 아이템은 이제 DOM 줄이 아니라 대기석 옆 3D 선반이다.
+    scene.setItemShelf(run.state.items)
     syncUnits()
   }
 
@@ -1104,34 +1082,43 @@ export async function createPrep({ data, run, onFight, onWatch, onPickUnit }) {
     }
   }
 
-  // 아이템 바에서 시작하는 드래그. 판 위 드래그와 같은 pointermove/up 을
-  // 쓰지만 시작점이 DOM 이라 여기서 따로 받는다.
-  el.itembar.addEventListener('pointerdown', (ev) => {
-    // 유닛을 끄는 중에 다른 손가락이 아이템 바를 짚으면 drag 를 덮어써
-    // 진행 중이던 유닛 드래그가 고아가 되고, 다음 pointerup 에서 엉뚱하게
-    // 장착이 일어난다. 이미 뭔가 끄는 중이면 새 드래그를 시작하지 않는다.
-    if (drag) return
-    const cell = ev.target.closest('.it')
-    if (!cell) return
-    const id = cell.dataset.id
-    const invIndex = run.state.items.indexOf(id)
-    if (invIndex < 0) return
-    ev.preventDefault()
-    drag = { item: { id, invIndex }, x0: ev.clientX, y0: ev.clientY, moved: false }
-    el.ghostImg.src = `/assets/ui/item_${id}.png`
-    el.ghost.style.display = 'block'
-    el.ghost.style.left = `${ev.clientX}px`
-    el.ghost.style.top = `${ev.clientY}px`
-    el.root.setPointerCapture(ev.pointerId)
-  })
+  /**
+   * 화면 좌표가 가리키는 선반 아이템. 없으면 null.
+   *
+   * 유닛보다 **먼저** 짚는다 — 선반이 대기석 옆에 붙어 있어 카메라 각도에
+   * 따라 둘이 화면에서 겹칠 수 있는데, 그때 앞에 있는 아이템이 집혀야
+   * "말을 옮기려 했는데 아이템이 딸려 왔다" 같은 오조작이 안 생긴다.
+   */
+  function itemAtPointer(x, y) {
+    if (document.elementFromPoint(x, y) !== scene.renderer.domElement) return null
+    const hit = scene.pickObjects(scene.itemSlots, x, y)
+    if (!hit || hit.userData.itemId == null) return null
+    return { id: hit.userData.itemId, invIndex: hit.userData.invIndex }
+  }
 
   el.root.addEventListener('pointerdown', (ev) => {
     if (
       ev.target.closest('#shopbar') ||
       ev.target.closest('#top') ||
-      ev.target.closest('#info') ||
-      ev.target.closest('#itembar')
+      ev.target.closest('#info')
     ) {
+      return
+    }
+    // 선반 아이템을 짚었으면 그 드래그를 시작하고 끝낸다 — 유닛 판정으로
+    // 흘려보내지 않는다.
+    const item = itemAtPointer(ev.clientX, ev.clientY)
+    if (item) {
+      // 유닛을 끄는 중에 다른 손가락이 선반을 짚으면 drag 를 덮어써 진행
+      // 중이던 유닛 드래그가 고아가 되고, 다음 pointerup 에서 엉뚱하게
+      // 장착이 일어난다. 이미 뭔가 끄는 중이면 새 드래그를 시작하지 않는다.
+      if (drag) return
+      ev.preventDefault()
+      drag = { item, x0: ev.clientX, y0: ev.clientY, moved: false }
+      el.ghostImg.src = `/assets/ui/item_${item.id}.png`
+      el.ghost.style.display = 'block'
+      el.ghost.style.left = `${ev.clientX}px`
+      el.ghost.style.top = `${ev.clientY}px`
+      el.root.setPointerCapture(ev.pointerId)
       return
     }
     // 전투 중에는 판 위의 말이 로그에서 나온다 — 로스터에는 없으므로 따로 집는다.

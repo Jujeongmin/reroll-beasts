@@ -663,6 +663,12 @@ export async function createScene({
   let benchTopY = 0
   // 벤치가 판보다 넓다 (9칸 > 7칸). 프레이밍이 이 범위를 알아야 양 끝이 안 잘린다.
   let benchExtent = null
+  // 가진 아이템(아직 안 낀 것) 선반. 대기석 왼쪽에 세운다 — DOM 아이콘 줄로
+  // 두면 3D 말과 2D 줄이 따로 놀아 "같은 세계"로 안 읽힌다. 벤치를 3D로
+  // 세운 것과 같은 이유다. 슬롯은 고정 7개(런이 가질 수 있는 최대치)를
+  // 미리 세워 두고 setItemShelf 가 채운다 — 개수가 바뀔 때마다 선반 자체를
+  // 다시 세우면 그때마다 카메라 프레임이 흔들린다.
+  const itemShelfSlots = []
   if (benchSlots > 0) {
     const pad = spacing.stepX * 0.74
     const gap = spacing.stepX * 0.1
@@ -760,6 +766,83 @@ export async function createScene({
       maxX: cx + totalW / 2 + gap,
       minZ: farZ - pad / 2 - gap,
       maxZ: deckZ + pad / 2 + gap,
+    }
+
+    // ── 아이템 선반 ────────────────────────────────────────
+    //
+    // 대기석 **왼쪽**에, 대기석과 같은 z 줄(deckZ)에 붙인다 — 같은 줄에
+    // 나란히 서야 "곁에 놓인 물건"으로 읽히지, z 를 어긋내면 앞뒤로 떨어진
+    // 별개 구조물처럼 보인다. 받침은 대기석과 같은 2단(어두운 나무 +
+    // 밝은 나무) 구성을 그대로 써서 한 세트로 읽히게 한다.
+    {
+      const ITEM_COLS = 4
+      const ITEM_ROWS = 2
+      // 대기석 칸(pad)보다 좁힌다 — 서 있는 말이 아니라 누운 아이콘 하나라
+      // 그만큼 자리를 덜 먹는다.
+      const iPitch = spacing.stepX * 0.55
+      const iconW = spacing.stepX * 0.4
+      const gridW = ITEM_COLS * iPitch
+      const gridD = ITEM_ROWS * iPitch
+      // 대기석과 살짝 띄운다 — 붙이면 대기석 마지막 칸과 선반 첫 칸이
+      // 하나의 긴 줄로 읽혀 어디까지가 벤치이고 어디부터가 선반인지 안 갈린다.
+      const shelfGap = spacing.stepX * 0.35
+      const shelfCx = benchExtent.minX - shelfGap - gridW / 2
+
+      benchGroup.add(
+        plank({
+          set: woodDark,
+          x: shelfCx,
+          z: deckZ,
+          w: gridW + gap * 2,
+          d: gridD + gap * 2,
+          y: deckY - 0.06,
+        }),
+      )
+      benchGroup.add(
+        plank({ set: woodLight, x: shelfCx, z: deckZ, w: gridW, d: gridD, y: deckY }),
+      )
+
+      // 슬롯 7개 — 런이 가질 수 있는 아이템 최대치와 같다(4×2 칸에서 마지막
+      // 한 칸만 비워 둔다). 재질만 만들어 두고 아이콘 이미지는 setItemShelf 가
+      // 채운다 — 프리로드된 이미지가 이 시점엔 아직 없을 수 있다.
+      for (let i = 0; i < 7; i++) {
+        const col = i % ITEM_COLS
+        const row = Math.floor(i / ITEM_COLS)
+        const x = shelfCx + (col - (ITEM_COLS - 1) / 2) * iPitch
+        const z = deckZ + (row - (ITEM_ROWS - 1) / 2) * iPitch
+        const mat = new THREE.SpriteMaterial({
+          transparent: true,
+          depthWrite: false,
+          // 16px 픽셀아트라 씬 톤매핑을 태우면 색이 눌린다 — 배지와 같은 이유.
+          toneMapped: false,
+          fog: false,
+        })
+        const sprite = new THREE.Sprite(mat)
+        // 널빤지 윗면보다 살짝 띄운다 — 딱 붙이면 z-파이팅이 난다
+        // (대기석 위 유닛을 benchTopY + 0.08 로 띄우는 것과 같은 이유).
+        sprite.position.set(x, deckY + 0.05, z)
+        sprite.scale.set(iconW, iconW, 1)
+        sprite.visible = false
+        sprite.userData.invIndex = i
+        benchGroup.add(sprite)
+        itemShelfSlots.push(sprite)
+      }
+
+      // 물가 장식이 이 자리에 걸쳐 있으면 나무 위에 아이템이 얹힌 꼴이 된다 —
+      // 대기석 자리를 비울 때와 같은 이유로 여기도 걷어낸다.
+      for (const d of [...surroundGroup.children]) {
+        if (!d.userData.decor) continue
+        const inX = Math.abs(d.position.x - shelfCx) <= gridW / 2 + gap
+        const inZ = Math.abs(d.position.z - deckZ) <= gridD / 2 + gap
+        if (inX && inZ) surroundGroup.remove(d)
+      }
+
+      // 선반이 대기석보다 왼쪽으로 더 나간 만큼, 프레이밍이 쓰는 범위도
+      // 넓혀야 화면 가장자리에서 잘리지 않는다 — benchExtent 가 정확히
+      // 그 용도로 있다 (주석: "프레이밍이 이 범위를 알아야 양 끝이 안 잘린다").
+      benchExtent.minX = Math.min(benchExtent.minX, shelfCx - gridW / 2 - gap)
+      benchExtent.minZ = Math.min(benchExtent.minZ, deckZ - gridD / 2 - gap)
+      benchExtent.maxZ = Math.max(benchExtent.maxZ, deckZ + gridD / 2 + gap)
     }
   }
 
@@ -1225,6 +1308,49 @@ export async function createScene({
     await Promise.all(ids.map(loadItemIcon))
   }
 
+  // 선반 스프라이트용 텍스처. 16×16 원본을 그대로 몇 배 키워 붙이므로
+  // 기본(Linear) 필터를 쓰면 확대할 때 경계가 뭉개진다 — 나머지 UI가
+  // 전부 image-rendering:pixelated 인데 여기만 흐리면 어긋난다. id 별로
+  // 한 번만 만들어 재사용한다(런당 최대 종류 12개뿐이라 굳이 안 지운다).
+  const itemIconTex = new Map()
+  function iconTexture(id) {
+    if (itemIconTex.has(id)) return itemIconTex.get(id)
+    const img = itemIcons.get(id)
+    if (!img) return null
+    const tex = new THREE.Texture(img)
+    tex.magFilter = THREE.NearestFilter
+    tex.minFilter = THREE.NearestFilter
+    tex.generateMipmaps = false
+    tex.colorSpace = THREE.SRGBColorSpace
+    tex.needsUpdate = true
+    itemIconTex.set(id, tex)
+    return tex
+  }
+
+  /**
+   * 가진(아직 안 낀) 아이템을 선반에 채운다.
+   *
+   * ids 순서 그대로 슬롯에 놓는다 — sim/roster.js 의 equipItem 이 같은
+   * 인덱스로 state.items 를 splice 하므로, "슬롯 i = state.items[i]" 를
+   * 그대로 유지하면 별도 매핑표 없이 드래그 시작점에서 바로 invIndex 를
+   * 읽을 수 있다.
+   */
+  function setItemShelf(ids) {
+    for (let i = 0; i < itemShelfSlots.length; i++) {
+      const sprite = itemShelfSlots[i]
+      const id = ids[i]
+      if (id === undefined) {
+        sprite.visible = false
+        sprite.userData.itemId = null
+        continue
+      }
+      sprite.material.map = iconTexture(id)
+      sprite.material.needsUpdate = true
+      sprite.userData.itemId = id
+      sprite.visible = true
+    }
+  }
+
   /**
    * 말 위에 뜨는 배지. 성급 별과 (전투에서는) 체력 바를 같이 그린다.
    *
@@ -1595,6 +1721,8 @@ export async function createScene({
     pickObjects,
     makeBadge,
     preloadItemIcons,
+    itemSlots: itemShelfSlots,
+    setItemShelf,
     spawnFx,
     updateFx,
     clearFx,
