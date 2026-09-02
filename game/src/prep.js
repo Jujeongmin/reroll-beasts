@@ -28,7 +28,7 @@ import {
   equipItem,
 } from '@sim/roster.js'
 import { itemById } from '@sim/items.js'
-import { unitInfo } from './unit-info.js'
+import { unitInfo, itemEffectText } from './unit-info.js'
 import { traitDetail } from './trait-info.js'
 import { standings } from '@sim/lobby.js'
 import { createScene } from './scene3d.js'
@@ -623,9 +623,15 @@ export async function createPrep({ data, run, onFight, onWatch, onPickUnit }) {
    * cell 이 있으면 **내 말**이다 — 사거리를 판에 그리고 판매가를 적는다.
    * 없으면 전투 중에 집은 말이다 (상대 말일 수도 있다). 그때 판매가를 적으면
    * 팔 수 있는 것처럼 읽히고, 사거리는 그릴 칸이 없다.
+   *
+   * items 는 cell 에서 오거나(내 로스터), 전투 중이면 battle 이 spawn 로그에서
+   * 건네준다(cell 이 없으므로 옵션으로 따로 받는다). 둘 다 unitInfo 에 넘겨
+   * 스탯 표에 반영한다 — 안 넘기면 아이템 낀 유닛의 체력·공격력이 실제 전투
+   * 수치보다 낮게 뜬다(카드 옆 아이템 아이콘과 앞뒤가 안 맞는다).
    */
-  async function showUnitCard(unitId, star, { cell = null, team = 'A' } = {}) {
-    const i = unitInfo(unitId, star, data)
+  async function showUnitCard(unitId, star, { cell = null, team = 'A', items = null } = {}) {
+    const worn = items ?? cell?.items ?? []
+    const i = unitInfo(unitId, star, data, worn)
     infoUid = cell ? cell.uid : null
     el.info.style.setProperty('--tc', tierBar(i.unit.tier))
     el.info.style.setProperty('--sc', STAR_COLOR[star - 1] ?? STAR_COLOR[0])
@@ -647,13 +653,16 @@ export async function createPrep({ data, run, onFight, onWatch, onPickUnit }) {
       `<span>치명<b>${Math.round(i.stats.critChance * 100)}%</b></span>` +
       '</div>' +
       `<div class="sk"><em>스킬</em> ${i.skill}</div>` +
-      (cell && (cell.items ?? []).length > 0
+      (worn.length > 0
         ? '<div class="items">' +
-          cell.items
+          worn
             .map((id) => {
               const it = itemById(data.items, id)
+              // 스펙 §8: 아이콘 · 이름 · 효과를 한 줄로. 이름만 있으면 스탯
+              // 표(위 grid)를 보고서야 뭐가 바뀌었는지 역산해야 한다.
               return (
-                `<span><img src="/assets/ui/item_${id}.png" alt="" />${it.name.ko}</span>`
+                `<span><img src="/assets/ui/item_${id}.png" alt="" />` +
+                `<b>${it.name.ko}</b><em>${itemEffectText(it)}</em></span>`
               )
             })
             .join('') +
@@ -1098,6 +1107,10 @@ export async function createPrep({ data, run, onFight, onWatch, onPickUnit }) {
   // 아이템 바에서 시작하는 드래그. 판 위 드래그와 같은 pointermove/up 을
   // 쓰지만 시작점이 DOM 이라 여기서 따로 받는다.
   el.itembar.addEventListener('pointerdown', (ev) => {
+    // 유닛을 끄는 중에 다른 손가락이 아이템 바를 짚으면 drag 를 덮어써
+    // 진행 중이던 유닛 드래그가 고아가 되고, 다음 pointerup 에서 엉뚱하게
+    // 장착이 일어난다. 이미 뭔가 끄는 중이면 새 드래그를 시작하지 않는다.
+    if (drag) return
     const cell = ev.target.closest('.it')
     if (!cell) return
     const id = cell.dataset.id
@@ -1128,7 +1141,7 @@ export async function createPrep({ data, run, onFight, onWatch, onPickUnit }) {
       if (shown) {
         // 여기서 끝낸다. 아래로 흘려보내면 로스터에 없는 말이라 found 가 null 이
         // 되고, 그 줄의 hideInfo() 가 방금 연 패널을 도로 닫는다.
-        showUnitCard(shown.unitId, shown.star, { team: shown.team })
+        showUnitCard(shown.unitId, shown.star, { team: shown.team, items: shown.items ?? [] })
         return
       }
     }

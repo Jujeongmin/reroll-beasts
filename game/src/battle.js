@@ -409,7 +409,9 @@ export async function createBattle({ data, scene }) {
           const st = unitState.get(id)
           if (!st || !st.alive) return null
           const sp = spawns.find((e) => e.casterId === id)
-          return sp ? { unitId: sp.unitId, star: sp.star, team: sp.team } : null
+          // items 도 함께 건넨다 — 카드가 스탯 표를 그릴 때 이 값을 unitInfo 에
+          // 넘겨야 아이템 낀 유닛의 체력·공격력이 실제 전투 수치로 뜬다.
+          return sp ? { unitId: sp.unitId, star: sp.star, team: sp.team, items: sp.items ?? [] } : null
         }
         hit = hit.parent
       }

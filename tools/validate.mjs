@@ -1,9 +1,14 @@
 // 데이터 불변식 검사. 밸런스를 만졌으면 반드시 돌린다.
 // 스펙 §12.4 의 8개 불변식을 검사하고, 위반 메시지 배열을 되돌린다.
 
-import { pathToFileURL } from 'node:url'
+import { existsSync } from 'node:fs'
+import { fileURLToPath, pathToFileURL } from 'node:url'
 import { loadData } from '../sim/data.js'
 import { roundAt } from '../sim/rounds.js'
+
+// tools/ 기준 상대 경로. cwd 가 아니라 이 파일 위치로 잡아야 어디서 실행해도,
+// 그리고 tests/validate.test.js 처럼 clone 된 data 로 불러도 항상 같은 자리를 본다.
+const ICON_DIR = fileURLToPath(new URL('../game/public/assets/ui/', import.meta.url))
 
 const SKILL_TYPES = new Set(['single', 'aoe', 'buff', 'summon'])
 
@@ -230,6 +235,14 @@ export function validate(data) {
   // 21. 유닛당 칸 수가 1 이상 정수다.
   if (!Number.isInteger(items.slotsPerUnit) || items.slotsPerUnit < 1) {
     errors.push(`items.json > slotsPerUnit 이 ${items.slotsPerUnit} 이다 (1 이상 정수여야 한다)`)
+  }
+
+  // 22. 아이템마다 아이콘 파일이 실재한다. 지금은 12장 다 있지만, id 를
+  // 나중에 바꾸거나 지우면 아이콘만 조용히 고아가 되고 화면엔 깨진 이미지만 남는다.
+  for (const id of itemIds) {
+    if (!existsSync(`${ICON_DIR}item_${id}.png`)) {
+      errors.push(`아이템 ${id} 의 아이콘 파일이 없다 (game/public/assets/ui/item_${id}.png)`)
+    }
   }
 
   return errors

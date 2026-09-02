@@ -6,6 +6,7 @@
 
 import { unitById } from '@sim/data.js'
 import { resolveStats } from '@sim/stats.js'
+import { applyItems } from '@sim/items.js'
 
 const TICK_RATE = 30
 const sec = (ticks) => (ticks / TICK_RATE).toFixed(1).replace(/\.0$/, '')
@@ -55,11 +56,61 @@ export function skillText(unit) {
   }
 }
 
-/** 화면에 뿌릴 정보 한 덩어리. */
-export function unitInfo(unitId, star, data) {
+// 아이템 12종 효과를 사람이 읽는 한 줄로. items.json 의 effect 키에서
+// 직접 뽑는다 — 아이템마다 문장을 따로 박아 두면 수치를 고칠 때 여기가
+// 안 맞아진다(카드에 적힌 효과와 실제 전투 수치가 갈린다).
+const ITEM_STAT_LABEL = {
+  hp: '최대 체력',
+  def: '방어력',
+  mr: '마법저항',
+  power: '주문력',
+  manaStart: '시작 마나',
+  atkPct: '공격력',
+  attackSpeedPct: '공격속도',
+  critChancePct: '치명타 확률',
+  thornsPct: '반사 피해',
+  lifestealPct: '흡혈',
+  auraAtkPct: '인접 아군 공격력',
+}
+// 퍼센트로 보여줄 키. 나머지(hp·def·mr·power·manaStart)는 고정값이다.
+const ITEM_PCT_KEYS = new Set([
+  'atkPct',
+  'attackSpeedPct',
+  'critChancePct',
+  'thornsPct',
+  'lifestealPct',
+  'auraAtkPct',
+])
+
+/** 아이템 하나의 효과 한 줄. */
+export function itemEffectText(item) {
+  const e = item.effect ?? {}
+  const parts = []
+  // 관통 두 키(pierceCount·piercePct)는 한 아이템의 한 효과라 묶어 적는다 —
+  // 따로 적으면 "1명" 과 "40%" 가 무슨 관계인지 안 읽힌다.
+  if (e.pierceCount) parts.push(`관통 ${e.pierceCount}명 · ${e.piercePct ?? 0}%`)
+  for (const [key, label] of Object.entries(ITEM_STAT_LABEL)) {
+    if (!(key in e)) continue
+    const v = e[key]
+    const sign = v > 0 ? '+' : ''
+    parts.push(`${label} ${sign}${v}${ITEM_PCT_KEYS.has(key) ? '%' : ''}`)
+  }
+  return parts.join(' · ')
+}
+
+/**
+ * 화면에 뿌릴 정보 한 덩어리.
+ *
+ * items 를 넘기면 스탯 표에 아이템이 반영된다 — 전투(sim/items.js applyItems)와
+ * 같은 함수를 쓰므로 카드 숫자와 실제 전투 수치가 어긋나지 않는다.
+ * 시너지는 아직 안 반영한다 — 이건 이 함수가 생기기 전부터 있던 생략이고
+ * 범위가 다른 얘기라 여기서 같이 고치지 않는다.
+ */
+export function unitInfo(unitId, star, data, items = []) {
   const unit = unitById(data.units, unitId)
   if (!unit) throw new Error(`없는 유닛 id: ${unitId}`)
-  const stats = resolveStats(unit, star, data.combat)
+  const base = resolveStats(unit, star, data.combat)
+  const stats = items.length > 0 ? applyItems(base, items, data.items) : base
   return {
     unit,
     stats,

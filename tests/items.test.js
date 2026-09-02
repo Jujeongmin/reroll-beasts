@@ -244,6 +244,17 @@ describe('전투 — 흡혈과 반사', () => {
     })
     const heals = armed.log.filter((e) => e.type === 'heal')
     expect(heals.length).toBeGreaterThan(0)
+
+    // 개수뿐 아니라 값도 잡는다 — "가한 피해(dealt)" 가 아니라 "요청 피해"에
+    // 비례해 회복하도록 잘못 고쳐도 heals.length > 0 은 그대로 통과한다.
+    // 첫 회복을 낳은 평타와 짝지어 정확한 배율을 확인한다.
+    const heal = heals[0]
+    const hit = armed.log.find(
+      (e) => e.type === 'attack' && e.casterId === heal.casterId && e.tick === heal.tick,
+    )
+    expect(hit).toBeDefined()
+    const pct = data.items.items.find((i) => i.id === 'vampiric_scythe').effect.lifestealPct
+    expect(heal.amount).toBe(Math.floor((hit.amount * pct) / 100))
   })
 
   it('흡혈이 최대 체력을 넘지 않는다', () => {

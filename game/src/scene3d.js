@@ -116,6 +116,14 @@ export class UnitView {
 
   dispose() {
     this.mixer.stopAllAction()
+    // 배지는 유닛마다 캔버스 텍스처를 새로 만든다(makeBadge). 여기서 안 지우면
+    // 유닛이 죽거나 판을 새로 그릴 때마다(매 라운드) GPU 텍스처가 쌓인다 —
+    // 아이템을 낀 1성도 이제 배지를 갖게 되어 이 누수가 더 자주 일어난다.
+    if (this.badge) {
+      this.badge.sprite.material.map?.dispose()
+      this.badge.sprite.material.dispose()
+      this.badge = null
+    }
     this.root.removeFromParent()
   }
 }
@@ -1236,8 +1244,11 @@ export async function createScene({
     // 자라도 위쪽(별·체력)이 그만큼 위로 밀려 올라간다 — 아이템을 끼면
     // 체력 바가 뜨는 게 지금 원하는 동작이다.
     const baseH = withHp ? 52 : 20
+    // 아이템 줄이 있을 때만 그만큼 캔버스가 자란다. 초기 생성과 setItems
+    // 둘 다 같은 계산을 쓰므로 한 곳에 모은다 — 흩어 두면 둘 중 하나만 고치기 쉽다.
+    const heightFor = (list) => baseH + (list.length > 0 ? ITEM_ROW : 0)
     let worn = items.slice(0, 3)
-    let H = baseH + (worn.length > 0 ? ITEM_ROW : 0)
+    let H = heightFor(worn)
 
     const cv = document.createElement('canvas')
     cv.width = W
@@ -1368,7 +1379,7 @@ export async function createScene({
        */
       setItems(ids) {
         worn = (ids ?? []).slice(0, 3)
-        H = baseH + (worn.length > 0 ? ITEM_ROW : 0)
+        H = heightFor(worn)
         cv.height = H
         sprite.scale.set(w, (w * H) / W, 1)
         draw(lastArgs)
