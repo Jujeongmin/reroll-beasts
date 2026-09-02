@@ -179,30 +179,30 @@
 
   /* ── 좌측: 시너지 ──────────────────────────────────── */
   #traits {
-    position: absolute; left: 6px; top: 40px; width: 158px;
+    position: absolute; left: 6px; top: 40px; width: 138px;
     max-height: calc(100% - 80px);
     display: flex; flex-direction: column; gap: 2px; z-index: 4;
     overflow-y: auto; pointer-events: none;
   }
   .trait {
     pointer-events: auto; flex: none; line-height: 1;
-    display: flex; align-items: center; gap: 5px; height: 27px; padding: 0 3px 0 0;
+    display: flex; align-items: center; gap: 4px; height: 23px; padding: 0 3px 0 0;
     border-style: solid; border-width: 6px; border-image-slice: 6;
     border-image-repeat: repeat; border-image-source: url('/assets/ui/panel_wood.png');
     background: #c58747;
     image-rendering: pixelated;
-    font-size: 13px; color: #f0e6cf; text-shadow: 0 1px 2px #0009;
+    font-size: 12px; color: #f0e6cf; text-shadow: 0 1px 2px #0009;
   }
-  .trait .n { flex: 1; line-height: 16px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  .trait .n { flex: 1; line-height: 14px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
   /* 12px 숫자는 12px 줄상자에 안 들어간다 (실측 15). */
   .trait .c {
-    font-variant-numeric: tabular-nums; font-size: 12px; line-height: 15px; color: #cbbfa6;
+    font-variant-numeric: tabular-nums; font-size: 11px; line-height: 14px; color: #cbbfa6;
   }
   .trait.off { opacity: .45; }
   /* 육각 배지 + 등급색. 안에는 시너지 아이콘.
      첫 글자를 쓰던 때는 "거인"과 "전사"가 글자로만 보면 구분이 안 됐다. */
   .trait .pip {
-    width: 19px; height: 22px; flex: none;
+    width: 16px; height: 19px; flex: none;
     clip-path: polygon(50% 0, 100% 25%, 100% 75%, 50% 100%, 0 75%, 0 25%);
     background: var(--ic) center / 13px no-repeat, #4a4458;
     image-rendering: pixelated;
@@ -344,6 +344,9 @@
     background: #ffffff14; border-radius: 3px; padding: 2px 5px;
   }
   #info .items img { width: 14px; height: 14px; image-rendering: pixelated; flex: none; }
+  /* 아이템 카드의 큰 아이콘. 초상화 자리를 그대로 쓴다 — 16px 원본이라
+     늘리면 뭉개지므로 픽셀 그대로 확대한다. */
+  #info .hd img.itemart { image-rendering: pixelated; object-fit: contain; padding: 4px; }
   #info .items b { color: #fff6e4; font-weight: 700; }
   #info .items em { font-style: normal; margin-left: auto; padding-left: 6px; }
   #info .sell { padding: 4px 0 0; border-top: 1px solid #ffffff1a; color: #b3a894; font-size: 9px; }
@@ -433,7 +436,7 @@
      바로 뒤에 있는 대기석을 가린다. 값 넷을 앉히자고 판을 잘라 먹는 셈이다.
      바탕은 투명, 글자만 뜬다 — 아래쪽에 옅은 그늘만 깔아 3D 위에서도 읽히게. */
   #hudbar {
-    position: absolute; left: 6px; right: 6px; bottom: 0; height: 36px; z-index: 6;
+    position: absolute; left: 6px; right: 6px; bottom: 0; height: 32px; z-index: 6;
     display: grid; grid-template-columns: 1fr auto 1fr; align-items: center; gap: 8px;
     pointer-events: none;
   }
@@ -462,7 +465,7 @@
   #lvbox, #odds, #gold {
     /* 700px 폭에서는 가운데 칸(골드)이 양옆을 눌러 'Lv 7' 과 'XP 0/30' 이
        두 줄로 접혔다. 접히지 않게 못 박는다 — 접히면 30px 틀을 뚫는다. */
-    height: 30px; align-items: center; white-space: nowrap;
+    height: 26px; align-items: center; white-space: nowrap;
     border-style: solid; border-width: 6px; border-image-slice: 6;
     border-image-repeat: repeat; border-image-source: url('/assets/ui/panel_wood.png');
     background: #c58747;
@@ -473,9 +476,9 @@
      각자 9-슬라이스 판을 두르면 한 줄에 상자가 넷 늘어서서, 값이 아니라
      상자들이 먼저 읽힌다. 값 자체가 크고 색이 다르므로 틀이 없어도 갈린다.
      테두리가 필요한 건 **누를 수 있는 것**(잠금 버튼)뿐이다. */
-  #lvbox { display: flex; gap: 6px; padding: 0 3px; }
+  #lvbox { display: flex; gap: 5px; padding: 0 2px; }
   #lvl {
-    font-size: 15px; font-weight: 800; color: #fff2d8; line-height: 18px; white-space: nowrap;
+    font-size: 13px; font-weight: 800; color: #fff2d8; line-height: 16px; white-space: nowrap;
     text-shadow: 0 1px 2px #0009;
   }
   #lvl::before { content: 'Lv '; font-size: 9px; font-weight: 700; color: #cbbfa6; }
@@ -484,7 +487,7 @@
   /* 막대는 뺐다. 0% 일 때 가운데를 가로지르는 선으로만 읽힌다. */
   #xpbar { display: none; }
   #xptext {
-    font-size: 12px; line-height: 18px; color: #8fd8ff; font-weight: 800;
+    font-size: 11px; line-height: 16px; color: #8fd8ff; font-weight: 800;
     font-variant-numeric: tabular-nums; text-shadow: 0 1px 2px #0009;
   }
   #xptext::before { content: 'XP '; font-size: 9px; color: #cbbfa6; font-weight: 700; }
@@ -493,31 +496,31 @@
   /* 색은 보석이 나르고 숫자는 배경 없이 읽힌다.
      보석 그림을 **마스크로** 쓴다 — 팩에 보라(4티어)가 없어서 색깔별 타일을
      골라 쓸 수가 없다. 모양은 에셋에서, 색은 티어에서 온다. */
-  #odds { display: flex; gap: 3px; padding: 0 2px; }
+  #odds { display: flex; gap: 2px; padding: 0 2px; }
   #odds span {
     display: flex; align-items: center; gap: 2px;
-    font-size: 10px; line-height: 10px; font-weight: 800;
+    font-size: 9px; line-height: 9px; font-weight: 800;
     font-variant-numeric: tabular-nums; color: #f0e6cf; text-shadow: 0 1px 2px #0009;
   }
   #odds span i {
-    width: 10px; height: 10px; flex: none; background: var(--oc);
+    width: 9px; height: 9px; flex: none; background: var(--oc);
     -webkit-mask: url('/assets/ui/gem.png') center / contain no-repeat;
     mask: url('/assets/ui/gem.png') center / contain no-repeat;
   }
   /* 자릿수가 달라 폭이 흔들리면 다섯 칸이 줄을 안 선다. 폭을 못 박고 가운데. */
   #odds span b {
-    width: 21px; text-align: center; font-weight: 800;
+    width: 18px; text-align: center; font-weight: 800;
   }
   #odds span.zero { color: #8d8371; }
   #odds span.zero i { background: #6b6353; opacity: .5; }
 
   #gold {
-    display: flex; gap: 5px; padding: 0 8px 0 5px; line-height: 20px;
-    font-size: 17px; font-weight: 800; color: #ffe08a; font-variant-numeric: tabular-nums;
+    display: flex; gap: 4px; padding: 0 6px 0 4px; line-height: 18px;
+    font-size: 15px; font-weight: 800; color: #ffe08a; font-variant-numeric: tabular-nums;
     text-shadow: 0 1px 2px #0009;
   }
   #gold::before {
-    content: ''; width: 15px; height: 15px; flex: none;
+    content: ''; width: 13px; height: 13px; flex: none;
     background: url('/assets/ui/coin.png') center / contain no-repeat;
     image-rendering: pixelated;
   }

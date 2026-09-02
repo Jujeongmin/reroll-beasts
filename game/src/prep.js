@@ -76,8 +76,8 @@ export async function createPrep({ data, run, onFight, onWatch, onPickUnit }) {
     boardCfg: data.combat.board,
     pitchDeg: 46,
     benchSlots: data.economy.benchSlots,
-    // 정보 줄 높이(36) + 여유. 이만큼 아래를 비워야 대기석이 그 밑에 안 깔린다.
-    bottomInset: 46,
+    // 정보 줄 높이(32) + 여유. 이만큼 아래를 비워야 대기석이 그 밑에 안 깔린다.
+    bottomInset: 42,
     // 상단 띠(28) + 여유. 이만큼 위를 비워야 상대 대기석이 띠 뒤로 안 들어간다.
     topInset: 40,
     scaleOf: (id) => data.combat.classScale[unitById(data.units, id)?.class] ?? 1,
@@ -606,6 +606,33 @@ export async function createPrep({ data, run, onFight, onWatch, onPickUnit }) {
    * 스탯 표에 반영한다 — 안 넘기면 아이템 낀 유닛의 체력·공격력이 실제 전투
    * 수치보다 낮게 뜬다(카드 옆 아이템 아이콘과 앞뒤가 안 맞는다).
    */
+  /**
+   * 선반 아이템 카드. 말 카드와 **같은 패널**을 쓴다 — 판 위의 것을 탭하면
+   * 늘 같은 자리에 설명이 뜬다는 약속이 하나로 유지된다.
+   *
+   * 효과 문구는 itemEffectText 가 items.json 에서 만든다. 여기서 12줄을
+   * 따로 적으면 수치를 고칠 때마다 두 군데를 고쳐야 하고, 한쪽만 고친 날
+   * 화면이 거짓말을 한다.
+   */
+  function showItemCard(itemId) {
+    const it = itemById(data.items, itemId)
+    if (!it) return
+    infoUid = null
+    el.info.innerHTML =
+      '<div class="hd">' +
+      `<img class="itemart" src="/assets/ui/item_${itemId}.png" alt="" />` +
+      `<div class="t"><div class="nm">${it.name.ko}</div>` +
+      '<div class="sub">아이템</div></div>' +
+      '</div>' +
+      `<div class="items"><span><em>${itemEffectText(it)}</em></span></div>` +
+      '<div class="sell">말 위로 끌면 장착 · 유닛당 ' +
+      `${data.items.slotsPerUnit}칸</div>`
+    el.info.hidden = false
+    // 사거리 표시는 말의 것이다. 아이템 카드를 열 때 지우지 않으면 방금 본
+    // 말의 사거리가 판에 그대로 남아 아이템이 그린 것처럼 읽힌다.
+    scene.setRange(null)
+  }
+
   async function showUnitCard(unitId, star, { cell = null, team = 'A', items = null } = {}) {
     const worn = items ?? cell?.items ?? []
     const i = unitInfo(unitId, star, data, worn)
@@ -1177,7 +1204,9 @@ export async function createPrep({ data, run, onFight, onWatch, onPickUnit }) {
       drag = null
       el.ghost.style.display = 'none'
       clearHighlight()
-      if (!held.moved) return
+      // 끌면 장착, 탭하면 정보. 말과 같은 규칙이다 — 판 위의 것은 전부
+      // 같은 손짓으로 들여다볼 수 있어야 한다.
+      if (!held.moved) return showItemCard(held.item.id)
       const found = unitAtPointer(ev.clientX, ev.clientY)
       if (!found) return
       // moveTo 와 같은 잠금이다 — 전투 중엔 판 위 말이 리플레이 스냅샷과

@@ -770,10 +770,14 @@ export async function createScene({
 
     // ── 아이템 선반 ────────────────────────────────────────
     //
-    // 대기석 **왼쪽**에, 대기석과 같은 z 줄(deckZ)에 붙인다 — 같은 줄에
-    // 나란히 서야 "곁에 놓인 물건"으로 읽히지, z 를 어긋내면 앞뒤로 떨어진
-    // 별개 구조물처럼 보인다. 받침은 대기석과 같은 2단(어두운 나무 +
+    // 대기석 **왼쪽**에 붙인다. 받침은 대기석과 같은 2단(어두운 나무 +
     // 밝은 나무) 구성을 그대로 써서 한 세트로 읽히게 한다.
+    //
+    // z 는 대기석 줄(deckZ)보다 판 쪽으로 당긴다. 같은 줄에 두면 화면
+    // 아래쪽 끝에 붙어 하단 HUD(확률표)와 겹치는 폭이 생긴다 — 폭이
+    // 700~1040 사이에서 변하므로 어떤 폭에서는 겹치고 어떤 폭에서는 안
+    // 겹치는, 재현이 어려운 종류의 겹침이다. 한 칸 앞으로 당겨 아예 그
+    // 띠를 벗어난다.
     {
       const ITEM_COLS = 4
       const ITEM_ROWS = 2
@@ -787,19 +791,21 @@ export async function createScene({
       // 하나의 긴 줄로 읽혀 어디까지가 벤치이고 어디부터가 선반인지 안 갈린다.
       const shelfGap = spacing.stepX * 0.35
       const shelfCx = benchExtent.minX - shelfGap - gridW / 2
+      // 대기석 줄에서 판 쪽으로 한 칸 당긴 자리. 하단 HUD 띠를 벗어난다.
+      const shelfZ = deckZ - iPitch * 0.9
 
       benchGroup.add(
         plank({
           set: woodDark,
           x: shelfCx,
-          z: deckZ,
+          z: shelfZ,
           w: gridW + gap * 2,
           d: gridD + gap * 2,
           y: deckY - 0.06,
         }),
       )
       benchGroup.add(
-        plank({ set: woodLight, x: shelfCx, z: deckZ, w: gridW, d: gridD, y: deckY }),
+        plank({ set: woodLight, x: shelfCx, z: shelfZ, w: gridW, d: gridD, y: deckY }),
       )
 
       // 슬롯 7개 — 런이 가질 수 있는 아이템 최대치와 같다(4×2 칸에서 마지막
@@ -809,7 +815,7 @@ export async function createScene({
         const col = i % ITEM_COLS
         const row = Math.floor(i / ITEM_COLS)
         const x = shelfCx + (col - (ITEM_COLS - 1) / 2) * iPitch
-        const z = deckZ + (row - (ITEM_ROWS - 1) / 2) * iPitch
+        const z = shelfZ + (row - (ITEM_ROWS - 1) / 2) * iPitch
         const mat = new THREE.SpriteMaterial({
           transparent: true,
           depthWrite: false,
@@ -841,7 +847,7 @@ export async function createScene({
       for (const d of [...surroundGroup.children]) {
         if (!d.userData.decor) continue
         const inX = Math.abs(d.position.x - shelfCx) <= gridW / 2 + gap
-        const inZ = Math.abs(d.position.z - deckZ) <= gridD / 2 + gap
+        const inZ = Math.abs(d.position.z - shelfZ) <= gridD / 2 + gap
         if (inX && inZ) surroundGroup.remove(d)
       }
 
@@ -849,8 +855,8 @@ export async function createScene({
       // 넓혀야 화면 가장자리에서 잘리지 않는다 — benchExtent 가 정확히
       // 그 용도로 있다 (주석: "프레이밍이 이 범위를 알아야 양 끝이 안 잘린다").
       benchExtent.minX = Math.min(benchExtent.minX, shelfCx - gridW / 2 - gap)
-      benchExtent.minZ = Math.min(benchExtent.minZ, deckZ - gridD / 2 - gap)
-      benchExtent.maxZ = Math.max(benchExtent.maxZ, deckZ + gridD / 2 + gap)
+      benchExtent.minZ = Math.min(benchExtent.minZ, shelfZ - gridD / 2 - gap)
+      benchExtent.maxZ = Math.max(benchExtent.maxZ, shelfZ + gridD / 2 + gap)
     }
   }
 
