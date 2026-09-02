@@ -24,17 +24,75 @@ import { createRng } from '@sim/rng.js'
  * 실패하면 던진다 — 호출자가 로컬 매치메이커로 갈아탄다. 조용히 봇 모드로
  * 떨어지면 "서버에 붙은 줄 알았는데 혼자였다"가 되므로 성공/실패를 밖에 알린다.
  */
-// 접속 대기 상한. 로컬 개발(서버 미배포)에서는 이 시간만큼 부팅이 늦어지고
+// 접속 대기 상한. 로컬 개발(서버 미배포)에서는 이 시간만큼 기다렸다 실패하고
 // 봇 로비로 떨어진다 — 길게 잡을수록 오프라인 개발이 그만큼 매번 느려진다.
-export async function createServerMatchmaker({ data, timeoutMs = 3500 }) {
+export async function connectServer({ timeoutMs = 3500 } = {}) {
   const server = GameServer.getInstance()
   const ok = await Promise.race([
     server.connect(),
     new Promise((r) => setTimeout(() => r(false), timeoutMs)),
   ])
   if (!ok || !server.connected) throw new Error('게임서버 접속 실패')
+  return server
+}
 
-  const state = await server.remoteFunction('joinLobby', [])
+/**
+ * 매칭 큐를 돌린다. 서버엔 타이머가 없어 **폴링이 진행의 트리거**다 —
+ * 대기자 각자가 두드리고, 조건을 처음 본 호출이 방을 만든다.
+ *
+ * MATCH_FOUND 푸시도 같이 듣는다. 폴링만 두면 최대 pollMs 만큼 늦고, 푸시만
+ * 두면 그 한 번을 놓쳤을 때 영영 안 잡힌다 — 둘 다 두고 먼저 오는 쪽을 쓴다.
+ */
+export function startQueue({ server, mode, data, onUpdate, onMatched }) {
+  const pollMs = data.lobby.matching.pollMs
+  let stopped = false
+  let timer = null
+  let off = null
+
+  const done = (roomId) => {
+    if (stopped) return
+    stopped = true
+    clearTimeout(timer)
+    off?.()
+    onMatched(roomId)
+  }
+  off = server.onGlobalMessage('MATCH_FOUND', (m) => done(m.roomId))
+
+  const tick = async (first) => {
+    if (stopped) return
+    try {
+      const r = await server.remoteFunction(first ? 'joinQueue' : 'pollQueue', [mode])
+      if (r?.status === 'matched') return done(r.roomId)
+      if (r?.status === 'waiting') onUpdate?.(r)
+    } catch (err) {
+      onUpdate?.({ status: 'error', message: err?.message })
+    }
+    timer = setTimeout(() => tick(false), pollMs)
+  }
+  tick(true)
+
+  return {
+    cancel() {
+      if (stopped) return
+      stopped = true
+      clearTimeout(timer)
+      off?.()
+      server.remoteFunction('leaveQueue', [mode], { needResponse: false })
+    },
+  }
+}
+
+/**
+ * 로비에 붙은 매치메이커를 만든다.
+ *
+ * roomId 를 주면 그 매치 방(사람들이 모인 방), 없으면 연습 방(봇 7).
+ */
+export async function createServerMatchmaker({ data, server, roomId = null, timeoutMs = 3500 }) {
+  server = server ?? (await connectServer({ timeoutMs }))
+
+  const state = roomId
+    ? await server.remoteFunction('joinMatchRoom', [roomId])
+    : await server.remoteFunction('joinLobby', [])
   if (!state || !state.seats) throw new Error('로비 입장 실패')
 
   // 좌석 미러. prep 의 순위표가 그대로 읽는 배열이라 모양을 로컬판과 맞춘다.
@@ -47,14 +105,14 @@ export async function createServerMatchmaker({ data, timeoutMs = 3500 }) {
   let pairs = []
   let opponentId = null
 
-  // 서버 브로드캐스트로 미러를 맞춘다. 1단계(1인 방)에선 조용하지만,
-  // 2단계에서 다른 사람의 배치가 이 경로로 실시간으로 들어온다 — 정찰이다.
-  const roomId = `solo-${server.account}`
-  server.onRoomMessage(roomId, 'BOARD_CHANGED', (m) => {
+  // 서버 브로드캐스트로 미러를 맞춘다. 연습 방(봇 7)에선 조용하고, 매치
+  // 방에선 **다른 사람의 배치가 이 경로로 실시간으로 들어온다** — 정찰이다.
+  const myRoom = roomId ?? `solo-${server.account}`
+  server.onRoomMessage(myRoom, 'BOARD_CHANGED', (m) => {
     const seat = seats[m.id]
     if (seat && !seat.isPlayer) seat.board = m.board
   })
-  server.onRoomMessage(roomId, 'ROUND_RESOLVED', (m) => {
+  server.onRoomMessage(myRoom, 'ROUND_RESOLVED', (m) => {
     // 서버 판정으로 미러를 다시 맞춘다. 결정론이 지켜졌으면 이미 같은 값이라
     // 아무것도 안 바뀐다 — 이 동기화는 어긋남을 잡는 안전망이다.
     for (const s of m.seats ?? []) {

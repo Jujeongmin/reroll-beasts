@@ -96,3 +96,103 @@ describe('라운드 진행', () => {
     }
   });
 });
+
+describe('매칭 큐', () => {
+  test('혼자면 랭크 큐는 기다린다', async (server) => {
+    server.connect({ account: 'q-solo' });
+    const r = await server.joinQueue('ranked');
+    expect(r.status).toBe('waiting');
+    expect(r.queued).toBe(1);
+    await server.leaveQueue('ranked');
+  });
+
+  test('큐를 떠나면 idle 이 된다', async (server) => {
+    server.connect({ account: 'q-leaver' });
+    await server.joinQueue('ranked');
+    await server.leaveQueue('ranked');
+    const r = await server.pollQueue('ranked');
+    expect(r.status).toBe('idle');
+  });
+
+  test('랭크 큐는 8명이 차면 전원이 같은 방을 받는다', async (server) => {
+    const accounts = ['r1','r2','r3','r4','r5','r6','r7','r8'];
+    let lastResult = null;
+    for (const a of accounts) {
+      server.connect({ account: a });
+      lastResult = await server.joinQueue('ranked');
+    }
+    // 8번째 입장이 방을 만든다
+    expect(lastResult.status).toBe('matched');
+    const roomId = lastResult.roomId;
+
+    // 나머지 7명도 폴링으로 같은 방에 안내된다
+    for (const a of accounts.slice(0, 7)) {
+      server.connect({ account: a });
+      const r = await server.pollQueue('ranked');
+      expect(r.status).toBe('matched');
+      expect(r.roomId).toBe(roomId);
+    }
+  });
+
+  test('매치 방 로비는 8명 전원이 사람이고, 누가 먼저 들어와도 같다', async (server) => {
+    const accounts = ['m1','m2','m3','m4','m5','m6','m7','m8'];
+    let matched = null;
+    for (const a of accounts) {
+      server.connect({ account: a });
+      matched = await server.joinQueue('ranked');
+    }
+    expect(matched.status).toBe('matched');
+
+    // 마지막 사람이 먼저 들어온다 — 순서가 결과를 바꾸면 안 된다
+    server.connect({ account: 'm8' });
+    const first = await server.joinMatchRoom(matched.roomId);
+    expect(first.seats.every((s) => !s.isBot)).toBe(true);
+
+    server.connect({ account: 'm1' });
+    const second = await server.joinMatchRoom(matched.roomId);
+    expect(second.seed).toBe(first.seed);
+    expect(second.seats.map((s) => s.account)).toEqual(first.seats.map((s) => s.account));
+
+    // 안내판이 지워졌다 — 다음 큐에서 이 방으로 또 끌려오면 안 된다
+    const after = await server.pollQueue('ranked');
+    expect(after.status).toBe('idle');
+  });
+
+  test('일반 큐는 대기 시간이 차면 봇을 채워 시작한다', async (server) => {
+    server.connect({ account: 'n-alone' });
+    const r1 = await server.joinQueue('normal');
+    expect(r1.status).toBe('waiting');
+
+    // 대기 시각을 과거로 밀어 시간 초과를 만든다 — 진짜 15초를 기다리는
+    // 테스트는 검사가 아니라 형벌이다.
+    const items = await $global.getCollectionItems('mmqueue-normal');
+    const me = items.find((x) => x.account === 'n-alone');
+    await $global.updateCollectionItem('mmqueue-normal', { __id: me.__id, at: 0 });
+
+    const r2 = await server.pollQueue('normal');
+    expect(r2.status).toBe('matched');
+
+    const lobby = await server.joinMatchRoom(r2.roomId);
+    expect(lobby.seats.filter((s) => !s.isBot)).toHaveLength(1);
+    expect(lobby.seats.filter((s) => s.isBot)).toHaveLength(7);
+    // 봇은 판을 들고 있어야 첫 라운드가 성립한다
+    expect(lobby.seats.filter((s) => s.isBot).every((s) => s.board.length > 0)).toBe(true);
+  });
+
+  test('다인 방은 마감 전에 라운드가 안 넘어간다', async (server) => {
+    const accounts = ['d1','d2','d3','d4','d5','d6','d7','d8'];
+    let matched = null;
+    for (const a of accounts) {
+      server.connect({ account: a });
+      matched = await server.joinQueue('ranked');
+    }
+    server.connect({ account: 'd1' });
+    const lobby = await server.joinMatchRoom(matched.roomId);
+    expect(lobby.round).toBe(1);
+
+    // 사람이 8명이라 early 가 안 통한다 — 마감이 법이다
+    const after = await server.resolveRound();
+    expect(after.round).toBe(1);
+    expect(after.fights.length).toBe(0);
+  });
+});

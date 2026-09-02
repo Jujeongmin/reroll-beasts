@@ -1,11 +1,49 @@
 {
   "size": 8,
-  "names": ["나", "바위손", "잿불", "물비늘", "덩굴손", "쇠발톱", "달그림자", "모래턱"],
+  "names": [
+    "나",
+    "바위손",
+    "잿불",
+    "물비늘",
+    "덩굴손",
+    "쇠발톱",
+    "달그림자",
+    "모래턱"
+  ],
   "growth": [
-    { "untilRound": 3, "units": 3, "star": 1, "maxTier": 2 },
-    { "untilRound": 8, "units": 5, "star": 1, "maxTier": 3 },
-    { "untilRound": 13, "units": 6, "star": 2, "maxTier": 3 },
-    { "untilRound": 18, "units": 7, "star": 2, "maxTier": 4 },
-    { "untilRound": 23, "units": 8, "star": 2, "maxTier": 5 }
-  ]
+    {
+      "untilRound": 3,
+      "units": 3,
+      "star": 1,
+      "maxTier": 2
+    },
+    {
+      "untilRound": 8,
+      "units": 5,
+      "star": 1,
+      "maxTier": 3
+    },
+    {
+      "untilRound": 13,
+      "units": 6,
+      "star": 2,
+      "maxTier": 3
+    },
+    {
+      "untilRound": 18,
+      "units": 7,
+      "star": 2,
+      "maxTier": 4
+    },
+    {
+      "untilRound": 23,
+      "units": 8,
+      "star": 2,
+      "maxTier": 5
+    }
+  ],
+  "matching": {
+    "normalWaitMs": 15000,
+    "pollMs": 2000
+  }
 }

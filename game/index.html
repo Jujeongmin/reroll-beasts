@@ -751,6 +751,45 @@
 
   /* 부팅 — 리소스를 **전부** 받고 나서 게임을 연다. 중간에 받으면 상점 카드가
      빈 채로 뜨고 말이 한 박자 늦게 나타난다. */
+  /* ── 메인화면 ─────────────────────────────────────
+     부팅이 끝나면 바로 게임이 아니라 여기가 뜬다. 모드(일반/랭크/연습)를
+     고르는 곳이라 없으면 매칭이란 개념 자체가 설 자리가 없다.
+     판 위에 겹치는 오버레이다 — 무대(3D)는 뒤에서 이미 그려져 있어
+     배경으로 쓴다. 따로 배경 그림을 만들면 로딩만 는다. */
+  #home {
+    position: fixed; inset: 0; z-index: 70;
+    display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 10px;
+    background: radial-gradient(120% 100% at 50% 10%, #3a4d7d66 0%, #0d1120cc 70%);
+  }
+  #home[hidden] { display: none; }
+  #home .title {
+    font-size: 34px; font-weight: 900; letter-spacing: 1px; color: #ffe9bd;
+    text-shadow: 0 2px 0 #7a4f2c, 0 5px 14px #000c;
+    margin-bottom: 6px;
+  }
+  #home .btn-home {
+    width: 220px; height: 44px; font-size: 15px; font-weight: 800;
+    display: flex; align-items: center; justify-content: center; gap: 8px;
+    border-style: solid; border-width: 6px; border-image-slice: 6;
+    border-image-repeat: repeat; border-image-source: url('/assets/ui/panel_wood.png');
+    background: #c58747; color: #fff2d8; text-shadow: 0 1px 2px #0009;
+    image-rendering: pixelated;
+  }
+  #home .btn-home:active { filter: brightness(1.12); }
+  #home .btn-home[disabled] { filter: grayscale(.7) brightness(.7); cursor: default; }
+  #home .btn-home small { font-size: 10px; font-weight: 700; color: #ffe9bd; opacity: .85; }
+  /* 대기 중 상태줄. 버튼 아래 한 줄 — 몇 명 모였는지, 취소. */
+  #home .queue {
+    display: flex; align-items: center; gap: 8px; height: 24px;
+    font-size: 12px; color: #cfe3ff; text-shadow: 0 1px 2px #000c;
+  }
+  #home .queue[hidden] { display: none; }
+  #home .queue button {
+    font-size: 11px; padding: 2px 8px; border-radius: 4px;
+    background: #00000055; box-shadow: inset 0 0 0 1px #ffffff2a; color: #ffb3a6;
+  }
+  #home .note { font-size: 10px; color: #8fa3c8; text-shadow: 0 1px 2px #000c; }
+
   #boot {
     position: fixed; inset: 0; z-index: 80;
     display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 12px;
@@ -821,6 +860,17 @@
   </div>
 
   <div id="ghost"><img alt="" /></div>
+  <div id="home" hidden>
+    <div class="title">Reroll Beasts</div>
+    <button class="btn-home" id="btn-normal">일반 매치 <small>사람+봇</small></button>
+    <button class="btn-home" id="btn-ranked">랭크 매치 <small>8인 대기</small></button>
+    <button class="btn-home" id="btn-practice">연습 <small>봇 7</small></button>
+    <div class="queue" id="queue-status" hidden>
+      <span id="queue-text"></span>
+      <button id="queue-cancel">취소</button>
+    </div>
+    <div class="note" id="home-note"></div>
+  </div>
   <div id="rotate">가로로 돌려주세요</div>
   <div id="boot">
     <div class="msg">불러오는 중…</div>

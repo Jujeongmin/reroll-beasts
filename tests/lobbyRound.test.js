@@ -28,6 +28,23 @@ describe('createLobbyState', () => {
     expect(s.seats[0].board).toHaveLength(0)
   })
 
+  it('accounts 를 주면 사람이 앞자리부터 앉는다', () => {
+    const s = createLobbyState({ seed: 1, accounts: ['a1', 'a2', 'a3'], now: 0, data })
+    expect(s.seats[0].account).toBe('a1')
+    expect(s.seats[2].account).toBe('a3')
+    expect(s.seats[2].isBot).toBe(false)
+    expect(s.seats[3].isBot).toBe(true)
+    // 사람 자리는 판이 비어 있고 봇 자리는 차 있다
+    expect(s.seats[1].board).toHaveLength(0)
+    expect(s.seats[3].board.length).toBeGreaterThan(0)
+  })
+
+  it('8명이 다 사람이면 봇이 없다', () => {
+    const acc = ['a','b','c','d','e','f','g','h']
+    const s = createLobbyState({ seed: 1, accounts: acc, now: 0, data })
+    expect(s.seats.every((x) => !x.isBot)).toBe(true)
+  })
+
   it('첫 라운드 배치 시간이 나머지보다 길다', () => {
     expect(prepMs(1, data)).toBeGreaterThan(prepMs(2, data))
   })

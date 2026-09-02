@@ -130,17 +130,25 @@ export function resolveRound(state, now, data, { early = false } = {}) {
   return { changed: true, fights }
 }
 
-/** 새 로비 한 판. 0번이 사람이고 나머지는 봇이다. */
-export function createLobbyState({ seed, account, now, data }) {
+/**
+ * 새 로비 한 판.
+ *
+ * accounts 로 사람 계정들을 앞자리부터 앉히고 나머지는 봇이다. 1인 방은
+ * accounts 가 하나(연습·폴백), 매치 방은 큐에서 모인 만큼이다. 좌석 순서가
+ * 대진 시드에 섞이므로 **호출자가 정렬해 넘겨야** 8명 전원이 같은 방을 만든다.
+ */
+export function createLobbyState({ seed, account, accounts, now, data }) {
+  const people = accounts ?? [account]
   const names = data.lobby.names
   const seats = []
   for (let i = 0; i < data.lobby.size; i++) {
+    const who = people[i] ?? null
     seats.push({
       id: i,
-      name: names[i] ?? `봇${i}`,
-      // 2단계에서 나머지 자리도 계정으로 채운다. isBot 이 그 갈림길이다.
-      account: i === 0 ? account : null,
-      isBot: i !== 0,
+      // 사람은 계정 꼬리로 구분한다 — 익명 계정이라 달리 부를 이름이 없다.
+      name: who ? `유저${String(who).slice(-4)}` : (names[i] ?? `봇${i}`),
+      account: who,
+      isBot: !who,
       hp: data.economy.startHp,
       level: data.levels.startLevel,
       board: [],

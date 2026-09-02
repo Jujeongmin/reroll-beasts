@@ -16,9 +16,8 @@
  *
  * ── 타이머가 없다 ────────────────────────────────────────
  * 이 런타임엔 cron 도 setInterval 도 없다. 서버는 스스로 못 깨어난다.
- * 그래서 배치 마감은 **서버가 시각을 정하고, 클라가 그 시각이 지났다고
- * 찾아오면 서버가 검증하고 진행한다.** 판정은 resolveRound 가 Date.now() 로
- * 하므로 일찍 부르면 거부된다 — 타이머를 앞당기는 조작이 안 통한다.
+ * 그래서 마감도 매칭도 **클라 호출이 트리거**다: 서버는 시각·조건만 쥐고,
+ * 클라가 찾아올 때 판정한다. 동시 호출은 $lock 으로 한 번만 처리된다.
  */
 import { createLobbyState, resolveRound } from '../../sim/lobbyRound.js'
 import { simulate } from '../../sim/combat.js'
@@ -54,9 +53,8 @@ export class Server {
   }
 
   /**
-   * 로비에 들어간다. 1단계는 **1인 1룸**이다 — 매칭이 아직 없으므로 빈 자리를
-   * 전부 봇으로 채운다. 그래서 동시접속이 0명이어도 지금 당장 플레이가 된다.
-   * 2단계에서 이 함수가 큐를 보고 방을 고르게 바뀐다.
+   * 연습 로비. **1인 1룸** — 빈 자리를 전부 봇으로 채운다. 매칭 없이 바로
+   * 시작하므로 동시접속이 0명이어도 지금 당장 플레이가 된다.
    */
   async joinLobby(): Promise<any> {
     const account = $sender.account
@@ -77,13 +75,111 @@ export class Server {
     return readLobby()
   }
 
+  // ── 매칭 큐 ─────────────────────────────────────────────
+  //
+  // 일반: 기다리다 시간이 차면 있는 사람 + 봇으로 시작한다.
+  // 랭크: 사람 8명이 찰 때까지 무한 대기한다.
+  //
+  // 서버가 스스로 못 깨어나므로 큐 진행도 클라 폴링이 트리거다 — 대기자
+  // 각자가 pollQueue 를 부르고, 조건을 처음 본 호출이 방을 만든다. $lock 으로
+  // 묶어 방이 두 개 생기지 않는다.
+
+  async joinQueue(mode: 'normal' | 'ranked'): Promise<any> {
+    const account = $sender.account
+    const col = `mmqueue-${mode}`
+    await $lock(`queue:${mode}`, async () => {
+      const queued = await $global.getCollectionItems(col)
+      if (!queued.find((x: any) => x.account === account)) {
+        await $global.addCollectionItem(col, { account, at: Date.now() })
+      }
+    })
+    return this.pollQueue(mode)
+  }
+
+  async leaveQueue(mode: 'normal' | 'ranked'): Promise<{ ok: boolean }> {
+    const account = $sender.account
+    const col = `mmqueue-${mode}`
+    await $lock(`queue:${mode}`, async () => {
+      const queued = await $global.getCollectionItems(col)
+      const me = queued.find((x: any) => x.account === account)
+      if (me) await $global.deleteCollectionItem(col, me.__id)
+    })
+    return { ok: true }
+  }
+
+  async pollQueue(mode: 'normal' | 'ranked'): Promise<any> {
+    const account = $sender.account
+    const col = `mmqueue-${mode}`
+    return $lock(`queue:${mode}`, async () => {
+      const queued = (await $global.getCollectionItems(col)).sort(
+        (a: any, b: any) => a.at - b.at,
+      )
+      const me = queued.find((x: any) => x.account === account)
+      if (!me) {
+        // 큐에 없다 = 남의 폴링이 이미 나를 매치에 넣었다. 내 상태의 안내판을 본다.
+        const st = await $global.getMyState()
+        if (st.pendingRoom) return { status: 'matched', roomId: st.pendingRoom }
+        return { status: 'idle' }
+      }
+
+      const size = DATA.lobby.size
+      const full = queued.length >= size
+      const timedOut =
+        mode === 'normal' && Date.now() - me.at >= DATA.lobby.matching.normalWaitMs
+      if (!full && !timedOut) {
+        return { status: 'waiting', queued: queued.length, waitedMs: Date.now() - me.at }
+      }
+
+      // 방을 만든다 — 정원이 찼거나, 일반 매치의 대기 시간이 찼거나.
+      const picked = queued.slice(0, size)
+      // 좌석 순서가 대진 시드에 섞인다. 계정으로 정렬해야 8명 전원이 같은
+      // 방을 계산한다 — 큐 도착 순서는 폴링 타이밍에 따라 흔들린다.
+      const accounts = picked.map((x: any) => x.account).sort()
+      const seed = (Date.now() ^ hashAccount(accounts.join('|'))) >>> 0
+      const roomId = `match-${mode}-${seed.toString(36)}`
+
+      await $global.addCollectionItem('matches', { roomId, accounts, seed, mode })
+      for (const q of picked) {
+        await $global.deleteCollectionItem(col, q.__id)
+        await $global.updateUserState(q.account, { pendingRoom: roomId })
+        // 폴링을 안 돌리고 있어도 즉시 안다. 폴링은 이 메시지를 놓쳤을 때의 보루다.
+        $global.sendMessageToUser('MATCH_FOUND', q.account, { roomId })
+      }
+      return { status: 'matched', roomId }
+    })
+  }
+
+  /**
+   * 매치 방에 들어간다. 첫 진입자가 로비를 만든다 — matches 에 적힌 명단과
+   * 시드로 만들므로 누가 먼저 들어와도 같은 방이 선다.
+   */
+  async joinMatchRoom(roomId: string): Promise<any> {
+    await $global.joinRoom(roomId)
+    // 안내판은 지운다. 남겨 두면 다음 큐에서 이 방으로 또 끌려온다.
+    await $global.updateMyState({ pendingRoom: null })
+
+    return $lock(`join:${roomId}`, async () => {
+      const existing = await readLobby()
+      if (existing) return existing
+
+      const matches = await $global.getCollectionItems('matches')
+      const match: any = matches.find((m: any) => m.roomId === roomId)
+      if (!match) return null
+
+      const state = createLobbyState({
+        seed: match.seed,
+        accounts: match.accounts,
+        now: Date.now(),
+        data: DATA,
+      })
+      await $room.updateRoomState({ lobby: state })
+      return state
+    })
+  }
+
   /**
    * 내 배치를 알린다. **정찰의 핵심이다** — 이 브로드캐스트가 있어야 상대가
    * 지금 뭘 사고 어디에 두는지가 남들에게 보인다.
-   *
-   * 클라는 throttle 을 걸어 부른다(일반 호출은 초당 10회 제한). 방 전체
-   * 상태를 다시 싣지 않고 바뀐 좌석만 알린다 — 전체를 실으면 8인분 보드가
-   * 매번 오간다.
    */
   async updateBoard(board: Entry[]): Promise<{ ok: boolean }> {
     const state = await readLobby()
@@ -162,7 +258,7 @@ export class Server {
   }
 }
 
-/** 계정 문자열 → 32비트. 룸 시드를 계정마다 갈라 놓기만 하면 된다. */
+/** 계정 문자열 → 32비트. 시드를 계정마다 갈라 놓기만 하면 된다. */
 function hashAccount(account: string): number {
   let h = 2166136261
   for (let i = 0; i < account.length; i++) {
