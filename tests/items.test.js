@@ -216,3 +216,72 @@ describe('전투 — 아이템 배선', () => {
     ).toThrow(/칸/)
   })
 })
+
+describe('전투 — 흡혈과 반사', () => {
+  it('흡혈의 낫이 가한 피해만큼 회복한다', () => {
+    const armed = simulate({
+      boardA: [{ unitId: 'frog', star: 1, tile: 0, items: ['vampiric_scythe'] }],
+      boardB: [{ unitId: 'yeti', star: 3, tile: 0 }],
+      seed: 5,
+      data,
+    })
+    const heals = armed.log.filter((e) => e.type === 'heal')
+    expect(heals.length).toBeGreaterThan(0)
+  })
+
+  it('흡혈이 최대 체력을 넘지 않는다', () => {
+    const armed = simulate({
+      boardA: [{ unitId: 'frog', star: 1, tile: 0, items: ['vampiric_scythe'] }],
+      boardB: [{ unitId: 'green_blob', star: 1, tile: 0 }],
+      seed: 5,
+      data,
+    })
+    const spawn = armed.log.find((e) => e.type === 'spawn' && e.team === 'A')
+    let hp = spawn.maxHp
+    for (const e of armed.log) {
+      if (e.type === 'heal' && e.casterId === spawn.casterId) hp += e.amount
+      if ((e.type === 'attack' || e.type === 'thorns') && e.targetIds?.includes(spawn.casterId)) {
+        hp -= e.toHp ?? 0
+      }
+    }
+    expect(hp).toBeLessThanOrEqual(spawn.maxHp)
+  })
+
+  it('가시 갑옷이 근접 공격자에게 피해를 되돌린다', () => {
+    const armed = simulate({
+      boardA: [{ unitId: 'frog', star: 1, tile: 0, items: ['thorn_armor'] }],
+      boardB: [{ unitId: 'orc', star: 1, tile: 0 }],
+      seed: 5,
+      data,
+    })
+    const thorns = armed.log.filter((e) => e.type === 'thorns')
+    expect(thorns.length).toBeGreaterThan(0)
+    expect(thorns[0].amount).toBeGreaterThan(0)
+  })
+
+  it('원거리 공격은 반사되지 않는다', () => {
+    const armed = simulate({
+      boardA: [{ unitId: 'frog', star: 1, tile: 0, items: ['thorn_armor'] }],
+      // wizard 는 사거리 3 이다
+      boardB: [{ unitId: 'wizard', star: 1, tile: 0 }],
+      seed: 5,
+      data,
+    })
+    expect(armed.log.filter((e) => e.type === 'thorns')).toHaveLength(0)
+  })
+
+  it('반사가 반사를 부르지 않는다 — 양쪽 다 가시 갑옷', () => {
+    const armed = simulate({
+      boardA: [{ unitId: 'frog', star: 1, tile: 0, items: ['thorn_armor'] }],
+      boardB: [{ unitId: 'frog', star: 1, tile: 0, items: ['thorn_armor'] }],
+      seed: 5,
+      data,
+    })
+    // 반사 하나가 또 반사를 부르면 같은 틱에 무한히 쌓인다. 틱당 개수로 본다.
+    const perTick = new Map()
+    for (const e of armed.log.filter((x) => x.type === 'thorns')) {
+      perTick.set(e.tick, (perTick.get(e.tick) ?? 0) + 1)
+    }
+    for (const n of perTick.values()) expect(n).toBeLessThanOrEqual(2)
+  })
+})

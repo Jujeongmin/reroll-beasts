@@ -430,6 +430,38 @@ export function simulate({ boardA, boardB, seed, data }) {
           toHp: hit.toHp,
           crit: isCrit,
         })
+        // 흡혈의 낫: 실제로 들어간 양만큼 회복한다. 요청 피해가 아니다 —
+        // HP 50 남은 적을 1000 으로 마무리하고 200 을 회복하는 일이 없다.
+        if (c.traits.lifestealPct > 0 && hit.dealt > 0 && c.alive) {
+          const healed = Math.min(
+            c.maxHp - c.hp,
+            Math.floor((hit.dealt * c.traits.lifestealPct) / 100),
+          )
+          if (healed > 0) {
+            c.hp += healed
+            log.push({ tick, type: 'heal', casterId: c.id, targetIds: [c.id], amount: healed })
+          }
+        }
+
+        // 가시 갑옷: 근접 평타만 되돌린다. 원거리·스킬·지속피해는 반사되지 않는다.
+        // 반사 피해는 다시 반사를 부르지 않는다 — 마주 선 두 가시 갑옷이
+        // 같은 틱에 무한 왕복한다.
+        if (victim.traits.thornsPct > 0 && hit.dealt > 0 && effectiveStat(c, 'range') === 1) {
+          const back = Math.floor((hit.dealt * victim.traits.thornsPct) / 100)
+          if (back > 0) {
+            const r = applyDamage(c, back)
+            log.push({
+              tick,
+              type: 'thorns',
+              casterId: victim.id,
+              targetIds: [c.id],
+              amount: r.dealt,
+              toShield: r.toShield,
+              toHp: r.toHp,
+            })
+          }
+        }
+
         if (victim.alive) {
           victim.mana = Math.min(
             cfg.mana.full,
@@ -444,12 +476,13 @@ export function simulate({ boardA, boardB, seed, data }) {
       }
 
       strike(target, 100)
+      // 반사로 내가 먼저 죽었을 수 있다. 시체가 연타·관통을 하면 안 된다.
       // 전사 3·4: 확률로 한 번 더 때린다.
-      if (target.alive && c.traits.doubleStrikeChance > 0) {
+      if (c.alive && target.alive && c.traits.doubleStrikeChance > 0) {
         if (rng.int(100) < c.traits.doubleStrikeChance) strike(target, 100)
       }
       // 사수 3: 대상보다 **뒤에 선** 적을 관통한다. 가까운 순, 같으면 id 순.
-      if (c.traits.pierceCount > 0) {
+      if (c.alive && c.traits.pierceCount > 0) {
         const behind = all
           .filter(
             (v) =>
