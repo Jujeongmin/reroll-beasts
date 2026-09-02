@@ -285,3 +285,72 @@ describe('전투 — 흡혈과 반사', () => {
     for (const n of perTick.values()) expect(n).toBeLessThanOrEqual(2)
   })
 })
+
+describe('전투 — 승리의 깃발', () => {
+  /** 첫 평타 피해. 오라가 붙었으면 이 값이 커진다. */
+  function firstHit(items) {
+    const r = simulate({
+      boardA: [
+        { unitId: 'frog', star: 1, tile: 0, items },
+        { unitId: 'orc', star: 1, tile: 1 },
+      ],
+      boardB: [{ unitId: 'yeti', star: 3, tile: 0 }],
+      seed: 11,
+      data,
+    })
+    const orcSpawn = r.log.find((e) => e.type === 'spawn' && e.team === 'A' && e.unitId === 'orc')
+    const hit = r.log.find((e) => e.type === 'attack' && e.casterId === orcSpawn.casterId && !e.crit)
+    return hit?.amount ?? 0
+  }
+
+  it('인접 아군의 공격력을 올린다', () => {
+    expect(firstHit(['victory_banner'])).toBeGreaterThan(firstHit([]))
+  })
+
+  it('자기 자신은 못 받는다', () => {
+    const r = simulate({
+      boardA: [{ unitId: 'frog', star: 1, tile: 0, items: ['victory_banner'] }],
+      boardB: [{ unitId: 'yeti', star: 3, tile: 0 }],
+      seed: 11,
+      data,
+    })
+    const plain = simulate({
+      boardA: [{ unitId: 'frog', star: 1, tile: 0 }],
+      boardB: [{ unitId: 'yeti', star: 3, tile: 0 }],
+      seed: 11,
+      data,
+    })
+    const dmg = (log) => log.find((e) => e.type === 'attack' && !e.crit)?.amount
+    expect(dmg(r.log)).toBe(dmg(plain.log))
+  })
+
+  it('멀리 선 아군은 못 받는다', () => {
+    // 이 보드는 육각형 격자다(sim/hex.js) — 인접 줄이라도 같은 열이면 보통 서로
+    // 인접(거리 1)이다. tile 0 과 tile 14 는 실제로 거리 2 만큼 떨어져 있어
+    // 반경 1 오라가 닿지 않는다(board.dist 로 실측: dist[0][7]===1, dist[0][14]===2).
+    const far = simulate({
+      boardA: [
+        { unitId: 'frog', star: 1, tile: 0, items: ['victory_banner'] },
+        { unitId: 'orc', star: 1, tile: 14 },
+      ],
+      boardB: [{ unitId: 'yeti', star: 3, tile: 0 }],
+      seed: 11,
+      data,
+    })
+    const plain = simulate({
+      boardA: [
+        { unitId: 'frog', star: 1, tile: 0 },
+        { unitId: 'orc', star: 1, tile: 14 },
+      ],
+      boardB: [{ unitId: 'yeti', star: 3, tile: 0 }],
+      seed: 11,
+      data,
+    })
+    const orcOf = (r) => r.log.find((e) => e.type === 'spawn' && e.unitId === 'orc').casterId
+    const dmg = (r) => {
+      const id = orcOf(r)
+      return r.log.find((e) => e.type === 'attack' && e.casterId === id && !e.crit)?.amount
+    }
+    expect(dmg(far)).toBe(dmg(plain))
+  })
+})

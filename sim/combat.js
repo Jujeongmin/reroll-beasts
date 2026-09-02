@@ -259,6 +259,25 @@ export function simulate({ boardA, boardB, seed, data }) {
     const occupied0 = new Map()
     for (const c of all) if (c.alive) occupied0.set(c.tile, c.id)
 
+    // 승리의 깃발: 인접 아군의 공격력을 올린다.
+    //
+    // **전투 시작 시점의 인접**으로 고정한다. 매 틱 다시 재면 움직일 때마다
+    // 공격력이 출렁이고, 로그만으로는 그 변화를 복원할 수 없다.
+    for (const c of all) {
+      if (c.traits.auraAtkPct <= 0) continue
+      for (const ally of all) {
+        // 자기 자신은 뺀다. 깃발을 든 사람이 제일 세지면 오라가 아니다.
+        if (ally.id === c.id || ally.team !== c.team || !ally.alive) continue
+        if (board.dist[c.tile][ally.tile] > c.traits.auraRadius) continue
+        ally.buffs.push({
+          stat: 'atkPct',
+          amount: c.traits.auraAtkPct,
+          expiresAt: Infinity,
+          sourceId: c.id,
+        })
+      }
+    }
+
     // 탱커 6단계: 최대 체력 비례 보호막.
     for (const c of all) {
       const pct = c.traits.shieldPctMaxHp
