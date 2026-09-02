@@ -33,6 +33,10 @@ export function createRun(data) {
     // 판이 갈리면 리롤 비용을 다시 물어야 한다.
     shopLocked: false,
     nextUid: 1,
+    // 아이템 인벤토리. 아직 아무 유닛에도 안 낀 것들이다.
+    // 상한을 두지 않는다 — 런당 7개뿐이라 넘칠 일이 없고, 상한이 있으면
+    // "받았는데 사라졌다"가 생긴다.
+    items: [],
   }
 }
 
@@ -120,12 +124,19 @@ export function resolveMerges(state, data, { only = null } = {}) {
     if (!target) break
 
     const home = target[0]
+    // 재료 셋이 낀 아이템을 자리 순서대로 모은다. 승급한 유닛이 앞에서부터
+    // 칸 수만큼 물려받고, 넘치는 것은 인벤토리로 돌아간다.
+    // 순서를 자리로 고정해야 같은 상태에서 항상 같은 결과가 나온다.
+    const carried = target.flatMap((u) => u.items ?? [])
+    const cap = data.items.slotsPerUnit
     for (const u of target) slotsOf(state, u.where)[u.index] = null
     slotsOf(state, home.where)[home.index] = {
       uid: state.nextUid++,
       unitId: home.unitId,
       star: home.star + 1,
+      items: carried.slice(0, cap),
     }
+    state.items.push(...carried.slice(cap))
     merged++
   }
   return merged
@@ -181,7 +192,7 @@ export function buy(state, pool, slotIndex, data, { mergeOnly = null } = {}) {
   state.gold -= cost
   state.shop[slotIndex] = null
   if (slot >= 0) {
-    state.bench[slot] = { uid: state.nextUid++, unitId, star: 1 }
+    state.bench[slot] = { uid: state.nextUid++, unitId, star: 1, items: [] }
   } else {
     // 벤치 만석 + 합성 완성. 산 카드는 어차피 즉시 합쳐지므로 자리가 필요 없다.
     // 기존 두 장을 지우고 그 앞자리에 한 단계 위를 앉힌다.
@@ -191,8 +202,16 @@ export function buy(state, pool, slotIndex, data, { mergeOnly = null } = {}) {
       ),
     )
     const [home, other] = same
+    const carried = [...(home.items ?? []), ...(other.items ?? [])]
+    const cap = data.items.slotsPerUnit
     slotsOf(state, other.where)[other.index] = null
-    slotsOf(state, home.where)[home.index] = { uid: state.nextUid++, unitId, star: 2 }
+    slotsOf(state, home.where)[home.index] = {
+      uid: state.nextUid++,
+      unitId,
+      star: 2,
+      items: carried.slice(0, cap),
+    }
+    state.items.push(...carried.slice(cap))
   }
   resolveMerges(state, data, { only: mergeOnly })
   return ok
@@ -213,9 +232,44 @@ export function sell(state, pool, uid, data) {
   const found = findUnit(state, uid)
   if (!found) return fail('없는 유닛이다')
   const { unitId, star } = found.unit
+  // 아이템은 유닛과 함께 사라지지 않는다. 한 번 끼우면 못 빼는 대신
+  // 팔면 돌아온다 — 실수를 복구할 유일한 경로다.
+  state.items.push(...(found.unit.items ?? []))
   slotsOf(state, found.where)[found.index] = null
   state.gold += sellValue(unitId, star, data)
   returnToPool(pool, unitId, refundCopies(star, data))
+  return ok
+}
+
+// ── 아이템 ──────────────────────────────────────────────
+
+/**
+ * 아이템 하나를 뽑아 인벤토리에 넣는다.
+ *
+ * rng 는 **상점과 다른 스트림**이어야 한다. 같은 것을 쓰면 아이템을 뽑을
+ * 때마다 상점 뽑기 순서가 밀려, 같은 시드로 저장한 결과가 전부 달라진다.
+ */
+export function grantItem(state, rng, data) {
+  const list = data.items.items
+  const id = list[rng.int(list.length)].id
+  state.items.push(id)
+  return id
+}
+
+/**
+ * 인벤토리의 아이템을 유닛에 끼운다. 한 번 끼우면 못 뺀다 (팔면 돌아온다).
+ * 벤치의 유닛에도 끼울 수 있다 — 판에 올리기 전에 준비하는 게 자연스럽다.
+ */
+export function equipItem(state, uid, invIndex, data) {
+  const found = findUnit(state, uid)
+  if (!found) return fail('없는 유닛이다')
+  const id = state.items[invIndex]
+  if (!id) return fail('없는 아이템이다')
+  const slots = data.items.slotsPerUnit
+  const worn = found.unit.items ?? []
+  if (worn.length >= slots) return fail(`아이템 칸이 꽉 찼다 (${slots})`)
+  found.unit.items = [...worn, id]
+  state.items.splice(invIndex, 1)
   return ok
 }
 
@@ -249,7 +303,7 @@ export function moveTo(state, uid, dest, data) {
 export function toCombatEntries(state) {
   const out = []
   state.board.forEach((c, tile) => {
-    if (c) out.push({ unitId: c.unitId, star: c.star, tile })
+    if (c) out.push({ unitId: c.unitId, star: c.star, tile, items: c.items ?? [] })
   })
   return out
 }

@@ -316,8 +316,8 @@ describe('전투로 넘기기', () => {
     s.board[13] = { uid: 2, unitId: 'bunny', star: 1 }
     putBench(s, [['dragon', 1]]) // 벤치는 안 싸운다
     expect(toCombatEntries(s)).toEqual([
-      { unitId: 'cat', star: 2, tile: 0 },
-      { unitId: 'bunny', star: 1, tile: 13 },
+      { unitId: 'cat', star: 2, tile: 0, items: [] },
+      { unitId: 'bunny', star: 1, tile: 13, items: [] },
     ])
   })
 })

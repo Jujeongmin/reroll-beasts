@@ -4,6 +4,9 @@ import { applyItems, itemSpecials, mergeSpecials, itemById } from '../sim/items.
 import { resolveStats, applyTraitEffects, traitSpecials } from '../sim/stats.js'
 import { unitById } from '../sim/data.js'
 import { simulate } from '../sim/combat.js'
+import { createRun, buy, sell, resolveMerges, toCombatEntries, grantItem, equipItem, findUnit } from '../sim/roster.js'
+import { createPool } from '../sim/pool.js'
+import { createRng } from '../sim/rng.js'
 
 const data = await loadData()
 
@@ -352,5 +355,117 @@ describe('전투 — 승리의 깃발', () => {
       return r.log.find((e) => e.type === 'attack' && e.casterId === id && !e.crit)?.amount
     }
     expect(dmg(far)).toBe(dmg(plain))
+  })
+})
+
+describe('인벤토리와 장착', () => {
+  /** 벤치 첫 칸에 유닛 하나가 앉은 새 런. */
+  function withUnit(unitId = 'frog', star = 1) {
+    const state = createRun(data)
+    state.bench[0] = { uid: state.nextUid++, unitId, star, items: [] }
+    return state
+  }
+
+  it('새 런의 인벤토리는 비어 있다', () => {
+    expect(createRun(data).items).toEqual([])
+  })
+
+  it('grantItem 이 인벤토리에 하나를 넣는다', () => {
+    const state = createRun(data)
+    const id = grantItem(state, createRng(1), data)
+    expect(state.items).toEqual([id])
+    expect(data.items.items.some((i) => i.id === id)).toBe(true)
+  })
+
+  it('같은 시드는 같은 아이템을 낸다', () => {
+    const a = createRun(data)
+    const b = createRun(data)
+    grantItem(a, createRng(42), data)
+    grantItem(b, createRng(42), data)
+    expect(a.items).toEqual(b.items)
+  })
+
+  it('장착하면 인벤토리에서 빠지고 유닛에 붙는다', () => {
+    const state = withUnit()
+    state.items = ['steel_sword']
+    const uid = state.bench[0].uid
+    expect(equipItem(state, uid, 0, data).ok).toBe(true)
+    expect(state.items).toEqual([])
+    expect(state.bench[0].items).toEqual(['steel_sword'])
+  })
+
+  it('3칸을 넘기면 거부한다', () => {
+    const state = withUnit()
+    state.bench[0].items = ['steel_sword', 'steel_sword', 'steel_sword']
+    state.items = ['oak_shield']
+    const r = equipItem(state, state.bench[0].uid, 0, data)
+    expect(r.ok).toBe(false)
+    expect(r.reason).toMatch(/칸/)
+    expect(state.items).toEqual(['oak_shield'])
+  })
+
+  it('없는 인벤토리 번호면 거부한다', () => {
+    const state = withUnit()
+    expect(equipItem(state, state.bench[0].uid, 3, data).ok).toBe(false)
+  })
+
+  it('없는 유닛이면 거부한다', () => {
+    const state = withUnit()
+    state.items = ['steel_sword']
+    expect(equipItem(state, 9999, 0, data).ok).toBe(false)
+  })
+
+  it('판매하면 아이템이 인벤토리로 돌아온다', () => {
+    const state = withUnit()
+    const pool = createPool(data)
+    state.bench[0].items = ['steel_sword', 'oak_shield']
+    sell(state, pool, state.bench[0].uid, data)
+    expect(state.items.sort()).toEqual(['oak_shield', 'steel_sword'])
+  })
+
+  it('합성이 아이템을 승계한다', () => {
+    const state = createRun(data)
+    for (let i = 0; i < 3; i++) {
+      state.bench[i] = { uid: state.nextUid++, unitId: 'frog', star: 1, items: [] }
+    }
+    state.bench[0].items = ['steel_sword']
+    state.bench[1].items = ['oak_shield']
+    resolveMerges(state, data)
+    const merged = state.bench.find((c) => c && c.star === 2)
+    expect(merged.items.sort()).toEqual(['oak_shield', 'steel_sword'])
+    expect(state.items).toEqual([])
+  })
+
+  it('합성 초과분은 인벤토리로 간다', () => {
+    const state = createRun(data)
+    for (let i = 0; i < 3; i++) {
+      state.bench[i] = {
+        uid: state.nextUid++,
+        unitId: 'frog',
+        star: 1,
+        items: ['steel_sword', 'oak_shield'],
+      }
+    }
+    resolveMerges(state, data)
+    const merged = state.bench.find((c) => c && c.star === 2)
+    expect(merged.items).toHaveLength(3)
+    expect(state.items).toHaveLength(3)
+  })
+
+  it('산 유닛은 빈 칸으로 시작한다', () => {
+    const state = createRun(data)
+    const pool = createPool(data)
+    state.gold = 50
+    state.shop[0] = 'frog'
+    buy(state, pool, 0, data)
+    expect(state.bench.find((c) => c)?.items).toEqual([])
+  })
+
+  it('전투에 넘길 때 아이템이 실린다', () => {
+    const state = createRun(data)
+    state.board[0] = { uid: 1, unitId: 'frog', star: 1, items: ['steel_sword'] }
+    expect(toCombatEntries(state)).toEqual([
+      { unitId: 'frog', star: 1, tile: 0, items: ['steel_sword'] },
+    ])
   })
 })
