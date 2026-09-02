@@ -25,7 +25,9 @@ import {
   toggleShopLock,
   sell,
   toCombatEntries,
+  equipItem,
 } from '@sim/roster.js'
+import { itemById } from '@sim/items.js'
 import { unitInfo } from './unit-info.js'
 import { traitDetail } from './trait-info.js'
 import { standings } from '@sim/lobby.js'
@@ -65,6 +67,7 @@ export async function createPrep({ data, run, onFight, onWatch, onPickUnit }) {
     shopbar: document.getElementById('shopbar'),
     ghost: document.getElementById('ghost'),
     ghostImg: document.querySelector('#ghost img'),
+    itembar: document.getElementById('itembar'),
   }
 
   // 판 전체를 그리고 상대 절반은 어둡게 눌러 둔다 (TFT 와 같은 구성).
@@ -561,6 +564,28 @@ export async function createPrep({ data, run, onFight, onWatch, onPickUnit }) {
     )
   }
 
+  /**
+   * 아이템 바. 같은 아이템은 한 칸에 모아 개수를 적는다.
+   *
+   * 종류별로 묶는 이유: 런당 7개뿐이지만 같은 것이 셋 나오면 줄이 넘치고,
+   * 어차피 끌 때는 종류만 고르면 된다.
+   */
+  function renderItems() {
+    const counts = new Map()
+    run.state.items.forEach((id) => counts.set(id, (counts.get(id) ?? 0) + 1))
+    el.itembar.innerHTML = [...counts]
+      .map(([id, n]) => {
+        const item = itemById(data.items, id)
+        return (
+          `<div class="it" data-id="${id}" title="${item.name.ko}">` +
+          `<img src="/assets/ui/item_${id}.png" alt="${item.name.ko}" />` +
+          (n > 1 ? `<b>${n}</b>` : '') +
+          '</div>'
+        )
+      })
+      .join('')
+  }
+
   // ── 유닛 정보 ───────────────────────────────────────────
   //
   // 끌면 배치, 탭하면 정보. 같은 포인터를 나눠 쓰므로 **움직인 거리**로 가른다.
@@ -622,6 +647,18 @@ export async function createPrep({ data, run, onFight, onWatch, onPickUnit }) {
       `<span>치명<b>${Math.round(i.stats.critChance * 100)}%</b></span>` +
       '</div>' +
       `<div class="sk"><em>스킬</em> ${i.skill}</div>` +
+      (cell && (cell.items ?? []).length > 0
+        ? '<div class="items">' +
+          cell.items
+            .map((id) => {
+              const it = itemById(data.items, id)
+              return (
+                `<span><img src="/assets/ui/item_${id}.png" alt="" />${it.name.ko}</span>`
+              )
+            })
+            .join('') +
+          '</div>'
+        : '') +
       (cell
         ? `<div class="sell">판매 <b>+${sellValue(unitId, star, data)}골드</b> · 상점 바로 끌기</div>`
         : `<div class="sell">${team === 'A' ? '내' : '상대'} 진영 · 전투 중</div>`)
@@ -736,6 +773,7 @@ export async function createPrep({ data, run, onFight, onWatch, onPickUnit }) {
     renderHud()
     renderTraits()
     renderShop()
+    renderItems()
     syncUnits()
   }
 
@@ -1037,8 +1075,50 @@ export async function createPrep({ data, run, onFight, onWatch, onPickUnit }) {
     }
   }
 
+  /**
+   * 아이템을 끌 때의 표시. 놓을 곳은 **유닛**이지 빈 칸이 아니다.
+   * 칸이 찬 유닛은 빨갛게 — 놓아도 아무 일이 없다는 걸 놓기 전에 알려야 한다.
+   */
+  function highlightUnit(found) {
+    clearHighlight()
+    if (!found) return
+    const full = (found.unit.items ?? []).length >= data.items.slotsPerUnit
+    const at = findUnit(run.state, found.uid)
+    if (!at) return
+    if (at.where === 'board') {
+      const ring = scene.ringNodes[localToField[at.index]]
+      if (ring) ring.material = full ? scene.ringStyles.sell : scene.ringStyles.hot
+      hotTile = at.index
+    } else {
+      hotSlot = scene.benchPads[at.index] ?? null
+      hotSlot?.userData.tint?.(full ? 0xe8654f : BENCH_HOT)
+    }
+  }
+
+  // 아이템 바에서 시작하는 드래그. 판 위 드래그와 같은 pointermove/up 을
+  // 쓰지만 시작점이 DOM 이라 여기서 따로 받는다.
+  el.itembar.addEventListener('pointerdown', (ev) => {
+    const cell = ev.target.closest('.it')
+    if (!cell) return
+    const id = cell.dataset.id
+    const invIndex = run.state.items.indexOf(id)
+    if (invIndex < 0) return
+    ev.preventDefault()
+    drag = { item: { id, invIndex }, x0: ev.clientX, y0: ev.clientY, moved: false }
+    el.ghostImg.src = `/assets/ui/item_${id}.png`
+    el.ghost.style.display = 'block'
+    el.ghost.style.left = `${ev.clientX}px`
+    el.ghost.style.top = `${ev.clientY}px`
+    el.root.setPointerCapture(ev.pointerId)
+  })
+
   el.root.addEventListener('pointerdown', (ev) => {
-    if (ev.target.closest('#shopbar') || ev.target.closest('#top') || ev.target.closest('#info')) {
+    if (
+      ev.target.closest('#shopbar') ||
+      ev.target.closest('#top') ||
+      ev.target.closest('#info') ||
+      ev.target.closest('#itembar')
+    ) {
       return
     }
     // 전투 중에는 판 위의 말이 로그에서 나온다 — 로스터에는 없으므로 따로 집는다.
@@ -1084,11 +1164,29 @@ export async function createPrep({ data, run, onFight, onWatch, onPickUnit }) {
     }
     el.ghost.style.left = `${ev.clientX}px`
     el.ghost.style.top = `${ev.clientY}px`
-    highlight(dropTargetAt(ev.clientX, ev.clientY))
+    if (drag.item) highlightUnit(unitAtPointer(ev.clientX, ev.clientY))
+    else highlight(dropTargetAt(ev.clientX, ev.clientY))
   })
 
   function endDrag(ev) {
     if (!drag) return
+
+    // 아이템 드래그. 놓을 곳은 유닛이다.
+    if (drag.item) {
+      const held = drag
+      drag = null
+      el.ghost.style.display = 'none'
+      clearHighlight()
+      if (!held.moved) return
+      const found = unitAtPointer(ev.clientX, ev.clientY)
+      if (!found) return
+      const r = equipItem(run.state, found.uid, held.item.invIndex, data)
+      if (!r.ok) hint(r.reason)
+      else hint(`${itemById(data.items, held.item.id).name.ko} 장착`)
+      refresh()
+      return
+    }
+
     const target = dropTargetAt(ev.clientX, ev.clientY)
     const held = drag
     drag = null

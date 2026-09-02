@@ -335,6 +335,13 @@
     font-size: 9px; line-height: 1.35; color: #e6dcc8;
   }
   #info .sk em { color: #8fd8ff; font-style: normal; font-weight: 700; }
+  #info .items { display: flex; flex-wrap: wrap; gap: 4px; margin-top: 3px; }
+  #info .items span {
+    display: flex; align-items: center; gap: 3px;
+    font-size: 11px; color: var(--dim);
+    background: #ffffff14; border-radius: 3px; padding: 1px 4px;
+  }
+  #info .items img { width: 14px; height: 14px; image-rendering: pixelated; }
   #info .sell { padding: 4px 0 0; border-top: 1px solid #ffffff1a; color: #b3a894; font-size: 9px; }
   #info .sell b { color: var(--gold); }
   #info .sell b::before,
@@ -409,6 +416,27 @@
     pointer-events: none; opacity: 0; transition: opacity .18s;
   }
   #hint.show { opacity: 1; }
+
+  /* ── 아이템 바 ─────────────────────────────────────
+     좌하단. 아직 아무 유닛에도 안 낀 것들이다. 비면 줄 자체가 사라진다 —
+     빈 칸을 남겨 두면 "받을 게 있는데 안 받았나"로 읽힌다. */
+  #itembar {
+    position: absolute; left: 6px; bottom: 6px; z-index: 6;
+    display: flex; gap: 3px;
+  }
+  #itembar:empty { display: none; }
+  #itembar .it {
+    position: relative; width: 26px; height: 26px;
+    background: #12101ce8; border: 1px solid #ffffff2e; border-radius: 4px;
+    cursor: grab; touch-action: none;
+  }
+  #itembar .it img { width: 100%; height: 100%; image-rendering: pixelated; }
+  /* 같은 아이템이 여럿이면 개수만 적는다. 칸을 여러 개 두면 줄이 넘친다. */
+  #itembar .it b {
+    position: absolute; right: -2px; bottom: -3px;
+    font-size: 10px; line-height: 1; padding: 1px 3px;
+    background: #0d0b12; border-radius: 3px; color: var(--gold);
+  }
 
   /* ── 정보 줄 (판 위에 뜬다) ────────────────────────── */
   /* 레벨 · 확률 · 골드 · 연승 · 잠금은 **상점 판 안에 넣지 않는다.**
@@ -760,6 +788,7 @@
       <div id="info" class="panel" hidden></div>
       <div id="traitinfo" class="panel" hidden></div>
       <div id="hint"></div>
+      <div id="itembar"></div>
 
       <div id="hudbar">
         <div id="hudL">
