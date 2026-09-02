@@ -76,3 +76,17 @@ export function grantIndices(data) {
   }
   return out
 }
+
+/**
+ * 아이템 드랍용 시드. 라운드마다 갈라지고, 상점 시드와도 갈라진다.
+ *
+ * 여기 두는 이유: main.js 는 배선만 하고 규칙은 sim/ 이 갖는다. 공식이 화면
+ * 쪽에 살면 테스트가 그걸 못 부르고, 테스트는 같은 식을 베껴 적을 수밖에 없어
+ * "같은 식은 같은 값을 낸다"만 증명하게 된다 — 공식을 바꿔도 통과한다.
+ *
+ * 2654435761 은 홀수라 2^32 곱셈이 전단사다. 라운드가 다르면 시드도 반드시
+ * 다르다 — 확률이 아니라 보장이다.
+ */
+export function itemSeed(runSeed, roundIndex) {
+  return (runSeed ^ 0x1737 ^ (roundIndex * 2654435761)) >>> 0
+}

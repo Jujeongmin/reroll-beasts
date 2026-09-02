@@ -1,7 +1,7 @@
 import { describe, it, expect } from 'vitest'
 import { loadData } from '../sim/data.js'
 import { createRng } from '../sim/rng.js'
-import { totalRounds, roundAt, pveBoard, defeatDamage, grantIndices } from '../sim/rounds.js'
+import { totalRounds, roundAt, pveBoard, defeatDamage, grantIndices, itemSeed } from '../sim/rounds.js'
 
 const data = await loadData()
 const R = data.rounds
@@ -127,5 +127,26 @@ describe('grantIndices', () => {
     const bad = JSON.parse(JSON.stringify(data))
     bad.items.grantRounds = ['9-9']
     expect(() => grantIndices(bad)).toThrow(/9-9/)
+  })
+})
+
+describe('itemSeed', () => {
+  it('같은 입력은 같은 시드를 낸다', () => {
+    expect(itemSeed(20260901, 5)).toBe(itemSeed(20260901, 5))
+  })
+
+  it('실제 지급 라운드끼리는 시드가 전부 다르다', () => {
+    // 샘플이 아니라 실제 지급 일정 전체로 본다 — 곱셈이 전단사이므로
+    // 라운드가 다르면 시드도 반드시 달라야 한다.
+    const indices = [...grantIndices(data)]
+    const seeds = indices.map((n) => itemSeed(20260901, n))
+    expect(new Set(seeds).size).toBe(indices.length)
+  })
+
+  it('uint32 범위 안의 정수를 낸다', () => {
+    const s = itemSeed(20260901, 5)
+    expect(Number.isInteger(s)).toBe(true)
+    expect(s).toBeGreaterThanOrEqual(0)
+    expect(s).toBeLessThanOrEqual(0xffffffff)
   })
 })

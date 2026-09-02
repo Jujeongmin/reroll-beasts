@@ -10,7 +10,7 @@ import { createRng } from '@sim/rng.js'
 import { simulate } from '@sim/combat.js'
 import { startRun, refreshShop, grantItem } from '@sim/roster.js'
 import { roundIncome, addXp } from '@sim/economy.js'
-import { roundAt, totalRounds, defeatDamage, grantIndices } from '@sim/rounds.js'
+import { roundAt, totalRounds, defeatDamage, grantIndices, itemSeed } from '@sim/rounds.js'
 import { createLocalMatchmaker } from './matchmaker.js'
 import { createPrep } from './prep.js'
 import { createBattle } from './battle.js'
@@ -75,7 +75,7 @@ try {
    */
   function grantIfDue(index) {
     if (!itemRounds.has(index)) return
-    const id = grantItem(run.state, createRng((seed ^ 0x1737 ^ (index * 2654435761)) >>> 0), data)
+    const id = grantItem(run.state, createRng(itemSeed(seed, index)), data)
     return id
   }
 
