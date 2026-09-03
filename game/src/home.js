@@ -75,19 +75,43 @@ export function createHome({
     el.hint.hidden = true
     el.root.classList.remove('guiding')
   })
-  el.boardClose.addEventListener('click', () => {
-    el.board.hidden = true
-  })
+  /**
+   * 창을 접는다.
+   *
+   * 바로 hidden 을 걸지 않는 이유: 그러면 줄어드는 애니메이션이 시작도 못
+   * 하고 화면이 툭 끊긴다. `closing` 을 달아 애니메이션을 돌리고, 끝난
+   * **뒤에** 감춘다. animationend 만 믿지는 않는다 — 창이 안 보이는 탭에서는
+   * 안 올 수 있어서, 그때는 창이 열린 채로 남는다. 시간으로 한 번 더 받는다.
+   */
+  function closeSheet(veil) {
+    if (veil.hidden || veil.classList.contains('closing')) return
+    veil.classList.add('closing')
+    const done = () => {
+      veil.hidden = true
+      veil.classList.remove('closing')
+    }
+    setTimeout(done, 260)
+  }
+
+  // 바깥(어두운 바닥)을 눌러도 닫힌다. 창 안을 눌렀을 때는 닫으면 안 되니
+  // 대상이 바닥 자신일 때만 — 카드를 고르다 닫히면 고른 것이 안 보인다.
+  const backdrop = (veil) => (ev) => {
+    if (ev.target === veil) closeSheet(veil)
+  }
+  el.board.addEventListener('click', backdrop(el.board))
+  el.skins.addEventListener('click', backdrop(el.skins))
+
+  el.boardClose.addEventListener('click', () => closeSheet(el.board))
   el.skinsBtn.addEventListener('click', () => openSkins())
-  el.skinsClose.addEventListener('click', () => {
-    el.skins.hidden = true
-  })
+  el.skinsClose.addEventListener('click', () => closeSheet(el.skins))
 
   /**
    * 아바타 목록. 잠긴 것도 **보여 준다** — 무엇이 기다리는지 알아야 그걸
    * 얻을 이유가 생긴다. 다만 눌리지는 않는다.
    */
   async function openSkins() {
+    // 닫는 중에 다시 누를 수 있다. closing 이 남아 있으면 열자마자 사라진다.
+    el.skins.classList.remove('closing')
     el.skins.hidden = false
     const picked = onPickedAvatar()
     const list = avatarChoices(data, ownedNow())
@@ -127,6 +151,7 @@ export function createHome({
   /** 순위표를 연다. 서버가 안 주면 그 사실을 그대로 적는다 — 빈 표를 띄우면
    *  아무도 없는 것처럼 보인다. */
   async function openBoard() {
+    el.board.classList.remove('closing')
     el.board.hidden = false
     el.boardRows.innerHTML = '<div class="empty">불러오는 중…</div>'
     const lb = await onBoard?.()

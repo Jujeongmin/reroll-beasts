@@ -1004,16 +1004,15 @@
   /* ── 아바타 고르기 ──────────────────────────────────── */
   #skins {
     position: absolute; inset: 0; z-index: 80;
-    animation: veilin .18s ease-out;
+    animation: veilin .3s ease-out;
     display: flex; align-items: center; justify-content: center;
-    background: #06040bb8;
+    background: #06040bc4;
   }
   #skins[hidden] { display: none; }
   #skins .sheet {
-    animation: sheetin .18s ease-out;
+    animation: sheetin .42s cubic-bezier(.16,1,.3,1);
     width: 520px; max-height: 330px; display: flex; flex-direction: column; gap: 8px;
-    padding: 12px; border-radius: 10px;
-    background: #150f22f2; box-shadow: inset 0 0 0 1px #ffd16659, 0 10px 28px #000a;
+    padding: 10px 12px 12px;
   }
   #skins .grid {
     display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px; overflow-y: auto;
@@ -1023,16 +1022,28 @@
   }
   /* 그림이 카드고, 글자는 그 위에 얹는다. 아래에 글자 띠를 두면 카드 절반이
      텍스트가 되어 정작 무엇인지 보러 온 그림이 작아진다. */
+  /* 칸은 있어야 한다 — 어두운 아바타가 어두운 판 위에 뜨면 어디까지가 한
+     칸인지 안 보이고, 잠긴 것은 아예 사라진다. 없앤 건 상자가 아니라 상점
+     카드에서 딸려 온 **하단 회색 띠**다. */
   #skins .card {
-    position: relative; height: 190px; border-radius: 7px; cursor: pointer; overflow: hidden;
-    background: #ffffff0a; box-shadow: inset 0 0 0 1px #ffffff14;
+    position: relative; height: 190px; border-radius: 4px; cursor: pointer; overflow: hidden;
+    background: linear-gradient(180deg, #3a2a1e, #1d1410);
+    box-shadow: inset 0 0 0 1px #00000059, inset 0 1px 0 #ffffff14;
     color: #e9dcc2;
   }
+  #skins .card:hover { background: linear-gradient(180deg, #4a361f, #241812); }
+  /* 상점 카드가 쓰는 후광. 그림만 보러 온 자리에 상자를 하나 더 그린다. */
+  #skins .card::before { display: none; }
   #skins .card img { display: block; width: 100%; height: 100%; object-fit: contain; image-rendering: auto; }
-  /* 글자 뒤에만 옅은 그늘. 밝은 갑옷 위에서도 이름이 읽혀야 한다. */
+  /* 글자 뒤에만 옅은 그늘. 밝은 갑옷 위에서도 이름이 읽혀야 한다.
+     상점 카드의 .nm 은 카드 폭을 꽉 채우는 하단 띠다 — 폭·높이·배경을 전부
+     되돌려야 회색 상자가 사라진다. 하나라도 빠뜨리면 띠가 그대로 남는다. */
   #skins .card .nm,
   #skins .card .why {
-    position: absolute; left: 7px; text-shadow: 0 1px 3px #000, 0 0 8px #000a;
+    position: absolute; left: 7px; right: auto; top: auto;
+    display: block; width: auto; height: auto; padding: 0;
+    background: none; box-shadow: none; letter-spacing: 0;
+    line-height: 1.2; text-shadow: 0 1px 3px #000, 0 0 8px #000a;
   }
   #skins .card .nm { bottom: 17px; font-size: 12px; font-weight: 800; }
   #skins .card .why { bottom: 4px; font-size: 10px; color: #f0c56a; }
@@ -1040,31 +1051,61 @@
      패스를 살 이유가 생긴다. */
   #skins .card.locked { cursor: default; }
   #skins .card.locked img { filter: brightness(0.35) grayscale(1); }
-  #skins .card.on { background: #ffd1661f; box-shadow: inset 0 0 0 2px #ffd166aa; }
+  #skins .card.on {
+    box-shadow: inset 0 0 0 2px #ffd166cc;
+    background: linear-gradient(180deg, #55401f, #2a1d10);
+  }
   #skins #skins-close {
     align-self: center; font-size: 11px; color: #cbb794; text-decoration: underline;
   }
 
-  /* 시트가 툭 뜨면 어디서 온 창인지 안 읽힌다. 살짝 커지며 올라오면 눈이
-     그 자리를 따라간다. 0.18초 — 더 길면 두 번째부터 답답하다. */
+  /* 창 겉모습은 게임 안과 같은 나무 액자를 쓴다. 둥근 모서리에 남색 판은
+     이 게임 어디에도 없는 재질이라, 그 창만 다른 프로그램에서 떠 온 것처럼
+     보인다 — 상점·상세 패널과 같은 판자여야 같은 세계로 읽힌다. */
+  #skins .sheet,
+  #board .sheet {
+    border-style: solid; border-width: 12px; border-image-slice: 6;
+    border-image-repeat: repeat; border-image-source: url('/assets/ui/panel_wood.png');
+    image-rendering: pixelated;
+    background: linear-gradient(180deg, #2a1d16, #170f0c);
+    filter: drop-shadow(0 12px 26px #000b);
+  }
+  /* 안쪽 내용까지 도트로 뭉개지면 안 된다 — 액자만 픽셀이다. */
+  #skins .sheet > *,
+  #board .sheet > * { image-rendering: auto; }
+
+  /* 시트가 툭 뜨면 어디서 온 창인지 안 읽힌다. 작게 시작해 커지면 눈이 그
+     자리를 따라간다. 짧으면(.26s) 눈이 따라잡기 전에 끝나 "그냥 나타났다"로
+     읽혀서, 커지는 구간을 사람이 볼 수 있을 만큼 길게 잡았다. */
   @keyframes sheetin {
-    from { opacity: 0; transform: translateY(10px) scale(.97); }
+    from { opacity: 0; transform: scale(.6); }
+    to   { opacity: 1; transform: scale(1); }
+  }
+  /* 닫을 때도 줄어들며 사라져야 "그 창이 접혔다"가 된다. 열 때만 애니메이션을
+     주면 닫는 순간 화면이 툭 끊겨 방금 뭘 눌렀는지 되짚게 된다.
+     닫기는 열기보다 짧다 — 이미 볼 것을 다 본 뒤라 기다림이 길면 답답하다. */
+  @keyframes sheetout {
+    from { opacity: 1; transform: scale(1); }
+    to   { opacity: 0; transform: scale(.72); }
   }
   @keyframes veilin { from { opacity: 0; } }
+  @keyframes veilout { to { opacity: 0; } }
+  #skins.closing, #board.closing { animation: veilout .24s ease-in forwards; }
+  #skins.closing .sheet,
+  #board.closing .sheet { animation: sheetout .24s cubic-bezier(.4,0,.9,.5) forwards; }
 
   /* ── 순위표 ─────────────────────────────────────────── */
   #board {
     position: absolute; inset: 0; z-index: 80;
-    animation: veilin .18s ease-out;
+    animation: veilin .3s ease-out;
     display: flex; align-items: center; justify-content: center;
-    background: #06040bb8;
+    background: #06040bc4;
   }
   #board[hidden] { display: none; }
   #board .sheet {
-    animation: sheetin .18s ease-out;
+    animation: sheetin .42s cubic-bezier(.16,1,.3,1);
     width: 320px; max-height: 300px; display: flex; flex-direction: column; gap: 6px;
-    padding: 12px; border-radius: 10px;
-    background: #150f22f2; box-shadow: inset 0 0 0 1px #ffd16659, 0 10px 28px #000a;
+    padding: 10px 12px 12px;
   }
   #board .bhead,
   #skins .bhead { display: flex; align-items: baseline; gap: 8px; }
