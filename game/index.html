@@ -823,13 +823,20 @@
     animation: coachdot 1.6s ease-in-out infinite;
   }
   @keyframes coachdot { 50% { opacity: .45; } }
+  /* 액자는 button.png 를 쓴다. lobby_btn.png 은 190×49 짜리 **한 장짜리 판**이라
+     9-슬라이스로 늘리면 그림 안에 있던 가로선이 버튼 한복판에 실선으로 남는다
+     — 홈 메뉴처럼 원본과 비슷한 크기로 쓸 때만 성립하는 그림이다. */
   #coach #coach-fight,
   #coach #coach-home {
-    flex: none; padding: 5px 12px; font-size: 13px; font-weight: 800; color: #3b2a16;
-    border-style: solid; border-width: 8px; border-image-slice: 8 fill;
-    border-image-repeat: repeat; border-image-source: url('/assets/ui/lobby_btn.png');
+    flex: none; align-self: center; height: 26px; padding: 0 10px; line-height: 1;
+    font-size: 12px; font-weight: 800; color: #3b2a16;
+    border-style: solid; border-width: 6px; border-image-slice: 6;
+    border-image-repeat: repeat; border-image-source: url('/assets/ui/button_light.png');
+    background: #e0a94c;
     text-shadow: 0 1px 0 #ffffff88; image-rendering: pixelated;
   }
+  #coach #coach-fight:active,
+  #coach #coach-home:active { transform: translateY(1px); }
   #coach #coach-fight[hidden], #coach #coach-home[hidden] { display: none; }
   /* 건너뛰기는 눈에 덜 띄어야 한다 — 시키는 것과 같은 무게로 두면 그걸 먼저 누른다. */
   #coach #coach-skip {

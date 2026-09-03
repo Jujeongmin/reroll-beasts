@@ -306,22 +306,10 @@ export async function createScene({
 
   // 상대 절반을 붉게 덮던 판을 뺐다. 돌바닥 위에서 그냥 싸우는 그림이
   // 맞다 — 어느 쪽이 누구인지는 말의 방향과 체력바 색이 이미 말한다.
-  // 교전선. 판 한가운데를 가로지르는 선은 돌바닥을 두 장으로 갈라 보이게 한다 —
-  // 그어 두는 대신 경계를 아주 옅게 눌러 이음매로 만든다.
-  const seam = new THREE.Mesh(
-    new THREE.PlaneGeometry(arena.w, spacing.stepZ * 0.5),
-    new THREE.MeshBasicMaterial({
-      color: 0x000000,
-      transparent: true,
-      opacity: 0.1,
-      depthWrite: false,
-      toneMapped: false,
-      fog: false,
-    }),
-  )
-  seam.rotation.x = -Math.PI / 2
-  seam.position.set(arena.cx, 0.013, frontZ)
-  boardGroup.add(seam)
+  // 교전선은 안 그린다. 판 한가운데를 가로지르는 어두운 띠는 이음매가 아니라
+  // **금 간 자국**처럼 보였다 — 판을 두 장으로 갈라 보이게 하려던 것이 오히려
+  // 하나의 판이라는 인상을 깼다. 어느 쪽이 누구 자리인지는 내 칸 테두리와
+  // 말이 보는 방향이 이미 말한다.
 
   // ── 벌집 표시 ──────────────────────────────────────────
   //
