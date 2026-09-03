@@ -23,6 +23,7 @@ export function createHome({ data, onPick, onCancelQueue, onRetry }) {
     recent: document.getElementById('record-recent'),
     note: document.getElementById('home-note'),
     retry: document.getElementById('home-retry'),
+    hero: document.getElementById('home-hero'),
   }
 
   // 플랫폼이 iframe URL 로 넣어 주는 값. 없으면 로컬 실행이다.
@@ -70,6 +71,10 @@ export function createHome({ data, onPick, onCancelQueue, onRetry }) {
     setQueue(queue) {
       state = { ...state, queue }
       render()
+    },
+    /** 간판 캐릭터. 부팅에서 한 번 찍어 넘어온다. */
+    setHero(url) {
+      el.hero.src = url
     },
     show() {
       el.root.hidden = false

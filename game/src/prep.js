@@ -110,6 +110,20 @@ export async function createPrep({ data, run, onFight, onWatch, onPickUnit, onBo
     return thumbCache.get(key)
   }
 
+  /**
+   * 홈에 걸 큰 초상. 상점 카드용 128px 을 늘려 쓰면 뭉개진다.
+   *
+   * 찍고 나서 렌더러를 바로 버린다 — 홈에 한 장 걸자고 WebGL 컨텍스트를
+   * 계속 물고 있을 이유가 없다. 어떤 기기는 컨텍스트 수 자체가 빠듯하다.
+   */
+  async function heroPortrait(unitId, star = 3, size = 512) {
+    const gltf = await scene.protoFor(unitId, star)
+    const big = createThumbnailer({ size })
+    const url = big.shoot(gltf, `${unitId}:${star}:${size}`)
+    big.dispose()
+    return url
+  }
+
   // ── 판 · 벤치 위의 3D 모델 ──────────────────────────────
   //
   // 벤치도 같은 UnitView 를 쓴다. 아이콘 줄로 두면 3D 말과 2D 칸이 따로 놀아
@@ -1304,6 +1318,7 @@ export async function createPrep({ data, run, onFight, onWatch, onPickUnit, onBo
     preload,
     scene,
     clearUnits,
+    heroPortrait,
     /** 배치 단계로 돌아온다. 화면 전환이 아니라 같은 무대의 상태 전환이다. */
     show() {
       running = true

@@ -11,8 +11,10 @@ const OUT = resolve(import.meta.dirname, '../game/public/assets/ui')
 
 const JOBS = [
   ['panel_brown.png', 'lobby_panel.png'],
-  ['buttonLong_brown.png', 'lobby_btn.png'],
-  ['buttonLong_brown_pressed.png', 'lobby_btn_down.png'],
+  // 갈색 패널 위의 갈색 버튼은 글자가 안 읽힌다. 밝은 베이지를 써서 판과
+  // 버튼을 명도로 가른다 — 색조만 다르면 작은 글씨에서 구분이 안 된다.
+  ['buttonLong_beige.png', 'lobby_btn.png'],
+  ['buttonLong_beige_pressed.png', 'lobby_btn_down.png'],
   // 전적 칸. 안으로 파인 판이라 "읽는 것"과 "누르는 것"이 눈에 갈린다.
   ['panelInset_brown.png', 'lobby_inset.png'],
 ]
