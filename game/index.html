@@ -768,6 +768,21 @@
      배경은 그림 파일이 아니라 CSS 다. 간판 캐릭터 뒤에 따뜻한 빛무리를 깔고
      위아래를 어둡게 눌러 시선이 가운데로 모이게 한다 — 사진 한 장을 깔면
      용량이 늘고 화면비마다 잘리는 데가 달라진다. */
+  /* ── 가상 조이스틱 ─────────────────────────────────
+     짚은 자리에 뜬다. 화면 구석에 고정하면 상점·순위표와 겹치고, 세로 390 에
+     자리를 새로 내면 판이 그만큼 작아진다. */
+  .stick {
+    position: absolute; width: 104px; height: 104px; margin: -52px 0 0 -52px;
+    border-radius: 50%; z-index: 6; pointer-events: none;
+    background: #ffffff0f; box-shadow: inset 0 0 0 2px #ffffff33, 0 4px 14px #0006;
+    backdrop-filter: blur(2px); -webkit-backdrop-filter: blur(2px);
+  }
+  .stick[hidden] { display: none; }
+  .stick .knob {
+    position: absolute; left: 50%; top: 50%; width: 42px; height: 42px;
+    border-radius: 50%; background: #ffd166cc; box-shadow: 0 2px 8px #0008;
+  }
+
   /* ── 튜토리얼 코치 ─────────────────────────────────
      말풍선은 **판을 가리지 않는 자리**에 둔다. 가운데에 띄우면 정작 시키는
      것(상점 카드·판)을 자기가 덮는다. */

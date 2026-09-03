@@ -6,6 +6,7 @@
 // 네트워크를 알면 아바타를 확인할 때마다 서버가 필요해진다.
 
 import { stepAvatar, moveToward, facingOf, clampToBounds } from '@sim/avatar.js'
+import { resolveAvatar, avatarFile } from '@sim/cosmetics.js'
 
 /** 초당 이동 거리(타일 폭 기준으로 잡은 값). 걷는 느낌이 나되 답답하지 않다. */
 const SPEED = 3.4
@@ -15,8 +16,11 @@ const SPEED = 3.4
  * @param {object} o.scene   scene3d
  * @param {string} o.unitId  아바타로 쓸 모델. 나중에 코스메틱이 이걸 바꾼다
  */
-export async function createAvatar({ scene, unitId = 'frog', star = 1, team = 'A' }) {
-  const view = await scene.makeUnit(unitId, star, team)
+export async function createAvatar({ scene, data, avatarId }) {
+  // 아바타는 몬스터가 아니다. 판 위 말과 같은 모델을 쓰면 어느 게 싸우는
+  // 말인지 흐려지고, 무엇보다 **아바타는 싸우지 않는다**.
+  const id = resolveAvatar(avatarId, data)
+  const view = await scene.makeAvatarModel(avatarFile(id, data), data.cosmetics.anims)
   scene.scene.add(view.root)
   view.play(view.anims.idle)
 
@@ -30,6 +34,8 @@ export async function createAvatar({ scene, unitId = 'frog', star = 1, team = 'A
   )
   let facing = 0
   let target = null
+  // 가상 조이스틱이 낸 방향. 없으면 null.
+  let stick = null
   let walking = false
 
   const keys = new Set()
@@ -78,13 +84,29 @@ export async function createAvatar({ scene, unitId = 'frog', star = 1, team = 'A
     },
 
     /**
+     * 가상 조이스틱이 낸 방향. 화면 기준 (dx, dy) 를 무대 기준으로 옮긴다.
+     *
+     * 카메라가 위에서 비스듬히 내려다보므로 화면의 위쪽이 무대의 -z 다.
+     * 세로 성분을 그대로 z 로 쓰면 손가락을 위로 올렸는데 아래로 걷는다.
+     */
+    setStick(dx, dy) {
+      stick = dx || dy ? { dx, dz: dy } : null
+      if (stick) target = null
+    },
+
+    /**
      * 한 프레임. 키가 눌려 있으면 키가 이긴다 — 걸어가는 중에 키를 잡으면
      * 목적지를 버리고 손이 시키는 대로 간다.
      */
     tick(dt) {
       const before = { ...pos }
-      const dx = (keys.has('KeyD') ? 1 : 0) - (keys.has('KeyA') ? 1 : 0)
-      const dz = (keys.has('KeyS') ? 1 : 0) - (keys.has('KeyW') ? 1 : 0)
+      // 키가 먼저, 그다음 조이스틱. 둘 다 잡을 일은 없지만 순서는 정해 둔다.
+      let dx = (keys.has('KeyD') ? 1 : 0) - (keys.has('KeyA') ? 1 : 0)
+      let dz = (keys.has('KeyS') ? 1 : 0) - (keys.has('KeyW') ? 1 : 0)
+      if (!dx && !dz && stick) {
+        dx = stick.dx
+        dz = stick.dz
+      }
 
       if (dx || dz) {
         target = null

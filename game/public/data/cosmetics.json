@@ -1,0 +1,50 @@
+{
+  "_comment": "코스메틱. 밸런스에 안 닿는 것만 여기 있다 — 아바타는 판 위 말이 아니고 싸우지 않는다.",
+  "avatarDefault": "wanderer",
+  "avatars": [
+    {
+      "id": "wanderer",
+      "name": "떠돌이",
+      "file": "character-a.glb",
+      "unlock": "free"
+    },
+    {
+      "id": "scout",
+      "name": "정찰병",
+      "file": "character-f.glb",
+      "unlock": "free"
+    },
+    {
+      "id": "keeper",
+      "name": "관리인",
+      "file": "character-k.glb",
+      "unlock": "free"
+    },
+    {
+      "id": "duelist",
+      "name": "결투가",
+      "file": "character-c.glb",
+      "unlock": "pass",
+      "passLevel": 5
+    },
+    {
+      "id": "archivist",
+      "name": "기록관",
+      "file": "character-n.glb",
+      "unlock": "pass",
+      "passLevel": 12
+    },
+    {
+      "id": "champion",
+      "name": "챔피언",
+      "file": "character-r.glb",
+      "unlock": "rank",
+      "tier": "gold"
+    }
+  ],
+  "anims": {
+    "idle": "idle",
+    "run": "walk",
+    "cheer": "emote-yes"
+  }
+}

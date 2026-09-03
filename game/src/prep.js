@@ -46,7 +46,9 @@ export async function createPrep({
   onWatch,
   onPickUnit,
   onBoardChange,
-  onGroundTap,
+  onGroundDown,
+  onGroundMove,
+  onGroundUp,
   onTickAvatar,
 }) {
   const el = {
@@ -1203,10 +1205,11 @@ export async function createPrep({
     const found = unitAtPointer(ev.clientX, ev.clientY)
     if (!found) {
       hideInfo()
-      // 빈 땅을 짚었다 = 말을 집으려던 게 아니다. 아바타 목적지로 넘긴다 —
+      // 빈 땅을 짚었다 = 말을 집으려던 게 아니다. 아바타 쪽으로 넘긴다 —
       // 손가락 하나뿐인 화면에서 "말 옮기기"와 "걸어가기"를 가르는 유일한
-      // 단서가 무엇을 짚었느냐다.
-      onGroundTap?.(ev.clientX, ev.clientY)
+      // 단서가 무엇을 짚었느냐다. 끌면 조이스틱, 톡 치면 그리로 걸어간다.
+      el.root.setPointerCapture(ev.pointerId)
+      onGroundDown?.(ev)
       return
     }
     // 전투 중에도 대기석 말은 집을 수 있다 (팔거나 자리를 옮긴다).
@@ -1227,7 +1230,8 @@ export async function createPrep({
     // 끌고 있지 않아도 좌표는 계속 적어 둔다 — 단축키가 이걸 쓴다.
     ptr.x = ev.clientX
     ptr.y = ev.clientY
-    if (!drag) return
+    // 말을 끌고 있지 않으면 아바타 조이스틱이 그 손가락을 쓴다.
+    if (!drag) return onGroundMove?.(ev)
     if (!drag.moved && (Math.abs(ev.clientX - drag.x0) > TAP_SLOP || Math.abs(ev.clientY - drag.y0) > TAP_SLOP)) {
       drag.moved = true
       // 사거리 표시와 드롭 목표 표시가 같은 테두리를 쓴다. 둘을 겹치면
@@ -1241,7 +1245,8 @@ export async function createPrep({
   })
 
   function endDrag(ev) {
-    if (!drag) return
+    // 끌던 게 없으면 그 손가락은 아바타 것이었다.
+    if (!drag) return onGroundUp?.(ev)
 
     // 아이템 드래그. 놓을 곳은 유닛이다.
     if (drag.item) {
@@ -1305,7 +1310,10 @@ export async function createPrep({
       for (const v of views.values()) v.mixer.update(dt)
       // 아바타는 배치 중에만 걷는다. 전투 중에는 리플레이가 무대를 쥐고 있어
       // 그 위를 돌아다니면 누가 싸우는 말인지 흐려진다.
-      onTickAvatar?.(dt)
+      // peekId 를 인자로 넘긴다. 부르는 쪽이 prep 을 되짚으면, 이 루프가
+      // createPrep 이 끝나기 전에 시작되므로 그 변수는 아직 TDZ 다 —
+      // 예외 한 번에 rAF 사슬이 통째로 죽는다.
+      onTickAvatar?.(dt, peekId)
       scene.render()
     }
     requestAnimationFrame(frame)

@@ -4,7 +4,7 @@
 // 쌓이면 나중에 어느 것이 살아 있는지 아무도 모른다. 쓰는 순간 여기에 줄을
 // 추가한다 (87장 중 지금 쓰는 건 넷).
 import { mkdir, copyFile, readdir } from 'node:fs/promises'
-import { resolve } from 'node:path'
+import { resolve, dirname } from 'node:path'
 
 const SRC = resolve(import.meta.dirname, '../art-src/kenney-ui-pack-rpg-expansion/PNG')
 const BG_SRC = resolve(import.meta.dirname, '../art-src/home-bg')
@@ -25,6 +25,7 @@ async function copyAll(jobs, src, out) {
   await mkdir(out, { recursive: true })
   for (const [from, to] of jobs) {
     try {
+      await mkdir(dirname(resolve(out, to)), { recursive: true })
       await copyFile(resolve(src, from), resolve(out, to))
     } catch {
       // 조용히 넘어가면 홈이 그림 없이 떠서 "CSS 가 틀렸나" 를 한참 뒤진다 —
@@ -54,3 +55,34 @@ try {
   console.error(`홈 배경을 못 구웠다: ${err.message}`)
   process.exit(1)
 }
+
+// 아바타 모델. cosmetics.json 이 가리키는 것만 옮긴다 — 18종을 통째로
+// 배포에 넣으면 안 쓰는 파일이 2MB 쌓인다.
+const AV_SRC = resolve(
+  import.meta.dirname,
+  '../art-src/kenney-blocky-characters/Models/GLB format',
+)
+const AV_OUT = resolve(import.meta.dirname, '../game/public/assets/avatars')
+const cosmetics = JSON.parse(
+  await (await import('node:fs/promises')).readFile(
+    resolve(import.meta.dirname, '../game/public/data/cosmetics.json'),
+    'utf8',
+  ),
+)
+await copyAll(
+  cosmetics.avatars.map((a) => [a.file, a.file]),
+  AV_SRC,
+  AV_OUT,
+)
+
+// 이 팩의 glb 는 텍스처를 **바깥 파일로** 참조한다(Textures/texture-x.png).
+// 모델만 옮기면 흰 덩어리가 뜬다 — 로더가 조용히 텍스처만 못 찾는다.
+// 파일 이름이 규칙적이라(character-a → texture-a) 여기서 유도한다.
+await copyAll(
+  cosmetics.avatars.map((a) => {
+    const suffix = a.file.replace(/^character-|\.glb$/g, '')
+    return [`Textures/texture-${suffix}.png`, `Textures/texture-${suffix}.png`]
+  }),
+  AV_SRC,
+  AV_OUT,
+)

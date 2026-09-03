@@ -17,6 +17,7 @@ import { createCoach, isTutorialDone, markTutorialDone } from './tutorial.js'
 import { createTutorialMatchmaker } from './tutorialMatchmaker.js'
 import { createHeroView } from './heroView.js'
 import { createAvatar } from './avatarView.js'
+import { createJoystick } from './joystick.js'
 import { createServerMatchmaker, connectServer, startQueue } from './serverMatchmaker.js'
 import { createPrep } from './prep.js'
 import { createBattle } from './battle.js'
@@ -118,6 +119,28 @@ try {
   // 이 변수를 읽는다.
   let avatar = null
 
+  /**
+   * 고른 아바타. 지금은 이 기기에만 남는다 — 서버 프로필에 얹는 건 패스가
+   * 붙는 조각에서 같이 한다(해금 여부를 서버가 쥐어야 잠금이 장식이 아니게
+   * 된다). 못 읽어도 게임은 굴러가야 하므로 조용히 기본값으로 간다.
+   */
+  const AVATAR_KEY = 'rr.avatar'
+  function pickedAvatar() {
+    try {
+      return localStorage.getItem(AVATAR_KEY)
+    } catch {
+      return null
+    }
+  }
+
+  // 가상 조이스틱. 빈 땅을 짚으면 그 자리에 뜬다. 손가락으로 끌면 방향,
+  // 톡 치면 그 지점으로 걸어간다.
+  const stick = createJoystick({
+    root: document.getElementById('viewport'),
+    onMove: (dx, dy) => avatar?.setStick(dx, dy),
+    onTap: (x, y) => avatar?.goTo(x, y),
+  })
+
   // 남의 아바타. 정찰로 그 사람 판을 열었을 때만 세운다 — 배치 화면의 무대는
   // **각자 자기 판**이라, 남들이 내 판 위를 같이 걸어다니는 공용 광장이 아니다.
   let peerAvatar = null
@@ -127,8 +150,7 @@ try {
    * 아바타 한 프레임. 움직였을 때만 서버로 보낸다 — 가만히 서 있는 사람의
    * 좌표를 초당 몇 번씩 보내면 그게 곧 대역 낭비다.
    */
-  function tickAvatar(dt) {
-    const peeked = prep.peekedSeat()
+  function tickAvatar(dt, peeked) {
 
     if (avatar) {
       // 남의 판을 보는 동안 내 아바타는 감춘다. 그 판 위에 내가 서 있으면
@@ -170,10 +192,12 @@ try {
     onFight: startFight,
     onWatch: watchFight,
     onBoardChange: pushScout,
-    // 빈 땅을 짚으면 아바타가 그리로 걷는다. 말을 짚었으면 prep 이 먼저
-    // 드래그로 처리하므로 여기까지 안 온다.
-    onGroundTap: (x, y) => avatar?.goTo(x, y),
-    onTickAvatar: (dt) => tickAvatar(dt),
+    // 빈 땅을 짚으면 아바타 차례다. 끌면 조이스틱, 톡 치면 그리로 걸어간다.
+    // 말을 짚었으면 prep 이 먼저 드래그로 처리하므로 여기까지 안 온다.
+    onGroundDown: (ev) => stick?.start(ev),
+    onGroundMove: (ev) => stick?.move(ev),
+    onGroundUp: (ev) => stick?.end(ev),
+    onTickAvatar: (dt, peeked) => tickAvatar(dt, peeked),
     // battle 은 prep 다음에 만들어진다. 화살표 안에서 읽으므로 그때는 이미 있다.
     onPickUnit: (x, y) => battle?.unitAt(x, y) ?? null,
   })
@@ -304,7 +328,7 @@ try {
     prep.show()
     // 판이 선 뒤에 세운다 — 무대 범위(stageBounds)가 그때 정해진다.
     if (!avatar) {
-      createAvatar({ scene: prep.scene })
+      createAvatar({ scene: prep.scene, data, avatarId: pickedAvatar() })
         .then((a) => {
           avatar = a
           // 개발 중 확인용. 아바타는 화면에만 있어 콘솔에서 잡을 손잡이가 없다.
@@ -313,7 +337,7 @@ try {
         .catch((err) => console.warn('아바타 없이 간다:', err?.message))
       // 남의 아바타는 하나만 만들어 돌려 쓴다. 정찰은 한 번에 한 사람이라
       // 좌석마다 모델을 세울 이유가 없다 — 여덟 벌은 그냥 낭비다.
-      createAvatar({ scene: prep.scene, team: 'B' })
+      createAvatar({ scene: prep.scene, data })
         .then((a) => {
           a.setVisible(false)
           peerAvatar = a

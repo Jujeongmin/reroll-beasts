@@ -36,6 +36,9 @@ const UNIT_MAX_H = 1.75
 
 // 성급별 크기. 모든 모델을 같은 칸 크기로 정규화하므로, 이걸 안 걸면
 // 1성 용과 3성 고양이가 똑같이 크다. 성급이 곧 강함이니 크기로 보여야 한다.
+// 아바타는 판 위 말보다 조금 작다. 같은 크기면 어느 게 싸우는 말인지 흐려진다.
+const AVATAR_SCALE = 0.82
+
 const STAR_SCALE = [0.84, 1, 1.16]
 
 // 성급 색. 오토체스·TFT 관례대로 동 → 은 → 금.
@@ -1134,6 +1137,21 @@ export async function createScene({
     return loadProto(fileFor(unitId, star))
   }
 
+  /**
+   * 아바타 모델. 몬스터가 아니라 사람 캐릭터라 유닛 매니페스트를 안 탄다.
+   *
+   * 아바타는 **싸우지 않는다** — 판 위의 말과 같은 길로 만들면 언젠가
+   * 전투 코드가 이걸 집어 들게 된다. 길을 갈라 둔다.
+   */
+  async function makeAvatarModel(file, anims) {
+    const key = `avatar/${file}`
+    if (!protoCache.has(key)) protoCache.set(key, loader.loadAsync(`/assets/avatars/${file}`))
+    const gltf = await protoCache.get(key)
+    const v = new UnitView(gltf, 'A', spacing, 1, AVATAR_SCALE)
+    v.anims = anims
+    return v
+  }
+
   async function makeUnit(unitId, star, team) {
     const gltf = await protoFor(unitId, star)
     const v = new UnitView(gltf, team, spacing, star, scaleOf(unitId))
@@ -1806,6 +1824,7 @@ export async function createScene({
     topY,
     boardGroup,
     makeUnit,
+    makeAvatarModel,
     protoFor,
     pickAt,
     pickObjects,
