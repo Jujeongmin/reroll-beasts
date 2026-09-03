@@ -30,6 +30,10 @@ export function createJoystick({ root, onMove, onTap }) {
   let ox = 0
   let oy = 0
   let dragged = false
+  // 마우스인가. PC 에서는 원을 안 띄운다 — 조이스틱은 엄지가 화면을 가릴 때
+  // 중심을 찾아 주는 물건이고, 커서로 끄는 화면에서는 커서가 이미 그 일을
+  // 한다. 원만 떠서 클릭한 자리를 가린다.
+  let mouse = false
 
   function show(x, y) {
     const r = root.getBoundingClientRect()
@@ -47,6 +51,7 @@ export function createJoystick({ root, onMove, onTap }) {
       ox = ev.clientX
       oy = ev.clientY
       dragged = false
+      mouse = ev.pointerType === 'mouse'
       // 아직 안 띄운다. 톡 치기만 할 수도 있는데 그때마다 원이 번쩍이면
       // 화면이 시끄럽다 — 끌기 시작할 때 뜬다.
     },
@@ -59,12 +64,15 @@ export function createJoystick({ root, onMove, onTap }) {
       if (!dragged && len < DEAD) return
       if (!dragged) {
         dragged = true
-        show(ox, oy)
+        // 끄는 조작 자체는 마우스에서도 통한다 — 원만 안 그린다.
+        if (!mouse) show(ox, oy)
       }
       const k = Math.min(1, len / RANGE)
       const nx = (dx / (len || 1)) * k
       const ny = (dy / (len || 1)) * k
-      knob.style.transform = `translate(calc(-50% + ${nx * RANGE}px), calc(-50% + ${ny * RANGE}px))`
+      if (!mouse) {
+        knob.style.transform = `translate(calc(-50% + ${nx * RANGE}px), calc(-50% + ${ny * RANGE}px))`
+      }
       onMove(nx, ny)
     },
 

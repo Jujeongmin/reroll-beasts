@@ -1707,9 +1707,30 @@ export async function createScene({
       const size = f.from + (f.to - f.from) * (1 - (1 - k) * (1 - k))
       f.sprite.scale.setScalar(size)
       f.sprite.material.opacity = 1 - k * k
-      f.sprite.position.y = f.y0 + f.rise * k
+      if (f.path) {
+        // 날아가는 이펙트. 위로 살짝 솟았다 떨어지는 포물선이라야 던진 것으로
+        // 읽힌다 — 직선이면 미끄러지는 것처럼 보인다.
+        f.sprite.position.lerpVectors(f.path.from, f.path.to, k)
+        f.sprite.position.y += Math.sin(k * Math.PI) * f.path.arc
+      } else {
+        f.sprite.position.y = f.y0 + f.rise * k
+      }
       if (f.spin) f.sprite.material.rotation += f.spin * dt
     }
+  }
+
+  /**
+   * 한 점에서 다른 점으로 날아가는 이펙트.
+   *
+   * 투사체(bolt)와 따로 두는 이유: 저건 전투 로그를 따라 말끼리 주고받는
+   * 것이고, 이건 전투가 끝난 뒤 아바타가 한 번 던지는 연출이다. 같은 통에
+   * 넣으면 전투 중 투사체를 지울 때 이것도 같이 사라진다.
+   */
+  function flyFx(kind, from, to, { color = 0xffffff, size = 1, life = 0.45, arc = 0.8, spin = 6 } = {}) {
+    spawnFx(kind, from, { color, size, grow: 1.15, life, rise: 0, spin })
+    const f = fxLive[fxLive.length - 1]
+    f.path = { from: from.clone(), to: to.clone(), arc }
+    return life
   }
 
   function clearFx() {
@@ -1878,14 +1899,16 @@ export async function createScene({
    * 새 에셋을 안 만든다. 이미 있는 무채색 스프라이트를 색만 바꿔 쓰므로
    * 이펙트가 늘어도 파일은 안 는다(전투 이펙트와 같은 규칙).
    */
-  function playBoom(fx = {}, { enemyHalf = true } = {}) {
+  function playBoom(fx = {}, { enemyHalf = true, at = null } = {}) {
     const color = new THREE.Color(fx.color ?? '#ffd166').getHex()
-    // 진 쪽 절반의 한가운데. 교전선(frontZ)을 기준으로 가른다.
-    const cz = enemyHalf ? (arena.minZ + frontZ) / 2 : (frontZ + arena.maxZ) / 2
+    // 맞은 자리에서 터진다. 자리를 안 주면 진 쪽 절반의 한가운데로 떨어진다 —
+    // 판 한복판에서 터지면 '누가 맞았나'가 아니라 '판이 반짝했다'가 된다.
+    const cx = at?.x ?? arena.cx
+    const cz = at?.z ?? (enemyHalf ? (arena.minZ + frontZ) / 2 : (frontZ + arena.maxZ) / 2)
     const y = topY + 0.05
 
     // 1) 바닥 고리 — 어디에 떨어졌는지를 먼저 말한다.
-    spawnFx(fx.ring ?? 'ring_thick', new THREE.Vector3(arena.cx, y, cz), {
+    spawnFx(fx.ring ?? 'ring_thick', new THREE.Vector3(cx, y, cz), {
       color,
       size: 3.2,
       grow: 2.4,
@@ -1894,7 +1917,7 @@ export async function createScene({
     })
     // 2) 가운데 폭발 — 조금 늦게 터져야 고리가 먼저 읽힌다.
     setTimeout(() => {
-      spawnFx(fx.burst ?? 'burst', new THREE.Vector3(arena.cx, y + 0.5, cz), {
+      spawnFx(fx.burst ?? 'burst', new THREE.Vector3(cx, y + 0.5, cz), {
         color,
         size: 2.6,
         grow: 2.2,
@@ -1912,10 +1935,12 @@ export async function createScene({
           // 무작위를 안 쓴다 — sim 이 아니라 화면이지만, 같은 판을 두 번
           // 보면 같게 보이는 편이 낫다(관전·리플레이).
           const a = t * Math.PI * 2 * 1.618
-          const r = (0.25 + 0.6 * t) * Math.min(arena.w, arena.d) * 0.5
+          // 맞은 자리를 중심으로 좁게 흩는다. 판 전체에 뿌리면 누가 맞았는지
+          // 다시 흐려진다.
+          const r = (0.2 + 0.5 * t) * Math.min(arena.w, arena.d) * (at ? 0.28 : 0.5)
           spawnFx(
             fx.spark ?? 'spark',
-            new THREE.Vector3(arena.cx + Math.cos(a) * r, y + 0.3, cz + Math.sin(a) * r * 0.6),
+            new THREE.Vector3(cx + Math.cos(a) * r, y + 0.3, cz + Math.sin(a) * r * 0.6),
             { color, size: 1.1, grow: 1.9, life: 0.5, rise: 0.35, spin: 3 },
           )
         },
@@ -1962,6 +1987,7 @@ export async function createScene({
     makeBadge,
     preloadItemIcons,
     preloadFx,
+    flyFx,
     itemSlots: itemShelfSlots,
     setItemShelf,
     spawnFx,

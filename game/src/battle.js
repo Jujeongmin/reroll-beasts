@@ -21,7 +21,9 @@ export async function createBattle({ data, scene }) {
 
   // 전투가 끝나고 결과를 눈으로 확인할 시간. 이만큼 뒤에 스스로 정산으로 넘어간다.
   // 버튼을 누르게 하면 매 라운드 한 번씩 의미 없는 확인 클릭이 쌓인다.
-  const END_HOLD_TICKS = 45
+  // 끝나고 잠깐 붙잡아 두는 시간. 마무리 연출(아바타가 한 방 던지고 판이
+  // 터진다)이 다 끝나야 정산으로 넘어간다 — 1.5초로는 터지는 도중에 잘렸다.
+  const END_HOLD_TICKS = 66
 
   // 한 칸 이동에 시뮬이 쓰는 틱 수. 이 폭에 걸쳐 보간해야 걷는 것으로 보인다.
   // 1틱에 끝내면 나머지는 제자리에 선 채라 칸을 순간이동하는 그림이 된다.
@@ -41,6 +43,9 @@ export async function createBattle({ data, scene }) {
   // 결과 화면을 닫을 때라 몇 초 늦다.
   let onEnd = null
   let endFired = false
+  // 매 프레임. 아바타 애니메이션이 여기 붙는다 — 배치 루프는 전투 중에
+  // 멈춰 있어서 아바타 믹서를 돌릴 것이 이 루프뿐이다.
+  let onFrame = null
   let active = false
   let endHold = 0
   // casterId → { range, bolt } — 사거리 밖에서 때리는 말만 투사체를 쏜다
@@ -420,6 +425,7 @@ export async function createBattle({ data, scene }) {
           return
         }
       }
+      onFrame?.(dt)
       render(acc, dt)
     }
     requestAnimationFrame(frame)
@@ -456,13 +462,14 @@ export async function createBattle({ data, scene }) {
       return null
     },
 
-    async load(nextResult, { onBack, onEnd: onEndCb, atTick = 0 } = {}) {
+    async load(nextResult, { onBack, onEnd: onEndCb, onFrame: onFrameCb, atTick = 0 } = {}) {
       for (const v of views.values()) v.dispose()
       views = new Map()
 
       result = nextResult
       onDone = onBack
       onEnd = onEndCb
+      onFrame = onFrameCb
       // 같은 전투를 중간부터 다시 틀 수 있다(관전에서 돌아올 때). 이미 끝을
       // 지나온 지점에서 열면 이펙트를 다시 터뜨리지 않는다.
       endFired = atTick > 0

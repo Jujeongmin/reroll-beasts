@@ -182,6 +182,84 @@ try {
     return resolveBoom(pickedBoom(), data, ownedNow())
   }
 
+  // 전투 무대에 서는 상대 아바타. 내 아바타(avatar)의 짝이다 — 전투가
+  // 끝나면 둘이 마주 보고 이긴 쪽이 한 방 날린다.
+  let foe = null
+  let foeId = null
+
+  /** 전투 무대의 두 자리. 판 뒤쪽(내 쪽)과 앞쪽(상대 쪽) 가운데다. */
+  function duelSpots() {
+    const b = prep.scene.stageBounds()
+    const cx = (b.minX + b.maxX) / 2
+    const d = b.maxZ - b.minZ
+    return {
+      mine: { x: cx, z: b.maxZ - d * 0.1 },
+      theirs: { x: cx, z: b.minZ + d * 0.1 },
+    }
+  }
+
+  /**
+   * 전투가 시작될 때 두 아바타를 마주 세운다.
+   *
+   * 배치 중에는 아바타가 판 위를 걸어 다니지만, 전투 중에는 **자리에 선다** —
+   * 싸우는 말 사이를 돌아다니면 누가 싸우는지 흐려지고, 끝에 한 방 날릴
+   * 자리도 매번 달라진다.
+   */
+  async function setDuel(theirAvatarId) {
+    const spot = duelSpots()
+    // 마주 본다. 내 쪽은 위(-z), 상대는 아래(+z)를 향한다.
+    avatar?.warpTo(spot.mine, Math.PI)
+    avatar?.setVisible(true)
+    if (foe && foeId !== theirAvatarId) {
+      foe.dispose()
+      foe = null
+    }
+    foeId = theirAvatarId
+    if (!foe) {
+      foe = await createAvatar({
+        scene: prep.scene,
+        data,
+        avatarId: theirAvatarId,
+        at: spot.theirs,
+        facing: 0,
+      }).catch(() => null)
+    }
+    foe?.warpTo(spot.theirs, 0)
+    foe?.setVisible(true)
+  }
+
+  /** 전투가 끝나고 배치로 돌아간다. 상대 아바타는 치운다. */
+  function clearDuel() {
+    foe?.setVisible(false)
+  }
+
+  /**
+   * 마무리 한 방. 이긴 아바타가 진 아바타에게 던지고, 맞은 자리에서
+   * 승리 이펙트가 터진다.
+   *
+   * 순서가 중요하다 — 던지는 게 먼저 보이고 그다음에 터져야 '누가 이겨서
+   * 저게 떨어졌다'로 읽힌다. 반대면 이펙트가 먼저 터지고 뒤늦게 뭔가 날아온다.
+   */
+  function duelStrike(winner, fx) {
+    const spot = duelSpots()
+    const from = winner === 'A' ? spot.mine : spot.theirs
+    const to = winner === 'A' ? spot.theirs : spot.mine
+    const win = winner === 'A' ? avatar : foe
+    const lose = winner === 'A' ? foe : avatar
+    const y = prep.scene.topY + 0.55
+    const V = prep.scene.THREE.Vector3
+    win?.act('cheer')
+    const flight = prep.scene.flyFx(
+      fx.spark ?? 'spark',
+      new V(from.x, y, from.z),
+      new V(to.x, y, to.z),
+      { color: new prep.scene.THREE.Color(fx.color ?? '#ffd166').getHex(), size: 1.4, life: 0.5 },
+    )
+    // 맞는 순간에 맞춘다. 먼저 터지면 던진 것과 터진 것이 따로 논다.
+    setTimeout(() => lose?.act('poke'), flight * 1000)
+    return flight * 1000
+  }
+
   /**
    * 전투가 끝났다. **이긴 쪽 이펙트를 진 쪽 판에** 떨어뜨린다.
    *
@@ -193,11 +271,14 @@ try {
   function playWinFx(winner, { aBoom, bBoom }) {
     // 무승부면 아무것도 안 터진다 — 이긴 사람이 없다.
     if (winner !== 'A' && winner !== 'B') return
-    const id = winner === 'A' ? aBoom : bBoom
-    prep.scene.playBoom(boomFx(id ?? data.cosmetics.boomDefault, data), {
-      // 진 쪽 절반에 떨어진다. A 가 이겼으면 위쪽(상대 절반)이다.
-      enemyHalf: winner === 'A',
-    })
+    const fx = boomFx((winner === 'A' ? aBoom : bBoom) ?? data.cosmetics.boomDefault, data)
+    // 아바타가 먼저 던지고, 맞은 뒤에 판이 터진다.
+    const hitMs = duelStrike(winner, fx)
+    // **맞은 아바타 자리**에서 터진다. 판 한복판이면 누가 맞았는지가 아니라
+    // 판이 반짝한 것으로 보인다.
+    const spot = duelSpots()
+    const at = winner === 'A' ? spot.theirs : spot.mine
+    setTimeout(() => prep.scene.playBoom(fx, { at }), hitMs)
   }
 
   /** 서버가 준 전적을 화면과 해금 판정 양쪽에 흘린다. */
@@ -630,8 +711,16 @@ try {
     // 아직 안 누른 줄 안다. 결과가 나오면 finish() 가 다시 올린다.
     coach?.hide()
     prep.hide()
+    // 두 아바타를 마주 세운다 — 끝에 한 방 주고받을 자리다.
+    setDuel(run.lobby.find((x) => x.id === run.opponentId)?.avatar)
     await battle.load(result, {
       onBack,
+      // 전투 중에도 아바타는 숨을 쉬어야 한다 — 배치 루프가 멈춰 있어서
+      // 여기서 믹서를 돌리지 않으면 둘 다 굳은 채로 서 있다.
+      onFrame: (dt) => {
+        avatar?.tick(dt)
+        foe?.tick(dt)
+      },
       // 상대 이펙트는 그 좌석에 붙어 온다 — 내가 지면 그 사람 것이 내 판에
       // 떨어져야 한다.
       onEnd: (winner) =>
@@ -659,8 +748,17 @@ try {
     // 0 부터 다시 틀면 내 판으로 돌아왔을 때 이미 본 전투를 또 보게 된다.
     const boomOfSeat = (id) =>
       id === 0 ? myBoomId() : run.lobby.find((x) => x.id === id)?.boom
+    const avatarOfSeat = (id) => run.lobby.find((x) => x.id === id)?.avatar
+    // 남의 전투를 보면 그 판의 두 사람이 선다. 내 전투면 내 아바타 그대로다.
+    setDuel(mine ? avatarOfSeat(run.opponentId) : avatarOfSeat(f.b))
     battle.load(mine ? run.fight.result : f.result, {
       onBack: run.fight.onBack,
+      // 전투 중에도 아바타는 숨을 쉬어야 한다 — 배치 루프가 멈춰 있어서
+      // 여기서 믹서를 돌리지 않으면 둘 다 굳은 채로 서 있다.
+      onFrame: (dt) => {
+        avatar?.tick(dt)
+        foe?.tick(dt)
+      },
       atTick: battle.tick(),
       // 남의 전투를 보는 중이면 그 판의 두 사람 이펙트를 쓴다.
       onEnd: (winner) =>
@@ -672,6 +770,7 @@ try {
   }
 
   function settle(result, info) {
+    clearDuel()
     const s = run.state
     const won = result.winner === 'A'
 

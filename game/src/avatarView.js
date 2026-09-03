@@ -16,7 +16,7 @@ const SPEED = 3.4
  * @param {object} o.scene   scene3d
  * @param {string} o.unitId  아바타로 쓸 모델. 나중에 코스메틱이 이걸 바꾼다
  */
-export async function createAvatar({ scene, data, avatarId }) {
+export async function createAvatar({ scene, data, avatarId, at = null, facing: face0 = 0 }) {
   // 아바타는 몬스터가 아니다. 판 위 말과 같은 모델을 쓰면 어느 게 싸우는
   // 말인지 흐려지고, 무엇보다 **아바타는 싸우지 않는다**.
   const id = resolveAvatar(avatarId, data)
@@ -29,10 +29,10 @@ export async function createAvatar({ scene, data, avatarId }) {
   // 처음부터 말과 겹쳐 서 있으면 무엇이 내 아바타인지 안 보인다.
   // 앞 가장자리에 딱 붙이면 대기석·상점 띠 뒤로 들어가 안 보인다. 한 칸 안쪽.
   let pos = clampToBounds(
-    { x: (bounds.minX + bounds.maxX) / 2, z: bounds.maxZ - (bounds.maxZ - bounds.minZ) * 0.18 },
+    at ?? { x: (bounds.minX + bounds.maxX) / 2, z: bounds.maxZ - (bounds.maxZ - bounds.minZ) * 0.18 },
     bounds,
   )
-  let facing = 0
+  let facing = face0
   let target = null
   // 가상 조이스틱이 낸 방향. 없으면 null.
   let stick = null
@@ -121,6 +121,25 @@ export async function createAvatar({ scene, data, avatarId }) {
       view.mixer.update(dt)
       place()
       return moved
+    },
+
+    /** 몸짓 하나. 환호·피격처럼 걷기와 무관한 동작을 밖에서 시킨다. */
+    act(name) {
+      const clip = view.anims[name]
+      if (!clip) return
+      // 한 번만 재생하고 대기로 돌아온다 — 환호가 계속 돌면 다음 라운드까지
+      // 춤을 춘다.
+      view.play(clip, { loop: false })
+      walking = false
+    },
+
+    /** 그 자리에 세운다. 걸어가지 않는다 — 연출이 자리를 정할 때 쓴다. */
+    warpTo(p, dir = facing) {
+      pos = clampToBounds(p, bounds)
+      target = null
+      stick = null
+      facing = dir
+      place()
     },
 
     /** 화면에서 감춘다. 남의 판을 보는 동안 내 아바타가 그 위에 서 있으면 안 된다. */
