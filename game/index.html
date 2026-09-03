@@ -823,18 +823,21 @@
     animation: coachdot 1.6s ease-in-out infinite;
   }
   @keyframes coachdot { 50% { opacity: .45; } }
-  /* 홈 메뉴 버튼과 같은 액자. `repeat` 로 두면 가운데 조각이 **반복**돼
-     33px 마다 이음매가 가로 실선으로 남는다 — 늘려야(stretch) 판 하나로 보인다. */
+  /* 9-슬라이스를 아예 안 쓴다.
+
+     lobby_btn.png 은 테두리가 4px 뿐인 **완성된 버튼 한 장**이다. 슬라이스로
+     자르면 자른 자리(테두리와 가운데의 경계)가 세로·가로 실선으로 남는다 —
+     늘리든 반복하든 경계는 남는다. 그림 전체를 늘리면 자를 자리가 없다.
+     원본이 190×49 라 버튼도 그 비율 근처로 잡아야 테두리가 안 뭉갠다. */
   #coach #coach-fight,
   #coach #coach-home {
-    flex: none; align-self: center; padding: 6px 12px; font-size: 13px; font-weight: 800;
-    color: #3b2a16;
-    border-style: solid; border-width: 8px; border-image-slice: 8 fill;
-    border-image-repeat: stretch; border-image-source: url('/assets/ui/lobby_btn.png');
+    flex: none; align-self: center; height: 34px; padding: 0 16px; line-height: 34px;
+    font-size: 13px; font-weight: 800; color: #3b2a16;
+    border: 0; background: url('/assets/ui/lobby_btn.png') center/100% 100% no-repeat;
     text-shadow: 0 1px 0 #ffffff88; image-rendering: pixelated;
   }
   #coach #coach-fight:active,
-  #coach #coach-home:active { border-image-source: url('/assets/ui/lobby_btn_down.png'); }
+  #coach #coach-home:active { background-image: url('/assets/ui/lobby_btn_down.png'); }
   #coach #coach-fight[hidden], #coach #coach-home[hidden] { display: none; }
   /* 건너뛰기는 눈에 덜 띄어야 한다 — 시키는 것과 같은 무게로 두면 그걸 먼저 누른다. */
   #coach #coach-skip {
@@ -910,14 +913,14 @@
   /* fill 을 쓴다 — 이 버튼은 가운데도 그림이라, 안 쓰면 속이 비어 글자만 뜬다. */
   #home .btn-home {
     height: 40px; font-size: 15px; font-weight: 800; text-align: center; padding: 0 12px;
-    border-style: solid; border-width: 10px; border-image-slice: 10 fill;
-    /* stretch 다. repeat 면 가운데 조각이 반복돼 33px 마다 이음매가 가로
-       실선으로 남는다 — 이 그림은 통짜 판(190×49)이라 이어 붙일 무늬가 없다. */
-    border-image-repeat: stretch; border-image-source: url('/assets/ui/lobby_btn.png');
-    background: transparent; color: #3b2a16; text-shadow: 0 1px 0 #ffffff88;
+    /* 9-슬라이스를 안 쓴다. 테두리가 4px 뿐인 **완성된 버튼 한 장**이라
+       자르면 자른 자리가 실선으로 남는다 — 통째로 늘리면 자를 자리가 없다.
+       원본이 190×49 라 이 크기(약 194×40)에서는 거의 1:1 이다. */
+    border: 0;
+    background: url('/assets/ui/lobby_btn.png') center/100% 100% no-repeat; color: #3b2a16; text-shadow: 0 1px 0 #ffffff88;
     letter-spacing: .5px; image-rendering: pixelated;
   }
-  #home .btn-home:active { border-image-source: url('/assets/ui/lobby_btn_down.png'); }
+  #home .btn-home:active { background-image: url('/assets/ui/lobby_btn_down.png'); }
   /* ── 첫 실행 유도 ───────────────────────────────────
      처음 온 사람에게 고를 것을 하나로 줄인다. 나머지를 덮어 두면 "무엇부터
      눌러야 하나"라는 질문 자체가 안 생긴다. 자동 진입과 다른 점: 언제든
@@ -1320,9 +1323,10 @@
   #home .pass {
     position: absolute; right: 10px; bottom: 10px; width: 186px; height: 132px;
     display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 4px;
-    border-style: solid; border-width: 12px; border-image-slice: 12 fill;
-    /* 같은 이유로 stretch. 패널은 위아래로 이음매가 두 줄 보였다. */
-    border-image-repeat: stretch; border-image-source: url('/assets/ui/lobby_panel.png');
+    /* 같은 이유로 통째로 늘린다. 테두리가 4px 인 100×100 판이라 잘라 붙일
+       무늬가 없다 — 자르면 위아래로 이음매가 두 줄 남았다. */
+    border: 0;
+    background: url('/assets/ui/lobby_panel.png') center/100% 100% no-repeat;
     image-rendering: pixelated; cursor: pointer;
   }
   #home .pass:hover { filter: brightness(1.1); }
