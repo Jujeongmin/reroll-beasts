@@ -31,6 +31,7 @@ import {
   resolveBoom,
 } from '../../sim/cosmetics.js'
 import { purchaseGrant } from '../../sim/store.js'
+import { checkName, displayName } from '../../sim/name.js'
 import { simulate } from '../../sim/combat.js'
 import { totalRounds } from '../../sim/rounds.js'
 import combat from '../../game/public/data/combat.json'
@@ -70,6 +71,35 @@ interface Entry {
   items?: string[]
 }
 
+/**
+ * 좌석에 그 사람의 프로필(이름·겉모습)을 입힌다.
+ *
+ * 방을 만들 때 한 번만 읽는다. 클라가 들어와서 보내 주기를 기다리면 그 사이
+ * 남의 화면에는 기본 이름·기본 무대로 보이고, 안 들어온 사람은 영영 기본이다.
+ * 계정 수만큼 읽지만 방 하나에 한 번이라 싸다.
+ */
+async function dressSeats(state: any): Promise<void> {
+  for (const seat of state.seats) {
+    if (!seat.account) continue
+    const st: any = await $global.getUserState(seat.account)
+    const profile = st?.profile
+    seat.name = displayName(profile?.name, seat.account)
+    const look = profile?.look
+    if (!look) continue
+    const owned = {
+      gems: profile.gems ?? 0,
+      avatars: profile.owned ?? [],
+      passLevel: profile.pass?.level ?? 1,
+      lp: profile.lp ?? 0,
+    }
+    // 저장해 둔 것도 다시 검산한다 — 시즌이 끝나 패스 단계가 내려가면
+    // 그때 잠긴 것이 저장된 채로 남아 있다.
+    seat.skin = resolveBoard(look.board, DATA, owned)
+    seat.avatar = resolveAvatar(look.avatar, DATA, owned)
+    seat.boom = resolveBoom(look.boom, DATA, owned)
+  }
+}
+
 /** 룸 상태에서 로비를 꺼낸다. 없으면 null. */
 async function readLobby(): Promise<any | null> {
   const room = await $room.getRoomState()
@@ -99,6 +129,7 @@ export class Server {
     // 1인 방은 랭크가 아니다. 모드를 상태에 박아 두면 마감 때 방 이름을
     // 다시 파싱하지 않아도 된다 — 이름 규칙이 바뀌면 조용히 틀릴 자리다.
     state.mode = 'solo'
+    await dressSeats(state)
     await $room.updateRoomState({ lobby: state })
     return state
   }
@@ -114,6 +145,26 @@ export class Server {
   async getProfile(): Promise<any | null> {
     const st: any = await $global.getMyState()
     return st?.profile ?? null
+  }
+
+  /**
+   * 닉네임을 정한다.
+   *
+   * 검산은 클라와 **같은 순수 함수**(checkName)로 한다. 화면에서만 막으면
+   * 조작된 요청 하나로 아무 이름이나 들어가고, 그 이름은 남의 화면에 그대로
+   * 뜬다 — 기호·보이지 않는 문자까지 포함해서.
+   *
+   * 유일성은 안 본다. 그러려면 전체 이름 목록을 따로 세워 두고 매번 훑어야
+   * 하는데, 지금 규모에서 그 값이 이득보다 크다 — 순위표는 등수로 구분된다.
+   */
+  async setName(raw: string): Promise<any> {
+    const check: any = checkName(raw)
+    if (!check.ok) return { ok: false, why: check.why }
+    const account = $sender.account
+    const st: any = await $global.getMyState()
+    const profile = { ...(st?.profile ?? {}), name: check.name }
+    await $global.updateUserState(account, { profile })
+    return { ok: true, name: check.name, profile }
   }
 
   /**
@@ -225,7 +276,15 @@ export class Server {
   private async putLeaderboard(account: string, profile: any): Promise<void> {
     const rows = await $global.getCollectionItems('leaderboard')
     const mine: any = rows.find((x: any) => x.account === account)
-    const row = { account, lp: profile.lp, games: profile.games, best: profile.best }
+    // 이름도 같이 적는다. 순위표를 그릴 때 계정마다 유저 상태를 다시 읽으면
+    // 열 줄에 열 번을 읽는다 — 줄 안에 넣어 두면 한 번에 끝난다.
+    const row = {
+      account,
+      lp: profile.lp,
+      games: profile.games,
+      best: profile.best,
+      name: displayName(profile.name, account),
+    }
     if (mine) await $global.updateCollectionItem('leaderboard', { ...mine, ...row })
     else await $global.addCollectionItem('leaderboard', row)
   }
@@ -248,7 +307,7 @@ export class Server {
         rank: i + 1,
         // 계정 전체를 넘기지 않는다 — 화면에 쓸 것도 아니고, 남의 지갑
         // 주소를 목록으로 뿌릴 이유가 없다.
-        name: `유저${String(r.account).slice(-4)}`,
+        name: r.name ?? displayName(null, r.account),
         mine: r.account === me,
         lp: r.lp ?? 0,
         games: r.games ?? 0,
@@ -355,6 +414,7 @@ export class Server {
       })
       // 랭크 판정의 근거다. 큐가 정한 모드를 방 상태에 박아 둔다.
       state.mode = match.mode
+      await dressSeats(state)
       await $room.updateRoomState({ lobby: state })
       return state
     })
@@ -442,6 +502,11 @@ export class Server {
     seat.skin = skin
     seat.avatar = avatar
     seat.boom = boom
+    // 프로필에도 남긴다. 기기 저장소에만 두면 캐시를 지우거나 다른 기기로
+    // 옮기는 순간 산 것이 기본값으로 풀린다 — 산 물건은 계정에 붙어야 한다.
+    await $global.updateUserState($sender.account, {
+      profile: { ...(profile ?? {}), look: { board: skin, avatar, boom } },
+    })
     await $room.updateRoomState({ lobby: state })
     $room.broadcastToRoom('LOOK_CHANGED', { id: seat.id, skin, avatar, boom })
     return { ok: true, skin, avatar, boom }

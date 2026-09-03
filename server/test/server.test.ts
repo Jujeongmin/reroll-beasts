@@ -403,3 +403,36 @@ describe('겉모습 공유(무대·아바타·승리 이펙트)', () => {
     }
   });
 });
+
+describe('닉네임', () => {
+  test('규칙에 맞으면 저장되고 좌석 이름이 바뀐다', async (server) => {
+    server.connect({ account: 'namer1' });
+    const res = await server.setName('  개구리   왕자 ');
+    expect(res.ok).toBe(true);
+    // 다듬은 값이 저장돼야 한다 — 공백이 그대로면 목록에서 줄이 어긋난다
+    expect(res.name).toBe('개구리 왕자');
+    const s = await server.joinLobby();
+    expect(s.seats[0].name).toBe('개구리 왕자');
+  });
+
+  test('조작된 이름은 서버가 막는다 — 화면에서만 막으면 잠금이 장식이다', async (server) => {
+    server.connect({ account: 'namer2' });
+    for (const bad of ['가', '유저9999', '<b>x</b>', '가'.repeat(20)]) {
+      const res = await server.setName(bad);
+      expect(res.ok, bad).toBe(false);
+    }
+    const s = await server.joinLobby();
+    // 거절됐으니 기본 이름 그대로다
+    expect(s.seats[0].name).toBe('유저mer2');
+  });
+});
+
+describe('겉모습 저장', () => {
+  test('고른 것이 프로필에 남아 다음 방에서도 붙는다', async (server) => {
+    server.connect({ account: 'looker' });
+    await server.joinLobby();
+    await server.updateLook('stone', 'elf', 'flare');
+    const p = await server.getProfile();
+    expect(p.look).toEqual({ board: 'stone', avatar: 'elf', boom: 'flare' });
+  });
+});

@@ -137,14 +137,30 @@ try {
   const AVATAR_KEY = 'rr.avatar'
   const BOARD_KEY = 'rr.board'
   const BOOM_KEY = 'rr.boom'
+  // 서버 프로필에 남아 있는 겉모습. **이쪽이 먼저다** — 기기 저장소는 서버를
+  // 못 붙었을 때의 폴백이다. 반대로 두면 다른 기기에서 고른 것이 이 기기의
+  // 오래된 값에 덮인다.
+  let profileLook = null
+
   function pickedAvatar() {
-    return readKey(AVATAR_KEY)
+    return profileLook?.avatar ?? readKey(AVATAR_KEY)
   }
   function pickedBoard() {
-    return readKey(BOARD_KEY)
+    return profileLook?.board ?? readKey(BOARD_KEY)
   }
   function pickedBoom() {
-    return readKey(BOOM_KEY)
+    return profileLook?.boom ?? readKey(BOOM_KEY)
+  }
+
+  /** 고른 것을 양쪽에 남긴다. 서버는 계정에, 저장소는 이 기기에. */
+  function saveLook(key, id) {
+    try {
+      localStorage.setItem(key, id)
+    } catch {
+      // 못 적어도 이번 판에는 적용된다.
+    }
+    profileLook = { ...(profileLook ?? {}), [key.split('.')[1]]: id }
+    mm?.pushLook?.(myBoardId(), pickedAvatar(), myBoomId())
   }
   function readKey(k) {
     try {
@@ -311,6 +327,7 @@ try {
     profilePassLevel = p?.pass?.level ?? 1
     profileGems = p?.gems ?? 0
     profileOwned = p?.owned ?? []
+    profileLook = p?.look ?? null
     home.setProfile(p)
     // 무대 스킨은 **전적이 온 뒤에** 다시 입힌다. 부팅 때는 아직 무엇을
     // 갖고 있는지 몰라 잠긴 무대가 기본으로 떨어진다 — 그 상태로 두면 산
@@ -494,6 +511,20 @@ try {
      * 젬으로 아바타를 산다. 판정은 서버가 하고 여기서는 결과만 받는다 —
      * 여기서 잔액을 깎으면 서버가 거절해도 화면만 산 것처럼 남는다.
      */
+    /**
+     * 이름을 정한다. 검산은 서버가 한다 — 여기서 통과시킨 것도 서버가 막을
+     * 수 있고, 그때는 서버 말이 맞다.
+     */
+    onSetName: async (name) => {
+      if (!server) return { ok: false, why: '서버에 안 붙었다' }
+      try {
+        const res = await server.remoteFunction('setName', [name])
+        if (res?.profile) applyProfile(res.profile)
+        return res
+      } catch {
+        return { ok: false, why: '이름을 못 보냈다' }
+      }
+    },
     onStoreItems: () => vxshop.items(),
     /**
      * 결제창을 연다. 지급은 서버 훅($onItemPurchased)이 하므로 여기서는
@@ -515,11 +546,7 @@ try {
      * 하면 무엇을 골랐는지 확인할 방법이 없다.
      */
     onPickAvatar: (id) => {
-      try {
-        localStorage.setItem(AVATAR_KEY, id)
-      } catch {
-        // 못 적어도 이번 판에는 적용된다.
-      }
+      saveLook(AVATAR_KEY, id)
       hero3d?.swap(avatarFile(id, data), avatarAnims(id, data)).catch(() => {})
       // 판 안이면 좌석에도 붙인다 — 구경 온 사람 화면의 내 모습이 바뀐다.
       mm?.pushLook?.(myBoardId(), id, myBoomId())
@@ -541,12 +568,7 @@ try {
      * 알 수 없다.
      */
     onPickBoom: (id) => {
-      try {
-        localStorage.setItem(BOOM_KEY, id)
-      } catch {
-        // 못 적어도 이번 판에는 적용된다.
-      }
-      mm?.pushLook?.(myBoardId(), pickedAvatar(), id)
+      saveLook(BOOM_KEY, id)
       prep.scene.playBoom(boomFx(id, data), { enemyHalf: true })
     },
     /**
@@ -554,14 +576,8 @@ try {
      * 골랐는지 확인할 방법이 없다. 무대는 이미 서 있으므로 색만 갈아 끼운다.
      */
     onPickBoard: (id) => {
-      try {
-        localStorage.setItem(BOARD_KEY, id)
-      } catch {
-        // 못 적어도 이번 판에는 적용된다.
-      }
+      saveLook(BOARD_KEY, id)
       prep.scene.setSkin(boardColors(id, data))
-      // 좌석에도 붙인다 — 남이 구경 왔을 때 보이는 값이다.
-      mm?.pushLook?.(id, pickedAvatar(), myBoomId())
     },
     // 홈은 서버를 모른다. 순위표도 여기서 받아 넘긴다.
     onBoard: async () => {

@@ -4,6 +4,7 @@
 // 밀어 넣는다. 홈이 SDK 를 알면 홈을 확인하려면 네트워크가 필요해진다.
 
 import { homeView } from './home-state.js'
+import { checkName, displayName } from '@sim/name.js'
 import { avatarChoices, boardChoices, boomChoices } from '@sim/cosmetics.js'
 import { storeProducts } from '@sim/store.js'
 import { seasonAt, daysLeft } from '@sim/season.js'
@@ -29,6 +30,7 @@ export function createHome({
   onAvatarPortrait,
   onBoardPortrait,
   onBuyAvatar,
+  onSetName,
   onPickBoard,
   onPickedBoard,
   onPickBoom,
@@ -50,6 +52,12 @@ export function createHome({
     bar: document.getElementById('record-bar'),
     barFill: document.querySelector('#record-bar i'),
     rankBtn: document.getElementById('record-rank'),
+    nameBtn: document.getElementById('record-name'),
+    nameBox: document.getElementById('namebox'),
+    nameInput: document.getElementById('name-input'),
+    nameWhy: document.getElementById('name-why'),
+    nameSave: document.getElementById('name-save'),
+    nameClose: document.getElementById('name-close'),
     hint: document.getElementById('home-hint'),
     skinsBtn: document.getElementById('btn-skins'),
     skins: document.getElementById('skins'),
@@ -138,6 +146,44 @@ export function createHome({
   el.skinsBtn.addEventListener('click', () => openSkins())
   el.skinsClose.addEventListener('click', () => closeSheet(el.skins))
   el.shop.addEventListener('click', backdrop(el.shop))
+  el.nameBox.addEventListener('click', backdrop(el.nameBox))
+  el.nameClose.addEventListener('click', () => closeSheet(el.nameBox))
+  el.nameBtn.addEventListener('click', () => {
+    el.nameBox.classList.remove('closing')
+    el.nameBox.hidden = false
+    el.nameWhy.textContent = ''
+    // 지금 이름을 채워 둔다 — 빈 칸이면 뭘 바꾸는지 모른 채 새로 지어야 한다.
+    el.nameInput.value = state.profile?.name ?? ''
+    el.nameInput.focus()
+  })
+  // 규칙은 클라와 서버가 **같은 함수**를 본다. 여기서 미리 알려 주는 것은
+  // 편의고, 막는 것은 서버다.
+  el.nameInput.addEventListener('input', () => {
+    const c = checkName(el.nameInput.value)
+    el.nameWhy.textContent = el.nameInput.value && !c.ok ? c.why : ''
+  })
+  el.nameInput.addEventListener('keydown', (ev) => {
+    if (ev.key === 'Enter') saveName()
+  })
+  el.nameSave.addEventListener('click', () => saveName())
+
+  async function saveName() {
+    const c = checkName(el.nameInput.value)
+    if (!c.ok) {
+      el.nameWhy.textContent = c.why
+      return
+    }
+    const res = await onSetName?.(c.name)
+    // 서버가 거절하면 그 사유를 그대로 적는다 — 클라가 통과시킨 것도 서버가
+    // 막을 수 있다(규칙이 나중에 갈릴 수 있다).
+    if (!res?.ok) {
+      el.nameWhy.textContent = res?.why ?? '저장을 못 했다'
+      return
+    }
+    if (res.profile) state = { ...state, profile: res.profile }
+    render()
+    closeSheet(el.nameBox)
+  }
   el.shopBtn.addEventListener('click', () => openShop())
   el.shopClose.addEventListener('click', () => closeSheet(el.shop))
 
@@ -510,6 +556,9 @@ export function createHome({
     // 궁금하니 전적 유무와는 무관하게 연다.
     // 상점은 서버가 붙어 있어야 한다 — 구매 판정이 서버에 있다. 못 붙은
     // 채로 열어 두면 눌러도 아무 일이 없는 버튼이 된다.
+    // 이름은 서버에 저장된다 — 못 붙었으면 바꿀 수도 없다.
+    el.nameBtn.hidden = state.status !== 'ready'
+    el.nameBtn.textContent = displayName(state.profile?.name, null) === '유저' ? '이름 정하기' : state.profile?.name
     el.shopBtn.hidden = state.status !== 'ready'
     el.rankBtn.hidden = state.status !== 'ready'
     el.rankBtn.textContent = '전체 순위 보기'
