@@ -7,7 +7,9 @@ import { mkdir, copyFile, readdir } from 'node:fs/promises'
 import { resolve } from 'node:path'
 
 const SRC = resolve(import.meta.dirname, '../art-src/kenney-ui-pack-rpg-expansion/PNG')
+const BG_SRC = resolve(import.meta.dirname, '../art-src/kenney-background-elements/PNG')
 const OUT = resolve(import.meta.dirname, '../game/public/assets/ui')
+const BG_OUT = resolve(import.meta.dirname, '../game/public/assets/home')
 
 const JOBS = [
   ['panel_brown.png', 'lobby_panel.png'],
@@ -19,16 +21,32 @@ const JOBS = [
   ['panelInset_brown.png', 'lobby_inset.png'],
 ]
 
-await mkdir(OUT, { recursive: true })
-for (const [from, to] of JOBS) {
-  try {
-    await copyFile(resolve(SRC, from), resolve(OUT, to))
-  } catch {
-    // 조용히 넘어가면 홈이 프레임 없이 떠서 "CSS 가 틀렸나" 를 한참 뒤진다 —
-    // 여기서 있는 이름을 보여 주고 멈춘다.
-    const have = await readdir(SRC).catch(() => [])
-    console.error(`없는 파일: ${from}\n있는 것: ${have.slice(0, 40).join(', ')}`)
-    process.exit(1)
+// 홈 배경 조각. 평면 컬러 그림이라 그대로 쓰면 밤 하늘과 안 맞는다 —
+// CSS 에서 실루엣으로 눌러 능선 위 스카이라인으로 쓴다. 달만 그대로.
+const BG_JOBS = [
+  ['castle_grey.png', 'bg_castle.png'],
+  ['tower_grey.png', 'bg_tower.png'],
+  ['tree22.png', 'bg_tree_tall.png'],
+  ['tree05.png', 'bg_tree.png'],
+  ['moon_full.png', 'bg_moon.png'],
+  ['cloud3.png', 'bg_cloud.png'],
+]
+
+async function copyAll(jobs, src, out) {
+  await mkdir(out, { recursive: true })
+  for (const [from, to] of jobs) {
+    try {
+      await copyFile(resolve(src, from), resolve(out, to))
+    } catch {
+      // 조용히 넘어가면 홈이 그림 없이 떠서 "CSS 가 틀렸나" 를 한참 뒤진다 —
+      // 여기서 있는 이름을 보여 주고 멈춘다.
+      const have = await readdir(src).catch(() => [])
+      console.error(`없는 파일: ${from}\n있는 것: ${have.slice(0, 40).join(', ')}`)
+      process.exit(1)
+    }
+    console.log(`${from} → ${to}`)
   }
-  console.log(`${from} → ${to}`)
 }
+
+await copyAll(JOBS, SRC, OUT)
+await copyAll(BG_JOBS, BG_SRC, BG_OUT)

@@ -821,6 +821,39 @@
   }
   #home .record .recent { font-size: 10px; color: #c9b088; letter-spacing: 1px; }
   #home .bg { position: absolute; inset: 0; width: 100%; height: 100%; }
+  /* 배경 그림 조각. brightness(0) 으로 눌러 실루엣만 남긴다 — 팩은 평면
+     컬러라 그대로 얹으면 밤 하늘 위에 낮 그림이 붙은 꼴이 된다.
+     멀수록 옅게: 거리에 따라 대비가 줄어야 깊이가 생긴다. */
+  #home .sil { position: absolute; pointer-events: none; }
+  #home .castle {
+    left: 33%; bottom: 108px; height: 74px;
+    filter: brightness(0) opacity(.82);
+  }
+  #home .tower {
+    left: 27%; bottom: 112px; height: 92px;
+    filter: brightness(0) opacity(.78);
+  }
+  #home .tree1 {
+    right: 20%; bottom: 92px; height: 86px;
+    filter: brightness(0) opacity(.86);
+  }
+  #home .tree2 {
+    right: 14%; bottom: 88px; height: 54px;
+    filter: brightness(0) opacity(.8);
+  }
+  #home .tree3 {
+    left: 20%; bottom: 84px; height: 44px;
+    filter: brightness(0) opacity(.72);
+  }
+  /* 달은 누르지 않는다 — 하나뿐인 광원이라 실루엣이 되면 배경이 통째로 밤이 된다. */
+  #home .moon {
+    left: 20%; top: 22px; width: 46px;
+    filter: brightness(1.1) sepia(.25);
+  }
+  #home .cloud {
+    left: 60%; top: 26px; width: 118px;
+    filter: brightness(0) opacity(.2);
+  }
   /* 불티. 배경이 멈춰 있으면 화면이 죽은 사진처럼 보인다. 몇 점만 아주
      느리게 올린다 — 많으면 메뉴를 읽는 눈이 따라다닌다. */
   #home .ember {
@@ -970,9 +1003,8 @@
         <circle cx="646" cy="40" r="1.4" opacity=".6" /><circle cx="726" cy="96" r="1" opacity=".4" />
         <circle cx="232" cy="118" r="1" opacity=".4" /><circle cx="404" cy="126" r="1.1" opacity=".5" />
       </g>
-      <!-- 달. 캐릭터 반대편에 둬야 실루엣이 달을 가리지 않는다 -->
-      <circle cx="196" cy="74" r="17" fill="#efe6cd" opacity=".82" />
-      <circle cx="196" cy="74" r="40" fill="#efe6cd" opacity=".07" />
+      <!-- 달빛 무리. 달 자체는 팩 그림(bg_moon)이 SVG 위에 얹힌다 -->
+      <circle cx="196" cy="74" r="44" fill="#efe6cd" opacity=".08" />
       <!-- 먼 능선. 곡선으로 눕힌다 — 꺾은선은 종이 오린 것처럼 보인다 -->
       <path d="M0 262 C 90 214, 150 236, 226 208 C 310 176, 366 244, 452 226
                C 540 208, 596 168, 676 200 C 742 226, 780 210, 812 196 L812 390 L0 390 Z"
@@ -991,6 +1023,15 @@
         <path d="M104 162 c 9 -8, 26 -9, 36 -2 c 8 6, 3 12, -8 14 c -14 3, -34 -3, -28 -12 z" />
       </g>
     </svg>
+    <!-- 스카이라인. 팩 그림을 실루엣으로 눌러 쓴다 — 평면 컬러 그대로 두면
+         밤 하늘과 따로 논다. 능선 곡선 위에 얹어 높이를 맞춘다. -->
+    <img class="sil moon" src="/assets/home/bg_moon.png" alt="" />
+    <img class="sil cloud" src="/assets/home/bg_cloud.png" alt="" />
+    <img class="sil castle" src="/assets/home/bg_castle.png" alt="" />
+    <img class="sil tower" src="/assets/home/bg_tower.png" alt="" />
+    <img class="sil tree1" src="/assets/home/bg_tree_tall.png" alt="" />
+    <img class="sil tree2" src="/assets/home/bg_tree.png" alt="" />
+    <img class="sil tree3" src="/assets/home/bg_tree.png" alt="" />
     <i class="ember" style="left: 40%; bottom: 40px; animation-delay: 0s"></i>
     <i class="ember" style="left: 47%; bottom: 24px; animation-delay: 2.6s"></i>
     <i class="ember" style="left: 55%; bottom: 52px; animation-delay: 5.1s"></i>
