@@ -22,6 +22,7 @@
 import { createLobbyState, resolveRound, assignRanks } from '../../sim/lobbyRound.js'
 import { mergeProfile } from '../../sim/profile.js'
 import { addLp, sortLeaderboard, rankOf } from '../../sim/rank.js'
+import { advancePass } from '../../sim/pass.js'
 import { simulate } from '../../sim/combat.js'
 import { totalRounds } from '../../sim/rounds.js'
 import combat from '../../game/public/data/combat.json'
@@ -33,8 +34,24 @@ import levels from '../../game/public/data/levels.json'
 import rounds from '../../game/public/data/rounds.json'
 import lobby from '../../game/public/data/lobby.json'
 import items from '../../game/public/data/items.json'
+import cosmetics from '../../game/public/data/cosmetics.json'
+import passData from '../../game/public/data/pass.json'
 
-const DATA: any = { combat, units, traits, shop, economy, levels, rounds, lobby, items }
+// 코스메틱·패스도 여기 들어온다. 패스 트랙이 아바타 해금 단계를 cosmetics
+// 에서 읽으므로, 둘 중 하나만 있으면 트랙을 만들 수 없다.
+const DATA: any = {
+  combat,
+  units,
+  traits,
+  shop,
+  economy,
+  levels,
+  rounds,
+  lobby,
+  items,
+  cosmetics,
+  pass: passData,
+}
 
 interface Entry {
   unitId: string
@@ -314,6 +331,14 @@ export class Server {
         // 두면 둘이 어긋날 자리를 하나 더 만드는 것뿐이다.
         if (scored) profile.lp = addLp(prev?.profile?.lp ?? 0, r.rank)
         else profile.lp = prev?.profile?.lp ?? 0
+        // 패스 경험치는 **일반 판에서도** 오른다(값은 절반). 랭크만 주면
+        // 일반 매치가 패스에 대해 죽은 경로가 되고, 랭크를 돌 실력이 안 되는
+        // 사람은 패스를 영영 못 올린다.
+        const nextPass = advancePass(prev?.profile?.pass ?? null, r.rank, DATA, { ranked: scored })
+        profile.pass = { xp: nextPass.xp, level: nextPass.level, premium: nextPass.premium }
+        // 젬은 증분만 받아 여기서 더한다 — 잔액 계산을 패스가 쥐면 패스와
+        // 지갑이 한 덩어리가 된다.
+        profile.gems = (prev?.profile?.gems ?? 0) + nextPass.earned
         await $global.updateUserState(r.account, { profile })
         // 순위표는 랭크 판에서만 갱신한다. 일반 판으로도 줄이 생기면 LP 0 인
         // 사람이 목록을 채워 "몇 등인가"가 아무 뜻도 없어진다.

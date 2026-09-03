@@ -6,6 +6,7 @@
 import { homeView } from './home-state.js'
 import { avatarChoices } from '@sim/cosmetics.js'
 import { seasonAt, daysLeft } from '@sim/season.js'
+import { passProgress, passTrack, EMPTY_PASS } from '@sim/pass.js'
 
 /**
  * @param {object} o
@@ -54,7 +55,14 @@ export function createHome({
     note: document.getElementById('home-note'),
     retry: document.getElementById('home-retry'),
     hero: document.getElementById('home-hero'),
+    pass: document.getElementById('home-pass'),
     passSub: document.getElementById('pass-sub'),
+    passLv: document.getElementById('pass-lv'),
+    passBar: document.querySelector('#pass-bar i'),
+    passSheet: document.getElementById('passtrack'),
+    passRows: document.getElementById('pass-rows'),
+    passHead: document.getElementById('pass-head'),
+    passClose: document.getElementById('pass-close'),
   }
 
   // 플랫폼이 iframe URL 로 넣어 주는 값. 없으면 로컬 실행이다.
@@ -100,7 +108,10 @@ export function createHome({
   }
   el.board.addEventListener('click', backdrop(el.board))
   el.skins.addEventListener('click', backdrop(el.skins))
+  el.passSheet.addEventListener('click', backdrop(el.passSheet))
 
+  el.pass.addEventListener('click', () => openPass())
+  el.passClose.addEventListener('click', () => closeSheet(el.passSheet))
   el.boardClose.addEventListener('click', () => closeSheet(el.board))
   el.skinsBtn.addEventListener('click', () => openSkins())
   el.skinsClose.addEventListener('click', () => closeSheet(el.skins))
@@ -143,9 +154,64 @@ export function createHome({
     card.classList.add('on')
   })
 
-  /** 지금 가진 것. 서버 전적에서 LP 를 꺼내 쓴다 — 패스는 아직 없다. */
+  /**
+   * 시즌 패스 트랙.
+   *
+   * 세로 목록이 아니라 **가로 트랙**으로 그린다 — 단계가 25개라 세로로 세우면
+   * 한 화면에 네댓 줄만 보이고, "얼마나 남았나"가 안 읽힌다. 가로로 밀면 지난
+   * 칸과 남은 칸이 한눈에 들어온다.
+   *
+   * 프리미엄 줄도 **보여 준다**. 아직 살 수 없지만, 무엇을 놓치고 있는지
+   * 안 보이면 나중에 살 이유도 생기지 않는다.
+   */
+  function openPass() {
+    el.passSheet.classList.remove('closing')
+    el.passSheet.hidden = false
+    const p = state.profile?.pass ?? EMPTY_PASS
+    const prog = passProgress(p.xp ?? 0, data)
+    const gems = state.profile?.gems ?? 0
+    el.passHead.textContent = prog.done
+      ? `${prog.max}단계 · 다 올랐다 · 젬 ${gems}`
+      : `${prog.level}단계 · 다음까지 ${prog.need - prog.into} · 젬 ${gems}`
+
+    const track = passTrack(data, p)
+    el.passRows.innerHTML = track
+      .map((t) => {
+        // 한 단계가 아바타와 젬을 **같이** 줄 수 있다. 하나만 그리면 나머지가
+        // 화면에서 사라지는데, 지급은 그대로 되므로 화면이 거짓말이 된다.
+        const free = t.free.avatar
+          ? `<div class="rw av"><img alt="" data-file="${t.free.avatar.file}" title="${t.free.avatar.name}" />` +
+            (t.free.gems ? `<span class="badge gem">${t.free.gems}</span>` : '') +
+            '</div>'
+          : t.free.gems
+            ? `<span class="rw gem">${t.free.gems}</span>`
+            : '<span class="rw none"></span>'
+        const prem = t.premium.gems
+          ? `<span class="rw gem">${t.premium.gems}</span>`
+          : '<span class="rw none"></span>'
+        return (
+          `<div class="step${t.reached ? ' got' : ''}">` +
+          `<div class="lv">${t.level}</div>${free}<div class="prem">${prem}</div></div>`
+        )
+      })
+      .join('')
+    // 아바타 그림은 아바타 목록과 같은 방식으로 찍어 온다.
+    for (const img of el.passRows.querySelectorAll('img[data-file]')) {
+      onAvatarPortrait?.(img.dataset.file)
+        .then((url) => {
+          img.src = url
+        })
+        .catch(() => {})
+    }
+    // 지금 단계가 보이는 자리에서 열린다 — 늘 1단계부터 보여 주면 25단계인
+    // 사람은 매번 끝까지 밀어야 자기 자리를 찾는다.
+    const cur = el.passRows.children[Math.max(0, prog.level - 2)]
+    cur?.scrollIntoView({ inline: 'start', block: 'nearest' })
+  }
+
+  /** 지금 가진 것. 코스메틱 해금 판정이 이걸 본다. */
   function ownedNow() {
-    return { lp: state.profile?.lp ?? 0, passLevel: 0 }
+    return { lp: state.profile?.lp ?? 0, passLevel: state.profile?.pass?.level ?? 1 }
   }
 
   /** 순위표를 연다. 서버가 안 주면 그 사실을 그대로 적는다 — 빈 표를 띄우면
@@ -208,11 +274,14 @@ export function createHome({
     el.rankBtn.hidden = state.status !== 'ready'
     el.rankBtn.textContent = '전체 순위 보기'
 
-    // 패스 칸은 아직 못 열지만 **시즌이 언제 끝나는지**는 지금도 참말이다.
-    // "준비 중"만 적어 두면 그 자리가 죽은 칸으로 읽힌다.
+    // 패스 칸. 시즌 이름·남은 날과 함께 **내 단계**를 적는다 — 진행도가 안
+    // 보이면 눌러 볼 이유가 없다.
     const s = seasonAt(Date.now(), data)
     const left = daysLeft(Date.now(), data)
     el.passSub.textContent = s ? `${s.name} · ${left}일 남음` : '준비 중'
+    const prog = passProgress(state.profile?.pass?.xp ?? 0, data)
+    el.passLv.textContent = `${prog.level}단계`
+    el.passBar.style.width = `${Math.round(prog.ratio * 100)}%`
 
     el.note.textContent = v.notice ?? ''
     el.retry.hidden = state.status !== 'failed'

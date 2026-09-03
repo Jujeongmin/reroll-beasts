@@ -1,0 +1,125 @@
+// 시즌 패스. 판을 끝내면 경험치가 오르고, 단계가 오르면 아바타가 열린다.
+//
+// **아바타 해금 단계는 여기 안 적는다.** cosmetics.json 이 이미 아바타마다
+// `passLevel` 을 들고 있고, isUnlocked 가 그걸 본다. 여기에 또 적으면 두 표가
+// 어긋나는 순간 "화면엔 열렸는데 못 고르는" 아바타가 생긴다. 트랙 화면은
+// cosmetics 를 **읽어서** 만든다 — 단일소스가 하나여야 한다.
+//
+// 순수 함수인 이유는 나머지 sim 과 같다: 서버가 이 함수로 경험치를 올리고,
+// 화면은 같은 함수로 그린다. 둘이 다른 셈을 타면 진행도가 서로 달라진다.
+
+/** 아무것도 안 한 사람의 패스. 저장된 값이 없을 때 이걸로 친다. */
+export const EMPTY_PASS = { xp: 0, level: 1, premium: false }
+
+/**
+ * 한 판의 순위로 버는 경험치.
+ *
+ * 일반 판은 절반이다 — 봇이 섞인 방이라 같은 1등이라도 값이 다르다. 0 으로
+ * 두지 않는 이유: 랭크만 주면 일반 매치가 패스에 대해 죽은 경로가 되고,
+ * 그러면 랭크를 돌 실력이 안 되는 사람은 패스를 영영 못 올린다.
+ */
+export function xpForRank(rank, data, { ranked = true } = {}) {
+  const p = data.pass
+  const base = p.xpByRank[rank] ?? 0
+  return Math.round(base * (ranked ? 1 : p.casualScale))
+}
+
+/** 이 시즌에 더 이상 쌓이지 않는 경험치 총량. 최고 단계에 닿는 값이다. */
+export function xpCap(data) {
+  return (data.pass.maxLevel - 1) * data.pass.xpPerLevel
+}
+
+/** 누적 경험치 → 단계. 1단계에서 시작한다 — 0단계는 사람이 안 쓰는 말이다. */
+export function passLevelOf(xp, data) {
+  const p = data.pass
+  return Math.min(p.maxLevel, 1 + Math.floor(Math.max(0, xp) / p.xpPerLevel))
+}
+
+/**
+ * 화면이 쓰는 진행도.
+ *
+ * 최고 단계에서는 `need` 만큼 다 찬 것으로 준다 — 남은 양을 0 으로 주면
+ * 게이지가 텅 비어서 "방금 초기화됐다"로 읽힌다.
+ */
+export function passProgress(xp, data) {
+  const p = data.pass
+  const level = passLevelOf(xp, data)
+  const done = level >= p.maxLevel
+  const into = done ? p.xpPerLevel : Math.max(0, xp) % p.xpPerLevel
+  return {
+    xp: Math.max(0, xp),
+    level,
+    max: p.maxLevel,
+    into,
+    need: p.xpPerLevel,
+    ratio: into / p.xpPerLevel,
+    done,
+  }
+}
+
+/** 그 단계에서 주는 젬. 해당 없으면 0. */
+export function gemsAt(level, track, data) {
+  const rule = data.pass.gems[track]
+  if (!rule || level < 1) return 0
+  return level % rule.everyLevels === 0 ? rule.amount : 0
+}
+
+/**
+ * from 단계 **다음**부터 to 단계까지 받은 젬 합계.
+ *
+ * from 을 빼는 이유: 이미 지난 단계라 저번에 받았다. 포함하면 판이 끝날
+ * 때마다 같은 보상을 다시 준다.
+ */
+export function gemsBetween(from, to, premium, data) {
+  let sum = 0
+  for (let lv = from + 1; lv <= to; lv++) {
+    sum += gemsAt(lv, 'free', data)
+    if (premium) sum += gemsAt(lv, 'premium', data)
+  }
+  return sum
+}
+
+/**
+ * 판 하나를 반영한 새 패스 상태.
+ *
+ * 새 객체를 낸다 — 서버가 유저 상태를 읽어 고쳐 쓰므로, 제자리에서 고치면
+ * 실패한 쓰기와 성공한 쓰기를 구분할 수 없다(mergeProfile 과 같은 이유).
+ * `earned` 는 이번에 새로 번 젬이다. 잔액이 아니라 증분을 주는 이유: 잔액을
+ * 여기서 계산하려면 이 함수가 지갑까지 알아야 하고, 그러면 패스와 지갑이
+ * 한 덩어리가 된다.
+ */
+export function advancePass(prev, rank, data, opts = {}) {
+  const before = { ...EMPTY_PASS, ...(prev ?? {}) }
+  const xp = Math.min(xpCap(data), before.xp + xpForRank(rank, data, opts))
+  const level = passLevelOf(xp, data)
+  return {
+    xp,
+    level,
+    premium: !!before.premium,
+    earned: gemsBetween(before.level, level, before.premium, data),
+  }
+}
+
+/**
+ * 트랙 한 줄씩. 화면이 그대로 그린다.
+ *
+ * 잠긴 단계도 **전부** 준다 — 무엇이 기다리는지 보여야 계속할 이유가 생긴다.
+ */
+export function passTrack(data, pass = EMPTY_PASS) {
+  const cur = passLevelOf(pass.xp ?? 0, data)
+  const avatars = data.cosmetics.avatars.filter((a) => a.unlock === 'pass')
+  const out = []
+  for (let level = 1; level <= data.pass.maxLevel; level++) {
+    const avatar = avatars.find((a) => a.passLevel === level) ?? null
+    out.push({
+      level,
+      reached: level <= cur,
+      free: {
+        gems: gemsAt(level, 'free', data),
+        avatar: avatar ? { id: avatar.id, name: avatar.name, file: avatar.file } : null,
+      },
+      premium: { gems: gemsAt(level, 'premium', data) },
+    })
+  }
+  return out
+}

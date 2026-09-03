@@ -218,6 +218,21 @@ describe('전적', () => {
     expect(p.recent[0]).toBeGreaterThanOrEqual(1);
     expect(p.recent[0]).toBeLessThanOrEqual(8);
   });
+
+  test('패스 경험치는 일반 판에서도 오른다 — 랭크만 주면 일반이 죽은 경로가 된다', async (server) => {
+    await server.joinLobby();
+    for (let i = 0; i < 30; i++) {
+      const s = await server.resolveRound();
+      if (!s || s.phase === 'done') break;
+    }
+    const p = await server.getProfile();
+    expect(p.pass).toBeTruthy();
+    expect(p.pass.xp).toBeGreaterThan(0);
+    expect(p.pass.level).toBeGreaterThanOrEqual(1);
+    // 아직 아무것도 안 산 사람이다. 기본이 true 면 결제 없이 프리미엄이 열린다.
+    expect(p.pass.premium).toBe(false);
+    expect(typeof p.gems).toBe('number');
+  });
 });
 
 describe('랭크 LP', () => {

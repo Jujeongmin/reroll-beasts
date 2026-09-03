@@ -136,12 +136,14 @@ try {
 
   // 가상 조이스틱. 빈 땅을 짚으면 그 자리에 뜬다. 손가락으로 끌면 방향,
   // 톡 치면 그 지점으로 걸어간다.
-  /** 지금 가진 것. 패스는 아직 없으니 LP 만 본다. */
+  /** 지금 가진 것. 코스메틱 해금 판정이 이걸 본다. */
   function ownedNow() {
-    return { lp: profileLp, passLevel: 0 }
+    return { lp: profileLp, passLevel: profilePassLevel }
   }
-  // 서버가 준 전적의 LP. 랭크 해금 판정에 쓴다.
+  // 서버가 준 전적. 해금 판정에 쓴다 — 서버가 못 붙으면 0/1 로 남아 잠긴
+  // 것은 잠긴 채다. 반대로 두면 접속 실패가 곧 전체 해금이 된다.
   let profileLp = 0
+  let profilePassLevel = 1
 
   const stick = createJoystick({
     root: document.getElementById('viewport'),
@@ -357,6 +359,7 @@ try {
     try {
       const p = await server.remoteFunction("getProfile", [])
       profileLp = p?.lp ?? 0
+      profilePassLevel = p?.pass?.level ?? 1
       home.setProfile(p)
     } catch {
       home.setProfile(null)

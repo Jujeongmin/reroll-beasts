@@ -1,0 +1,10 @@
+{
+  "maxLevel": 25,
+  "xpPerLevel": 100,
+  "xpByRank": [0, 100, 82, 68, 56, 46, 38, 32, 26],
+  "casualScale": 0.5,
+  "gems": {
+    "free": { "everyLevels": 5, "amount": 25 },
+    "premium": { "everyLevels": 2, "amount": 20 }
+  }
+}
