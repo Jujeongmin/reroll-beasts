@@ -199,14 +199,29 @@ try {
   // 판에 나타나고, 그래서 그 사람은 "누가 내 판을 보고 있다"를 안다. 한 판에
   // 여럿이 몰릴 수 있으므로 좌석마다 하나씩 만들어 둔다(최대 7).
   const peers = new Map()
+  // 그 좌석을 무슨 아바타로 만들었는지. 바뀌면 다시 만든다 — 안 그러면
+  // 남이 아바타를 바꿔도 내 화면에는 처음 본 모습이 남는다.
+  const peerLook = new Map()
 
-  /** 그 좌석의 아바타 뷰. 처음 보는 좌석이면 만든다. */
+  /**
+   * 그 좌석의 아바타 뷰. 처음 보는 좌석이면 만든다.
+   *
+   * **그 사람이 고른 아바타**로 만든다. 기본 캐릭터로 세우면 아바타를 산
+   * 값이 화면에 안 남는다 — 남에게 보이는 것이 이 물건의 전부다.
+   */
   function peerFor(seatId) {
-    if (peers.has(seatId)) return peers.get(seatId)
+    const seat = run.lobby.find((s) => s.id === seatId)
+    const want = seat?.avatar ?? null
+    if (peers.has(seatId) && peerLook.get(seatId) === want) return peers.get(seatId)
+    if (peers.has(seatId)) {
+      peers.get(seatId)?.dispose()
+      peers.delete(seatId)
+    }
     // 자리를 먼저 잡아 둔다 — 안 그러면 만드는 사이에 프레임이 또 들어와
     // 같은 좌석의 아바타를 여러 벌 만든다.
     peers.set(seatId, null)
-    createAvatar({ scene: prep.scene, data })
+    peerLook.set(seatId, want)
+    createAvatar({ scene: prep.scene, data, avatarId: want })
       .then((a) => peers.set(seatId, a))
       .catch(() => peers.delete(seatId))
     return null
@@ -372,6 +387,17 @@ try {
         // 못 적어도 이번 판에는 적용된다.
       }
       hero3d?.swap(avatarFile(id, data), avatarAnims(id, data)).catch(() => {})
+      // 판 안이면 좌석에도 붙인다 — 구경 온 사람 화면의 내 모습이 바뀐다.
+      mm?.pushLook?.(myBoardId(), id)
+      // 내 무대 위 아바타도 갈아 끼운다. 다음 판까지 기다리면 방금 고른 것이
+      // 어떻게 생겼는지 확인할 방법이 없다.
+      if (avatar) {
+        avatar.dispose()
+        avatar = null
+        createAvatar({ scene: prep.scene, data, avatarId: id })
+          .then((a) => (avatar = a))
+          .catch(() => {})
+      }
     },
     onPickedBoard: () => resolveBoard(pickedBoard(), data, ownedNow()),
     /**
@@ -386,7 +412,7 @@ try {
       }
       prep.scene.setSkin(boardColors(id, data))
       // 좌석에도 붙인다 — 남이 구경 왔을 때 보이는 값이다.
-      mm?.pushSkin?.(id)
+      mm?.pushLook?.(id, pickedAvatar())
     },
     // 홈은 서버를 모른다. 순위표도 여기서 받아 넘긴다.
     onBoard: async () => {
@@ -489,7 +515,7 @@ try {
     // 내 무대를 좌석에 붙인다. 판에 들어올 때마다 보내는 이유: 좌석은 방마다
     // 새로 생기고 기본값으로 시작한다 — 안 보내면 남에게는 늘 기본 무대다.
     prep.scene.setSkin(boardColors(myBoardId(), data))
-    mm?.pushSkin?.(myBoardId())
+    mm?.pushLook?.(myBoardId(), pickedAvatar())
     prep.show()
     // 판이 선 뒤에 세운다 — 무대 범위(stageBounds)가 그때 정해진다.
     if (!avatar) {

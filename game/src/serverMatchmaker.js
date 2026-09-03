@@ -116,11 +116,13 @@ export async function createServerMatchmaker({ data, server, roomId = null, time
     const seat = seats[m.id]
     if (seat && !seat.isPlayer) seat.board = m.board
   })
-  // 무대 스킨. 남이 무대를 바꾸면 그 좌석에 붙여 둔다 — 구경 갔을 때
-  // 그 사람 무대가 보여야 한다.
-  server.onRoomMessage(myRoom, 'SKIN_CHANGED', (m) => {
+  // 겉모습(무대·아바타). 남이 바꾸면 그 좌석에 붙여 둔다 — 구경 갔을 때
+  // 그 사람 무대가 보이고, 그 사람 아바타가 내 판에 서야 한다.
+  server.onRoomMessage(myRoom, 'LOOK_CHANGED', (m) => {
     const seat = seats[m.id]
-    if (seat) seat.skin = m.skin
+    if (!seat) return
+    seat.skin = m.skin
+    seat.avatar = m.avatar
   })
   server.onRoomMessage(myRoom, 'ROUND_RESOLVED', (m) => {
     // 서버 판정으로 미러를 다시 맞춘다. 결정론이 지켜졌으면 이미 같은 값이라
@@ -301,13 +303,13 @@ export async function createServerMatchmaker({ data, server, roomId = null, time
     },
 
     /**
-     * 내 무대 스킨. 좌석에 붙여 남이 구경 왔을 때 보이게 한다.
+     * 내 겉모습(무대·아바타). 좌석에 붙여 남에게 보이게 한다.
      *
-     * 쓰로틀을 안 태운다 — 무대는 판마다 한 번 바꿀까 말까 한 값이라
+     * 쓰로틀을 안 태운다 — 겉모습은 판마다 한 번 바꿀까 말까 한 값이라
      * 초당 여러 번 나갈 일이 없다.
      */
-    pushSkin(boardId) {
-      return server.remoteFunction('updateSkin', [boardId]).catch(() => {})
+    pushLook(boardId, avatarId) {
+      return server.remoteFunction('updateLook', [boardId, avatarId]).catch(() => {})
     },
 
     /** 레벨도 정찰 대상이다 — 상대 레벨이 다음 판 인원을 말한다. */

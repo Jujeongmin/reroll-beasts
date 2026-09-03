@@ -379,20 +379,25 @@ describe('결제 훅', () => {
   });
 });
 
-describe('무대 스킨 공유', () => {
-  test('안 가진 무대를 보내면 기본값으로 떨어진다 — 아무나 최고 무대를 깔면 안 된다', async (server) => {
+describe('겉모습 공유(무대·아바타)', () => {
+  test('안 가진 것을 보내면 기본값으로 떨어진다 — 아무나 최고 무대·아바타를 쓰면 안 된다', async (server) => {
     server.connect({ account: 'skin1' });
     await server.joinLobby();
-    const res = await server.updateSkin('champion');
+    const res = await server.updateLook('champion', 'golden_knight');
     expect(res.ok).toBe(true);
     expect(res.skin).toBe('stone');
+    expect(res.avatar).toBe('knight');
     const s = await server.getLobby();
     expect(s.seats[0].skin).toBe('stone');
+    expect(s.seats[0].avatar).toBe('knight');
   });
 
-  test('좌석마다 무대가 붙어 있다 — 구경 갔을 때 그 사람 것이 보여야 한다', async (server) => {
+  test('좌석마다 겉모습이 붙어 있다 — 구경 갔을 때 그 사람 것이 보여야 한다', async (server) => {
     server.connect({ account: 'skin2' });
     const s = await server.joinLobby();
-    for (const seat of s.seats) expect(typeof seat.skin).toBe('string');
+    for (const seat of s.seats) {
+      expect(typeof seat.skin).toBe('string');
+      expect(typeof seat.avatar).toBe('string');
+    }
   });
 });

@@ -1371,6 +1371,11 @@ export async function createPrep({
       // 전투 이펙트도 부팅에서 받는다 — 첫 타격 프레임에 디코드가 걸리면
       // 하필 화면이 가장 바쁠 때 끊긴다.
       () => scene.preloadFx(),
+      // 아바타 **전부**. 내 것만 받아 두면 남이 내 판에 오는 순간 그 사람
+      // 아바타를 그때 받아야 하고, 하필 배치 중에 한 번 끊긴다. 누가 무엇을
+      // 입고 올지는 미리 알 수 없으니 18종을 다 받는다 — 부팅은 한 번이고
+      // 판은 여러 번이다.
+      ...data.cosmetics.avatars.map((a) => () => scene.makeAvatarModel(a.file)),
     ]
     let done = 0
     for (const job of jobs) {

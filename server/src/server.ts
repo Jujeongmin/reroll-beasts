@@ -23,7 +23,12 @@ import { createLobbyState, resolveRound, assignRanks } from '../../sim/lobbyRoun
 import { mergeProfile } from '../../sim/profile.js'
 import { addLp, sortLeaderboard, rankOf } from '../../sim/rank.js'
 import { advancePass } from '../../sim/pass.js'
-import { canBuyCosmetic, cosmeticById, resolveBoard } from '../../sim/cosmetics.js'
+import {
+  canBuyCosmetic,
+  cosmeticById,
+  resolveBoard,
+  resolveAvatar,
+} from '../../sim/cosmetics.js'
 import { purchaseGrant } from '../../sim/store.js'
 import { simulate } from '../../sim/combat.js'
 import { totalRounds } from '../../sim/rounds.js'
@@ -403,16 +408,17 @@ export class Server {
   }
 
   /**
-   * 내 무대 스킨을 좌석에 붙인다.
+   * 내 겉모습(무대·아바타)을 좌석에 붙인다.
    *
-   * 이게 서버를 타는 이유: 남의 판을 구경 가면 **그 사람 무대**가 보여야 한다.
+   * 이게 서버를 타는 이유: 남의 판을 구경 가면 **그 사람 무대**가 보이고,
+   * 내가 남의 판에 서면 **내 아바타**로 보여야 한다.
    * 각자 화면에만 두면 산 사람만 자기 판에서 보고, 그러면 남에게 보여 줄 수
    * 없는 것을 판 셈이 된다.
    *
    * 가진 것인지 여기서 검산한다 — 클라가 보내는 값이라 안 막으면 아무나
    * 최고 티어 무대를 깔고 앉는다. 못 가진 것이면 조용히 기본값으로 떨어진다.
    */
-  async updateSkin(boardId: string): Promise<{ ok: boolean; skin?: string }> {
+  async updateLook(boardId: string, avatarId: string): Promise<any> {
     const state = await readLobby()
     if (!state) return { ok: false }
     const seat = state.seats.find((s: any) => s.account === $sender.account)
@@ -427,11 +433,13 @@ export class Server {
       lp: profile?.lp ?? 0,
     }
     const skin = resolveBoard(boardId, DATA, owned)
-    if (seat.skin === skin) return { ok: true, skin }
+    const avatar = resolveAvatar(avatarId, DATA, owned)
+    if (seat.skin === skin && seat.avatar === avatar) return { ok: true, skin, avatar }
     seat.skin = skin
+    seat.avatar = avatar
     await $room.updateRoomState({ lobby: state })
-    $room.broadcastToRoom('SKIN_CHANGED', { id: seat.id, skin })
-    return { ok: true, skin }
+    $room.broadcastToRoom('LOOK_CHANGED', { id: seat.id, skin, avatar })
+    return { ok: true, skin, avatar }
   }
 
   /**
