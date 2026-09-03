@@ -766,13 +766,31 @@
   #home {
     position: absolute; inset: 0; z-index: 70; overflow: hidden;
     background:
-      radial-gradient(58% 78% at 52% 62%, #d9963f55 0%, #6b3f1a00 60%),
+      /* 별. 점 몇 개는 CSS 로 찍는 게 싸다 */
+      radial-gradient(1.4px 1.4px at 34% 14%, #e8e2ffcc 50%, transparent 51%),
+      radial-gradient(1.2px 1.2px at 44% 25%, #e8e2ff99 50%, transparent 51%),
+      radial-gradient(1.4px 1.4px at 58% 11%, #e8e2ffbb 50%, transparent 51%),
+      radial-gradient(1.2px 1.2px at 69% 20%, #e8e2ff88 50%, transparent 51%),
+      radial-gradient(1.5px 1.5px at 80% 10%, #e8e2ffaa 50%, transparent 51%),
+      radial-gradient(1.2px 1.2px at 89% 24%, #e8e2ff77 50%, transparent 51%),
+      radial-gradient(1.2px 1.2px at 28% 30%, #e8e2ff77 50%, transparent 51%),
+      /* 지평선 뒤에서 올라오는 불빛 */
+      radial-gradient(46% 42% at 52% 78%, #d9963f66 0%, #6b3f1a00 70%),
       radial-gradient(120% 90% at 50% 0%, #3b2f5e 0%, #1a1424 55%, #0d0a12 100%);
+  }
+  /* 바닥. 능선을 도형으로 그렸더니 색종이를 오린 것처럼 보여서 걷어냈다 —
+     대신 평평한 땅 한 겹만 두고 위 가장자리를 흐린다. 실루엣이 여기 선다. */
+  #home::before {
+    content: ''; position: absolute; left: 0; right: 0; bottom: 0; height: 92px;
+    background: linear-gradient(#0e0a17ee 0%, #08050e 40%);
+    box-shadow: 0 -12px 26px 6px #12091baa;
+    pointer-events: none;
   }
   /* 바닥 안개. 캐릭터 발밑이 잘린 것처럼 보이지 않게 아래를 흐린다. */
   #home::after {
-    content: ''; position: absolute; left: 0; right: 0; bottom: 0; height: 90px;
-    background: linear-gradient(#0d0a1200, #0d0a12dd); pointer-events: none;
+    content: ''; position: absolute; left: 0; right: 0; bottom: 56px; height: 46px;
+    background: linear-gradient(#6b4a7a00, #6b4a7a2e);
+    pointer-events: none;
   }
   #home[hidden] { display: none; }
   /* 9-slice. 원본 panel_brown 은 100×100 에 모서리가 12px 쯤이다 —
@@ -824,35 +842,24 @@
   /* 배경 그림 조각. brightness(0) 으로 눌러 실루엣만 남긴다 — 팩은 평면
      컬러라 그대로 얹으면 밤 하늘 위에 낮 그림이 붙은 꼴이 된다.
      멀수록 옅게: 거리에 따라 대비가 줄어야 깊이가 생긴다. */
-  #home .sil { position: absolute; pointer-events: none; }
-  #home .castle {
-    left: 33%; bottom: 108px; height: 74px;
-    filter: brightness(0) opacity(.82);
-  }
-  #home .tower {
-    left: 27%; bottom: 112px; height: 92px;
-    filter: brightness(0) opacity(.78);
-  }
-  #home .tree1 {
-    right: 20%; bottom: 92px; height: 86px;
-    filter: brightness(0) opacity(.86);
-  }
-  #home .tree2 {
-    right: 14%; bottom: 88px; height: 54px;
-    filter: brightness(0) opacity(.8);
-  }
-  #home .tree3 {
-    left: 20%; bottom: 84px; height: 44px;
-    filter: brightness(0) opacity(.72);
-  }
-  /* 달은 누르지 않는다 — 하나뿐인 광원이라 실루엣이 되면 배경이 통째로 밤이 된다. */
+  /* 스카이라인은 **주인공을 피해서** 선다. 드래곤 뒤로 지나가면 실루엣이
+     다리 사이로 삐져나와 지저분해진다. 드래곤은 화면의 37~67% 를 쓰므로
+     성·탑은 그 왼쪽, 나무는 오른쪽에 둔다. */
+  #home .sil { position: absolute; pointer-events: none; bottom: 74px; }
+  #home .castle { left: 21%; height: 76px; filter: brightness(0) opacity(.85); }
+  #home .tower { left: 30%; height: 88px; filter: brightness(0) opacity(.8); }
+  #home .tree1 { left: 68%; height: 78px; filter: brightness(0) opacity(.85); }
+  #home .tree2 { left: 74%; height: 46px; filter: brightness(0) opacity(.75); }
+  #home .tree3 { left: 34%; height: 34px; filter: brightness(0) opacity(.6); }
+  /* 달은 누르지 않는다 — 하나뿐인 광원이라 실루엣이 되면 배경이 통째로 밤이 된다.
+     패널(152px)보다 확실히 오른쪽에 둔다. 좁은 화면에서 패널에 물린다. */
   #home .moon {
-    left: 20%; top: 22px; width: 46px;
+    left: 27%; top: 18px; bottom: auto; width: 44px;
     filter: brightness(1.1) sepia(.25);
   }
   #home .cloud {
-    left: 60%; top: 26px; width: 118px;
-    filter: brightness(0) opacity(.2);
+    left: 58%; top: 22px; bottom: auto; width: 112px;
+    filter: brightness(0) opacity(.18);
   }
   /* 불티. 배경이 멈춰 있으면 화면이 죽은 사진처럼 보인다. 몇 점만 아주
      느리게 올린다 — 많으면 메뉴를 읽는 눈이 따라다닌다. */
@@ -868,12 +875,20 @@
   }
   /* 간판 캐릭터. 부팅 때 3D 모델을 한 번 크게 찍어 건다 (prep.heroPortrait).
      2D 일러스트를 따로 그리면 모델을 바꿀 때마다 어긋난다. */
+  /* 화면 높이의 3/4 를 먹으면 배경이 안 보이고 캐릭터만 남는다. 60% 로 줄이고
+     바닥 띠에 발을 붙인다. */
   #home .hero {
-    position: absolute; left: 46%; bottom: 4px; transform: translateX(-50%);
-    height: 300px; width: auto; pointer-events: none;
-    filter: drop-shadow(0 8px 18px #000a);
+    position: absolute; left: 52%; bottom: 46px; transform: translateX(-50%);
+    height: 236px; width: auto; pointer-events: none;
+    filter: drop-shadow(0 6px 14px #000a);
   }
   #home .hero:not([src]) { display: none; }
+  /* 발밑 그림자. 없으면 선 것도 나는 것도 아닌 채로 떠 있다. */
+  #home .hero-shadow {
+    position: absolute; left: 52%; bottom: 64px; transform: translateX(-50%);
+    width: 132px; height: 22px; pointer-events: none;
+    background: radial-gradient(50% 50% at 50% 50%, #000000aa 0%, #00000000 72%);
+  }
   /* 시즌 패스 자리. 지금은 팔 물건이 없어 잠겨 있다. */
   #home .pass {
     position: absolute; right: 10px; bottom: 10px; width: 186px; height: 132px;
@@ -882,6 +897,7 @@
     border-image-repeat: repeat; border-image-source: url('/assets/ui/lobby_panel.png');
     image-rendering: pixelated; filter: saturate(.55) brightness(.85);
   }
+  #home .pass .lock { width: 26px; image-rendering: pixelated; opacity: .9; }
   #home .pass .ttl { font-size: 17px; font-weight: 900; color: #ffd98a; text-shadow: 0 2px 0 #6b4a2a; }
   #home .pass .sub { font-size: 11px; color: #cbb794; }
   #home .conn {
@@ -975,56 +991,8 @@
         <div class="recent" id="record-recent"></div>
       </div>
     </div>
-    <!-- 배경. 그림 파일이 아니라 SVG 레이어다 — 화면비가 700~1040 사이에서
-         변하는데 사진 한 장을 깔면 매번 다른 데가 잘린다. 용의 둥지를 뜻하는
-         화산 능선과 떠 있는 바위, 그리고 뒤에서 올라오는 불빛. -->
-    <svg class="bg" viewBox="0 0 812 390" preserveAspectRatio="xMidYMax slice" aria-hidden="true">
-      <defs>
-        <radialGradient id="glow" cx="50%" cy="70%" r="38%">
-          <stop offset="0%" stop-color="#ff9a3c" stop-opacity=".42" />
-          <stop offset="60%" stop-color="#a33c12" stop-opacity=".18" />
-          <stop offset="100%" stop-color="#000" stop-opacity="0" />
-        </radialGradient>
-        <linearGradient id="far" x1="0" y1="0" x2="0" y2="1">
-          <stop offset="0%" stop-color="#37294f" /><stop offset="100%" stop-color="#241b36" />
-        </linearGradient>
-        <linearGradient id="near" x1="0" y1="0" x2="0" y2="1">
-          <stop offset="0%" stop-color="#150e21" /><stop offset="100%" stop-color="#08050e" />
-        </linearGradient>
-        <linearGradient id="haze" x1="0" y1="0" x2="0" y2="1">
-          <stop offset="0%" stop-color="#6b4a7a" stop-opacity="0" />
-          <stop offset="100%" stop-color="#6b4a7a" stop-opacity=".28" />
-        </linearGradient>
-      </defs>
-      <!-- 별. 능선 위 하늘이 비면 배경이 색종이처럼 보인다 -->
-      <g fill="#e8e2ff">
-        <circle cx="286" cy="52" r="1.3" opacity=".7" /><circle cx="352" cy="94" r="1" opacity=".5" />
-        <circle cx="468" cy="44" r="1.2" opacity=".65" /><circle cx="560" cy="78" r="1" opacity=".45" />
-        <circle cx="646" cy="40" r="1.4" opacity=".6" /><circle cx="726" cy="96" r="1" opacity=".4" />
-        <circle cx="232" cy="118" r="1" opacity=".4" /><circle cx="404" cy="126" r="1.1" opacity=".5" />
-      </g>
-      <!-- 달빛 무리. 달 자체는 팩 그림(bg_moon)이 SVG 위에 얹힌다 -->
-      <circle cx="196" cy="74" r="44" fill="#efe6cd" opacity=".08" />
-      <!-- 먼 능선. 곡선으로 눕힌다 — 꺾은선은 종이 오린 것처럼 보인다 -->
-      <path d="M0 262 C 90 214, 150 236, 226 208 C 310 176, 366 244, 452 226
-               C 540 208, 596 168, 676 200 C 742 226, 780 210, 812 196 L812 390 L0 390 Z"
-            fill="url(#far)" />
-      <!-- 능선 사이 안개. 두 겹 사이가 붙어 있으면 깊이가 안 생긴다 -->
-      <rect x="0" y="240" width="812" height="70" fill="url(#haze)" />
-      <!-- 용 뒤에서 올라오는 불빛. **가까운 능선보다 뒤에** 둔다 — 앞에 두면
-           아래쪽이 통째로 주황이 되어 능선이 사라진다 -->
-      <rect x="0" y="0" width="812" height="390" fill="url(#glow)" />
-      <path d="M0 312 C 110 286, 176 314, 262 292 C 352 268, 420 318, 512 306
-               C 610 292, 668 268, 742 300 C 776 314, 796 310, 812 302 L812 390 L0 390 Z"
-            fill="url(#near)" stroke="#8f6bb8" stroke-opacity=".28" stroke-width="1.5" />
-      <!-- 떠 있는 바위. 용이 나는 짐승이라는 걸 배경이 거든다 -->
-      <g fill="#241c33" opacity=".85">
-        <path d="M600 132 c 12 -10, 34 -12, 48 -2 c 10 7, 4 15, -10 18 c -18 4, -46 -4, -38 -16 z" />
-        <path d="M104 162 c 9 -8, 26 -9, 36 -2 c 8 6, 3 12, -8 14 c -14 3, -34 -3, -28 -12 z" />
-      </g>
-    </svg>
     <!-- 스카이라인. 팩 그림을 실루엣으로 눌러 쓴다 — 평면 컬러 그대로 두면
-         밤 하늘과 따로 논다. 능선 곡선 위에 얹어 높이를 맞춘다. -->
+         밤 하늘과 따로 논다. 바닥 띠 위에 세워 발밑을 맞춘다. -->
     <img class="sil moon" src="/assets/home/bg_moon.png" alt="" />
     <img class="sil cloud" src="/assets/home/bg_cloud.png" alt="" />
     <img class="sil castle" src="/assets/home/bg_castle.png" alt="" />
@@ -1036,10 +1004,13 @@
     <i class="ember" style="left: 47%; bottom: 24px; animation-delay: 2.6s"></i>
     <i class="ember" style="left: 55%; bottom: 52px; animation-delay: 5.1s"></i>
     <i class="ember" style="left: 62%; bottom: 30px; animation-delay: 7.4s"></i>
+    <i class="hero-shadow"></i>
     <img class="hero" id="home-hero" alt="" />
     <!-- 팔 물건(코스메틱)이 아직 없다. 자리만 잡아 두고 눌리지 않게 둔다 —
-         동작 없는 버튼을 열어 두면 거짓말이 된다. -->
+         동작 없는 버튼을 열어 두면 거짓말이 된다. 자물쇠를 다는 이유도 같다:
+         "지금은 못 연다"가 글자보다 그림으로 먼저 읽힌다. -->
     <div class="pass" id="home-pass">
+      <img class="lock" src="/assets/ui/lock_closed.png" alt="" />
       <div class="ttl">시즌 패스</div>
       <div class="sub">준비 중</div>
     </div>
