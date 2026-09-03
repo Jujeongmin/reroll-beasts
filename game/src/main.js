@@ -187,6 +187,27 @@ try {
   let foe = null
   let foeId = null
 
+  /**
+   * 맞은 자리 위에 피해 숫자를 한 번 띄운다.
+   *
+   * 좌석 체력을 애니메이션으로 깎지 않는 이유: 값이 두 군데(실제 체력과
+   * 깎이는 중인 표시)가 되고, 어긋나면 화면이 조용히 거짓말한다. 이건 한 번
+   * 뜨고 사라지므로 어긋날 상태가 안 남는다 — 값도 정산이 쓰는 그 숫자다.
+   */
+  function floatDamage(spot, amount) {
+    if (!amount) return
+    const V = prep.scene.THREE.Vector3
+    const at = prep.scene.toScreen(new V(spot.x, prep.scene.topY + 1.1, spot.z))
+    const el = document.createElement('div')
+    el.className = 'dmgfx'
+    el.textContent = `-${amount}`
+    el.style.left = `${at.x}px`
+    el.style.top = `${at.y}px`
+    document.getElementById('viewport').appendChild(el)
+    // 애니메이션이 끝나면 스스로 치운다. 남겨 두면 판마다 하나씩 쌓인다.
+    setTimeout(() => el.remove(), 1200)
+  }
+
   /** 전투 무대의 두 자리. 판 뒤쪽(내 쪽)과 앞쪽(상대 쪽) 가운데다. */
   function duelSpots() {
     const b = prep.scene.stageBounds()
@@ -268,7 +289,7 @@ try {
    * @param {string} o.aBoom  A 진영 사람의 이펙트 id
    * @param {string} o.bBoom  B 진영 사람의 이펙트 id
    */
-  function playWinFx(winner, { aBoom, bBoom }) {
+  function playWinFx(winner, { aBoom, bBoom, damage = 0 }) {
     // 무승부면 아무것도 안 터진다 — 이긴 사람이 없다.
     if (winner !== 'A' && winner !== 'B') return
     const fx = boomFx((winner === 'A' ? aBoom : bBoom) ?? data.cosmetics.boomDefault, data)
@@ -278,7 +299,10 @@ try {
     // 판이 반짝한 것으로 보인다.
     const spot = duelSpots()
     const at = winner === 'A' ? spot.theirs : spot.mine
-    setTimeout(() => prep.scene.playBoom(fx, { at }), hitMs)
+    setTimeout(() => {
+      prep.scene.playBoom(fx, { at })
+      floatDamage(at, damage)
+    }, hitMs)
   }
 
   /** 서버가 준 전적을 화면과 해금 판정 양쪽에 흘린다. */
@@ -727,6 +751,12 @@ try {
         playWinFx(winner, {
           aBoom: myBoomId(),
           bBoom: run.lobby.find((x) => x.id === run.opponentId)?.boom,
+          // 진 쪽이 받을 피해. 정산이 쓰는 그 값이다 — 화면에 다른 숫자가
+          // 뜨면 체력이 왜 그만큼 줄었는지 안 맞는다.
+          damage: defeatDamage(
+            winner === 'A' ? result.survivorsA : result.survivorsB,
+            info.damage,
+          ),
         }),
     })
   }
@@ -761,11 +791,17 @@ try {
       },
       atTick: battle.tick(),
       // 남의 전투를 보는 중이면 그 판의 두 사람 이펙트를 쓴다.
-      onEnd: (winner) =>
+      onEnd: (winner) => {
+        const r = mine ? run.fight.result : f.result
         playWinFx(winner, {
           aBoom: mine ? myBoomId() : boomOfSeat(f.a),
           bBoom: mine ? boomOfSeat(run.opponentId) : boomOfSeat(f.b),
-        }),
+          damage: defeatDamage(
+            winner === 'A' ? r.survivorsA : r.survivorsB,
+            roundAt(run.index, data.rounds).damage,
+          ),
+        })
+      },
     })
   }
 

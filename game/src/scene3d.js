@@ -1307,6 +1307,16 @@ export async function createScene({
    * 아바타가 돌아다닐 수 있는 범위. 판을 기준으로 잡고 한 칸씩 넉넉히 준다 —
    * 판 위에만 가두면 말들 사이에 끼여 어디에 서 있는지 안 보인다.
    */
+  /**
+   * 월드 좌표 → 무대 위 화면 좌표(px). 데미지 숫자처럼 3D 위에 얹는 DOM 이
+   * 쓴다 — 스프라이트로 숫자를 그리면 글꼴이 판마다 뭉갠다.
+   */
+  function toScreen(v) {
+    const p = v.clone().project(camera)
+    const r = renderer.domElement.getBoundingClientRect()
+    return { x: ((p.x + 1) / 2) * r.width, y: ((1 - p.y) / 2) * r.height }
+  }
+
   function stageBounds() {
     const xs = board.tiles.map((t) => t.x)
     const zs = board.tiles.map((t) => t.z)
@@ -1993,6 +2003,7 @@ export async function createScene({
     tileAt,
     groundAt,
     stageBounds,
+    toScreen,
     resize,
     setBattleMode,
     render: () => renderer.render(scene, camera),
