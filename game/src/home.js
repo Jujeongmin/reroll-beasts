@@ -29,6 +29,9 @@ export function createHome({ data, onPick, onCancelQueue, onRetry, onBoard }) {
     bar: document.getElementById('record-bar'),
     barFill: document.querySelector('#record-bar i'),
     rankBtn: document.getElementById('record-rank'),
+    hint: document.getElementById('home-hint'),
+    hintGo: document.getElementById('hint-go'),
+    hintClose: document.getElementById('hint-close'),
     board: document.getElementById('board'),
     boardRows: document.getElementById('board-rows'),
     boardSub: document.getElementById('board-sub'),
@@ -50,6 +53,11 @@ export function createHome({ data, onPick, onCancelQueue, onRetry, onBoard }) {
   })
   el.queueCancel.addEventListener('click', () => onCancelQueue())
   el.rankBtn.addEventListener('click', () => openBoard())
+  // 말풍선을 누르면 그대로 튜토리얼로 간다 — 옆 버튼을 다시 찾게 하지 않는다.
+  el.hintGo.addEventListener('click', () => onPick('tutorial'))
+  el.hintClose.addEventListener('click', () => {
+    el.hint.hidden = true
+  })
   el.boardClose.addEventListener('click', () => {
     el.board.hidden = true
   })
@@ -135,6 +143,16 @@ export function createHome({ data, onPick, onCancelQueue, onRetry, onBoard }) {
     /** 간판 캐릭터. 부팅에서 한 번 찍어 넘어온다. */
     setHero(url) {
       el.hero.src = url
+    },
+    /**
+     * 아직 튜토리얼을 안 본 사람에게 표를 단다.
+     *
+     * 자동으로 밀어 넣지 않는 이유: 부팅하자마자 게임 안이면 무슨 게임인지
+     * 보기도 전에 조작부터 배우고, 나가는 길도 모른다. 눈에 띄게만 한다.
+     */
+    markTutorialNew() {
+      el.menu.querySelector('[data-mode="tutorial"]')?.classList.add('is-new')
+      el.hint.hidden = false
     },
     show() {
       el.root.hidden = false

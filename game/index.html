@@ -5,8 +5,10 @@
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover, user-scalable=no" />
 <title>Reroll Beasts</title>
 <!-- 홈 배경은 부팅 화면 뒤에서 미리 받아 둔다. CSS 가 홈을 그릴 때 처음
-     받으면 첫 진입에서 배경 없는 홈이 한 번 번쩍인다. -->
-<link rel="preload" as="image" href="/assets/home/bg_scene.webp" />
+     받으면 첫 진입에서 배경 없는 홈이 한 번 번쩍인다.
+     preload 가 아니라 prefetch 인 이유: 부팅(모델 26종)이 몇 초 걸려서
+     preload 는 "받아 놓고 안 썼다"고 경고한다 — 실제로는 그때 쓴다. -->
+<link rel="prefetch" as="image" href="/assets/home/bg_scene.webp" />
 <style>
   /* ─────────────────────────────────────────────────────────
      TFT 배치를 따른다. 판이 화면의 주인이고 HUD 는 그 위에 뜬다.
@@ -874,6 +876,37 @@
     letter-spacing: .5px; image-rendering: pixelated;
   }
   #home .btn-home:active { border-image-source: url('/assets/ui/lobby_btn_down.png'); }
+  /* 튜토리얼 버튼 옆 말풍선. 버튼 묶음 기준으로 붙여 화면 크기가 바뀌어도
+     가리키는 곳이 안 어긋난다 — 좌표를 손으로 박으면 반드시 어긋난다. */
+  #home .firsthint {
+    position: absolute; left: 100%; bottom: 0; margin-left: 10px;
+    display: flex; align-items: center; gap: 2px; white-space: nowrap;
+    padding: 5px 6px 5px 10px; border-radius: 9px;
+    background: #1b1428d9; backdrop-filter: blur(3px); -webkit-backdrop-filter: blur(3px);
+    box-shadow: inset 0 0 0 1px #ffd16659, 0 6px 16px #000a;
+    animation: hintin .3s ease-out;
+  }
+  #home .firsthint[hidden] { display: none; }
+  /* 버튼 쪽을 가리키는 꼬리 */
+  #home .firsthint::before {
+    content: ''; position: absolute; left: -6px; bottom: 13px;
+    border-top: 6px solid transparent; border-bottom: 6px solid transparent;
+    border-right: 6px solid #1b1428d9;
+  }
+  #home .firsthint .go { font-size: 11px; font-weight: 800; color: #ffe1a0; }
+  #home .firsthint .x { font-size: 11px; color: #8d8172; padding: 0 4px; }
+  #home .firsthint .x:hover { color: #e6cfa2; }
+  @keyframes hintin { from { opacity: 0; transform: translateX(-6px); } }
+
+  /* 아직 안 본 튜토리얼. 자동으로 밀어 넣는 대신 눈에 띄게만 한다. */
+  #home .btn-home.is-new { position: relative; }
+  #home .btn-home.is-new::after {
+    content: '처음이라면'; position: absolute; right: -6px; top: -9px;
+    padding: 1px 6px; border-radius: 8px;
+    background: #e0a338; color: #2a1c08; font-size: 9px; font-weight: 900;
+    box-shadow: 0 2px 6px #0008;
+    animation: coachdot 1.8s ease-in-out infinite;
+  }
   #home .btn-home[disabled] { filter: grayscale(.6) brightness(.85); cursor: default; }
   /* 대기 중에는 메뉴가 사라지고 이 줄이 그 자리를 쓴다 — 누를 수 있는 것과
      기다리는 중이 한 화면에 같이 있으면 지금 뭘 하는 중인지 흐려진다. */
@@ -1084,6 +1117,12 @@
       <div class="queue" id="queue-status" hidden>
         <span id="queue-text"></span>
         <button id="queue-cancel">취소</button>
+      </div>
+      <!-- 처음 온 사람에게 어디를 누를지 말해 준다. 자동으로 게임에 밀어
+           넣는 대신 손가락만 가리킨다 — 닫으면 다시 안 뜬다. -->
+      <div class="firsthint" id="home-hint" hidden>
+        <button class="go" id="hint-go">처음이라면 여기부터 시작</button>
+        <button class="x" id="hint-close" title="닫기">✕</button>
       </div>
     </div>
     <!-- 프로필. 왼쪽 위 — 로비에서 눈이 먼저 가는 자리이고, 간판(가운데 위)
