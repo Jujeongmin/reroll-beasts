@@ -214,10 +214,10 @@
       "unlock": "pass",
       "passLevel": 15,
       "colors": {
-        "floor": "#ffb98f",
-        "base": "#4a2a22",
-        "ground": "#7a4030",
-        "ring": "#ffd166"
+        "floor": "#d9603a",
+        "base": "#3a1a12",
+        "ground": "#5e2418",
+        "ring": "#ff8a2a"
       }
     },
     {
@@ -227,10 +227,10 @@
       "unlock": "rank",
       "tier": "platinum",
       "colors": {
-        "floor": "#ffe6b0",
+        "floor": "#ffe9a8",
         "base": "#4a3a1c",
-        "ground": "#6b7a4c",
-        "ring": "#ffd166"
+        "ground": "#546b46",
+        "ring": "#ffd45e"
       }
     }
   ],
