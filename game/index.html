@@ -1163,6 +1163,26 @@
   }
   #gemshop .card.have img { filter: none; }
   #gemshop .card.off img { filter: brightness(.72) saturate(.85); }
+  /* 젬 충전 줄. 아바타 목록과 같은 칸으로 그리면 "이것도 아바타"로 읽힌다 —
+     가로 띠로 눕혀 다른 종류임을 모양으로 가른다. */
+  #gemshop .packs { flex: none; display: flex; gap: 6px; }
+  #gemshop .pack {
+    flex: 1; min-width: 0; display: flex; align-items: center; gap: 6px; padding: 5px 7px;
+    background: linear-gradient(180deg, #2f2338, #1a1424);
+    box-shadow: inset 0 0 0 1px #ffffff14; cursor: pointer;
+  }
+  #gemshop .pack:hover { background: linear-gradient(180deg, #3d2d4c, #221a2e); }
+  #gemshop .pack:active { transform: translateY(1px); }
+  #gemshop .pack img { width: 30px; height: 30px; image-rendering: pixelated; }
+  #gemshop .pack .t { flex: 1; min-width: 0; }
+  #gemshop .pack .n {
+    font-size: 11px; font-weight: 800; color: #e6dcff;
+    overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
+  }
+  #gemshop .pack .b { font-size: 9px; color: #7fe6a8; }
+  #gemshop .pack .p { flex: none; font-size: 11px; font-weight: 800; color: #ffd166; }
+  /* 상점을 못 불러온 자리. 빈 줄을 남기면 "곧 뜨겠지"로 읽혀 계속 기다린다. */
+  #gemshop .packs .none { font-size: 10px; color: #a99a86; padding: 4px 2px; }
   #gemshop #shop-close {
     align-self: center; font-size: 11px; color: #cbb794; text-decoration: underline;
   }
@@ -1497,6 +1517,9 @@
           <div class="wallet"><i class="g"></i><span id="shop-gems">0</span></div>
         </div>
         <div class="grid" id="shop-grid"></div>
+        <!-- 젬 충전. 값·결제창은 플랫폼(VXShop)이 쥐므로 여기서는 상품만
+             나열하고 누르면 호스트 결제창을 연다. -->
+        <div class="packs" id="shop-packs"></div>
         <button id="shop-close">닫기</button>
       </div>
     </div>

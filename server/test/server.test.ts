@@ -299,3 +299,82 @@ describe('순위표', () => {
     expect(lb.total).toBe(0);
   });
 });
+
+describe('결제 훅', () => {
+  test('젬 팩을 사면 잔액이 는다', async (server) => {
+    const account = 'pay1';
+    server.connect({ account });
+    await server.joinLobby();
+    for (let i = 0; i < 30; i++) {
+      const s = await server.resolveRound();
+      if (!s || s.phase === 'done') break;
+    }
+    const before = await server.getProfile();
+    
+    await server.$onItemPurchased({
+      account,
+      purchaseId: 1001,
+      productId: 'gems_small',
+      quantity: 1,
+    });
+    const after = await server.getProfile();
+    expect(after.gems).toBe((before.gems ?? 0) + 300);
+  });
+
+  test('같은 결제가 두 번 와도 한 번만 준다 — 재시도는 어느 결제 시스템에나 있다', async (server) => {
+    const account = 'pay2';
+    server.connect({ account });
+    await server.joinLobby();
+    for (let i = 0; i < 30; i++) {
+      const s = await server.resolveRound();
+      if (!s || s.phase === 'done') break;
+    }
+    
+    const ev = { account, purchaseId: 2002, productId: 'gems_small', quantity: 1 };
+    await server.$onItemPurchased(ev);
+    const once = await server.getProfile();
+    const again = await server.$onItemPurchased(ev);
+    expect(again.dup).toBe(true);
+    const twice = await server.getProfile();
+    expect(twice.gems).toBe(once.gems);
+  });
+
+  test('프리미엄 패스를 사면 패스가 열린다', async (server) => {
+    const account = 'pay3';
+    server.connect({ account });
+    await server.joinLobby();
+    for (let i = 0; i < 30; i++) {
+      const s = await server.resolveRound();
+      if (!s || s.phase === 'done') break;
+    }
+    await server.$onItemPurchased({
+      account,
+      purchaseId: 3003,
+      productId: 'pass_premium_s1',
+      quantity: 1,
+    });
+    const p = await server.getProfile();
+    expect(p.pass.premium).toBe(true);
+  });
+
+  test('모르는 상품은 지급을 보류하되 기록은 남긴다 — 던지면 다음 결제까지 막힌다', async (server) => {
+    const account = 'pay4';
+    server.connect({ account });
+    await server.joinLobby();
+    for (let i = 0; i < 30; i++) {
+      const s = await server.resolveRound();
+      if (!s || s.phase === 'done') break;
+    }
+    const before = await server.getProfile();
+    const res = await server.$onItemPurchased({
+      account,
+      purchaseId: 4004,
+      productId: '대시보드에만_있는_상품',
+      quantity: 1,
+    });
+    expect(res.ok).toBe(true);
+    expect(res.applied).toBe(false);
+    const after = await server.getProfile();
+    expect(after.gems).toBe(before.gems);
+  });
+});

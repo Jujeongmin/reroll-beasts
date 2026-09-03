@@ -14,6 +14,7 @@ import { roundAt, totalRounds, defeatDamage, grantIndices, itemSeed } from '@sim
 import { setupTutorial } from '@sim/tutorial.js'
 import { resolveAvatar, avatarFile, avatarAnims } from '@sim/cosmetics.js'
 import { createHome } from './home.js'
+import { createStore } from './vxshop.js'
 import { createCoach, isTutorialDone, markTutorialDone } from './tutorial.js'
 import { createTutorialMatchmaker } from './tutorialMatchmaker.js'
 import { createHeroView } from './heroView.js'
@@ -271,6 +272,17 @@ try {
   let queue = null
   let server = null
 
+  // 결제. 지급은 서버 훅이 하고 여기서는 결제창을 열고 결과만 받는다.
+  const vxshop = createStore({
+    onPurchased: async () => {
+      // 서버 훅이 먼저 끝났다는 보장이 없다. 그래도 다시 읽는 편이 낫다 —
+      // 안 읽으면 산 사람이 홈을 나갔다 와야 잔액이 는다.
+      try {
+        applyProfile(await server?.remoteFunction('getProfile', []))
+      } catch {}
+    },
+  })
+
   const home = createHome({
     data,
     onPick: (mode) => (mode === 'tutorial' ? startTutorial() : startMatch(mode)),
@@ -286,6 +298,12 @@ try {
      * 젬으로 아바타를 산다. 판정은 서버가 하고 여기서는 결과만 받는다 —
      * 여기서 잔액을 깎으면 서버가 거절해도 화면만 산 것처럼 남는다.
      */
+    onStoreItems: () => vxshop.items(),
+    /**
+     * 결제창을 연다. 지급은 서버 훅($onItemPurchased)이 하므로 여기서는
+     * 잔액을 건드리지 않는다 — 닫힘 신호를 받고 전적을 다시 읽는다.
+     */
+    onBuyPack: (productId) => vxshop.buy(productId),
     onBuyAvatar: async (id) => {
       if (!server) return { ok: false, why: '서버에 안 붙었다' }
       try {

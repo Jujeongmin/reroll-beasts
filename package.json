@@ -9,7 +9,7 @@
     "validate": "node tools/validate.mjs",
     "check": "npm run validate && npm test",
     "sim": "node sim/run.mjs",
-    "art": "node tools/verify-model-map.mjs && node tools/build-assets.mjs && node tools/bake-textures.mjs && node tools/build-ui-rpg.mjs && node tools/gem-icon.mjs && node tools/build-avatars.mjs",
+    "art": "node tools/verify-model-map.mjs && node tools/build-assets.mjs && node tools/bake-textures.mjs && node tools/build-ui-rpg.mjs && node tools/gem-icon.mjs && node tools/store-icons.mjs && node tools/build-avatars.mjs",
     "dev": "vite",
     "build": "vite build",
     "preview": "vite preview"
@@ -26,6 +26,7 @@
   },
   "dependencies": {
     "@agent8/gameserver": "^1.10.2",
+    "@verse8/platform": "^2.1.0",
     "three": "^0.185.1"
   }
 }

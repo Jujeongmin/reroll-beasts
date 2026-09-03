@@ -1,0 +1,39 @@
+{
+  "note": "VXShop 대시보드에 등록하는 상품. id 는 대시보드의 productId 와 **글자 그대로** 같아야 한다 — 다르면 결제는 되고 지급은 안 된다.",
+  "products": [
+    {
+      "id": "gems_small",
+      "name": "젬 300",
+      "desc": "아바타 하나 값이 넉넉하다",
+      "gems": 300,
+      "usd": 0.99,
+      "icon": "store_gems_small.png"
+    },
+    {
+      "id": "gems_medium",
+      "name": "젬 1,000",
+      "desc": "10% 더 준다",
+      "gems": 1000,
+      "usd": 2.99,
+      "bonus": "+10%",
+      "icon": "store_gems_medium.png"
+    },
+    {
+      "id": "gems_large",
+      "name": "젬 2,600",
+      "desc": "23% 더 준다",
+      "gems": 2600,
+      "usd": 6.99,
+      "bonus": "+23%",
+      "icon": "store_gems_large.png"
+    },
+    {
+      "id": "pass_premium_s1",
+      "name": "시즌 1 프리미엄 패스",
+      "desc": "단계마다 젬을 더 받는다. 끝까지 올리면 960 젬",
+      "premium": true,
+      "usd": 4.99,
+      "icon": "store_pass_premium.png"
+    }
+  ]
+}

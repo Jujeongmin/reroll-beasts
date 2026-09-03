@@ -15,6 +15,7 @@ const FILES = [
   'cosmetics',
   'season',
   'pass',
+  'store',
 ]
 
 const isNode =

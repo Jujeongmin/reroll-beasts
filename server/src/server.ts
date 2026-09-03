@@ -24,6 +24,7 @@ import { mergeProfile } from '../../sim/profile.js'
 import { addLp, sortLeaderboard, rankOf } from '../../sim/rank.js'
 import { advancePass } from '../../sim/pass.js'
 import { canBuyAvatar } from '../../sim/cosmetics.js'
+import { purchaseGrant } from '../../sim/store.js'
 import { simulate } from '../../sim/combat.js'
 import { totalRounds } from '../../sim/rounds.js'
 import combat from '../../game/public/data/combat.json'
@@ -37,6 +38,7 @@ import lobby from '../../game/public/data/lobby.json'
 import items from '../../game/public/data/items.json'
 import cosmetics from '../../game/public/data/cosmetics.json'
 import passData from '../../game/public/data/pass.json'
+import store from '../../game/public/data/store.json'
 
 // 코스메틱·패스도 여기 들어온다. 패스 트랙이 아바타 해금 단계를 cosmetics
 // 에서 읽으므로, 둘 중 하나만 있으면 트랙을 만들 수 없다.
@@ -52,6 +54,7 @@ const DATA: any = {
   items,
   cosmetics,
   pass: passData,
+  store,
 }
 
 interface Entry {
@@ -105,6 +108,68 @@ export class Server {
   async getProfile(): Promise<any | null> {
     const st: any = await $global.getMyState()
     return st?.profile ?? null
+  }
+
+  /**
+   * 결제가 끝났다. 플랫폼(VXShop)이 부른다.
+   *
+   * **클라가 부르는 함수가 아니다.** 결제창·영수증은 전부 플랫폼이 쥐고,
+   * 여기로는 "누가 무엇을 몇 개 샀다"만 온다. 그래서 이 안에서는 값을 다시
+   * 안 따진다 — 값은 대시보드가 정하고 이미 받았다.
+   *
+   * **같은 결제가 두 번 올 수 있다.** 재시도·중복 전송은 어느 결제 시스템에나
+   * 있다. purchaseId 를 컬렉션에 적어 두고, 이미 있으면 조용히 돌아간다 —
+   * 없으면 재시도 한 번에 젬이 두 배로 들어간다.
+   *
+   * $lock 은 계정 단위다. 젬 팩 두 개를 연달아 사면 두 훅이 같은 잔액을 읽어
+   * 하나가 사라진다.
+   */
+  async $onItemPurchased(event: any): Promise<any> {
+    const account = event?.account
+    const purchaseId = event?.purchaseId
+    if (!account || purchaseId == null) return { ok: false, why: '알 수 없는 결제' }
+
+    return $lock(`purchase:${account}`, async () => {
+      const seenId = String(purchaseId)
+      // __id 로 못 찾는다 — addCollectionItem 은 제 id 를 붙이고 우리가 넣은
+      // __id 는 그냥 필드가 된다. 그래서 필드로 찾는다.
+      const seen = await $global.getCollectionItems('purchases', {
+        filters: [{ field: 'purchaseId', operator: '==', value: seenId }],
+        limit: 1,
+      })
+      if (seen.length) return { ok: true, dup: true }
+
+      const grant = purchaseGrant(event.productId, event.quantity, DATA)
+      // 대시보드에만 있고 우리 표엔 없는 상품일 수 있다(운영이 먼저 등록한다).
+      // 그 결제는 지급을 보류하되 **기록은 남긴다** — 나중에 표를 고치고
+      // 손으로 채워 줄 수 있어야 한다.
+      const prev: any = await $global.getUserState(account)
+      const profile = prev?.profile ?? null
+      if (grant.known && profile) {
+        const next = {
+          ...profile,
+          gems: (profile.gems ?? 0) + grant.gems,
+          pass: {
+            ...(profile.pass ?? { xp: 0, level: 1 }),
+            premium: grant.premium || !!profile.pass?.premium,
+          },
+        }
+        await $global.updateUserState(account, { profile: next })
+      }
+      await $global.addCollectionItem('purchases', {
+        purchaseId: seenId,
+        account,
+        productId: event.productId ?? null,
+        quantity: event.quantity ?? 1,
+        gems: grant.gems,
+        premium: grant.premium,
+        // 전적이 없으면(한 판도 안 한 사람) 지급할 자리가 없다. 그 사실을
+        // 남겨야 나중에 왜 안 들어갔는지 알 수 있다.
+        applied: grant.known && !!profile,
+        at: Date.now(),
+      })
+      return { ok: true, applied: grant.known && !!profile }
+    })
   }
 
   /**

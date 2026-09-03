@@ -5,6 +5,7 @@
 
 import { homeView } from './home-state.js'
 import { avatarChoices, shopAvatars } from '@sim/cosmetics.js'
+import { storeProducts } from '@sim/store.js'
 import { seasonAt, daysLeft } from '@sim/season.js'
 import { passProgress, passTrack, EMPTY_PASS } from '@sim/pass.js'
 
@@ -27,6 +28,8 @@ export function createHome({
   onPickedAvatar,
   onAvatarPortrait,
   onBuyAvatar,
+  onStoreItems,
+  onBuyPack,
 }) {
   const el = {
     root: document.getElementById('home'),
@@ -51,6 +54,7 @@ export function createHome({
     shop: document.getElementById('gemshop'),
     shopGrid: document.getElementById('shop-grid'),
     shopGems: document.getElementById('shop-gems'),
+    shopPacks: document.getElementById('shop-packs'),
     shopClose: document.getElementById('shop-close'),
     hintGo: document.getElementById('hint-go'),
     hintClose: document.getElementById('hint-close'),
@@ -265,7 +269,47 @@ export function createHome({
     el.shop.classList.remove('closing')
     el.shop.hidden = false
     drawShop()
+    drawPacks()
   }
+
+  /**
+   * 젬 충전 줄.
+   *
+   * 값은 **플랫폼이 준 것**을 쓴다. store.json 의 usd 는 참고값이고, 대시보드에서
+   * 값을 고치면 그쪽이 맞다 — 우리 파일에 적힌 값을 그리면 결제창과 다른 값이
+   * 화면에 뜬다. 플랫폼을 못 붙었으면 그 사실을 적는다.
+   */
+  async function drawPacks() {
+    el.shopPacks.innerHTML = '<div class="none">상품을 불러오는 중…</div>'
+    const live = await onStoreItems?.()
+    if (!live) {
+      el.shopPacks.innerHTML = '<div class="none">결제는 Verse8 에서 실행할 때만 열린다</div>'
+      return
+    }
+    const known = storeProducts(data)
+    const rows = known
+      .map((p) => ({ p, item: live.find((x) => x.productId === p.id) }))
+      .filter((r) => r.item)
+    if (!rows.length) {
+      el.shopPacks.innerHTML = '<div class="none">등록된 상품이 없다</div>'
+      return
+    }
+    el.shopPacks.innerHTML = rows
+      .map(
+        ({ p, item }) =>
+          `<div class="pack" data-pack="${p.id}">` +
+          `<img alt="" src="/assets/store/store_${p.id.replace(/^gems_/, 'gems_')}.png" />` +
+          `<div class="t"><div class="n">${item.name || p.name}</div>` +
+          `${p.bonus ? `<div class="b">${p.bonus}</div>` : ''}</div>` +
+          `<div class="p">${item.price}</div></div>`,
+      )
+      .join('')
+  }
+
+  el.shopPacks.addEventListener('click', (ev) => {
+    const row = ev.target.closest('[data-pack]')
+    if (row) onBuyPack?.(row.dataset.pack)
+  })
 
   function drawShop() {
     const owned = ownedNow()
