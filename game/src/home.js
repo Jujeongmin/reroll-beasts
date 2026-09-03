@@ -27,6 +27,7 @@ export function createHome({
   onPickAvatar,
   onPickedAvatar,
   onAvatarPortrait,
+  onBoardPortrait,
   onBuyAvatar,
   onPickBoard,
   onPickedBoard,
@@ -175,10 +176,13 @@ export function createHome({
       .map((c) => {
         // 무대는 초상을 찍을 수 없다 — 3D 판을 목록마다 그리는 값이 너무 크다.
         // 실제로 바뀌는 색 셋(잔디·돌·테두리)을 그대로 보여 준다.
+        // 무대는 **진짜 판을 찍어** 보여 준다. 색 스와치는 그림이 오기
+        // 전까지 자리를 채운다 — 빈 칸을 두면 목록이 한 번 덜컹인다.
         const art = c.file
           ? `<img alt="" data-file="${c.file}" />`
           : `<span class="swatch"><i class="g1" style="background:${c.colors?.ground}"></i>` +
-            `<i class="g2" style="background:${c.colors?.floor};color:${c.colors?.ring}"><i></i></i></span>`
+            `<i class="g2" style="background:${c.colors?.floor};color:${c.colors?.ring}"><i></i></i></span>` +
+            `<img class="shot" alt="" data-board="${c.id}" />`
         return (
           `<div class="card${c.unlocked ? '' : ' locked'}${c.id === cur ? ' on' : ''}` +
           `${c.id === skinPick ? ' sel' : ''}" data-skin="${c.id}">${art}` +
@@ -196,6 +200,13 @@ export function createHome({
         })
         .catch(() => {})
     }
+    for (const img of el.skinsGrid.querySelectorAll('img[data-board]')) {
+      onBoardPortrait?.(img.dataset.board)
+        .then((url) => {
+          img.src = url
+        })
+        .catch(() => {})
+    }
     drawSkinFoot()
   }
 
@@ -208,7 +219,7 @@ export function createHome({
   function drawSkinFoot() {
     const c = skinList().find((x) => x.id === skinPick)
     if (!c) {
-      el.skinsPick.textContent = '고를 것을 누른다'
+      el.skinsPick.textContent = ''
       el.skinsWhy.textContent = ''
       el.skinsAct.hidden = true
       return

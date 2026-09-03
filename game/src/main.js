@@ -179,6 +179,9 @@ try {
     prep.scene.setSkin(boardColors(resolveBoard(pickedBoard(), data, ownedNow()), data))
   }
 
+  // 무대 견본 캐시. id 하나에 그림 한 장.
+  const boardShots = new Map()
+
   const stick = createJoystick({
     root: document.getElementById('viewport'),
     onMove: (dx, dy) => avatar?.setStick(dx, dy),
@@ -311,6 +314,19 @@ try {
     onRetry: () => connect(),
     onPickedAvatar: () => resolveAvatar(pickedAvatar(), data, ownedNow()),
     onAvatarPortrait: (file) => prep.avatarPortrait(file),
+    /**
+     * 무대 견본. 진짜 판을 한 장 찍어 온다 — 색만 보여 주면 사는 사람이
+     * 알고 싶은 "내 판이 어떻게 보이나"에 답이 안 된다.
+     *
+     * 한 번 찍은 것은 캐시한다. 목록을 열 때마다 다섯 장을 다시 그리면
+     * 창이 열리는 순간 프레임이 끊긴다.
+     */
+    onBoardPortrait: async (id) => {
+      if (boardShots.has(id)) return boardShots.get(id)
+      const url = prep.scene.boardShot(boardColors(id, data), 200, 240)
+      boardShots.set(id, url)
+      return url
+    },
     /**
      * 젬으로 아바타를 산다. 판정은 서버가 하고 여기서는 결과만 받는다 —
      * 여기서 잔액을 깎으면 서버가 거절해도 화면만 산 것처럼 남는다.

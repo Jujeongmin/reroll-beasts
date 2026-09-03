@@ -1829,7 +1829,49 @@ export async function createScene({
    * 바닥은 텍스처가 있는 재질이라 색을 **곱한다** — 흰색이면 원래 그림 그대로,
    * 다른 색이면 그 색조로 물든다.
    */
+  // 지금 입혀 둔 색. 견본을 찍고 나면 여기로 되돌린다 — 안 되돌리면 목록을
+  // 한 번 연 것만으로 판 색이 마지막 견본으로 바뀐다.
+  let currentSkin = {}
+
+  /**
+   * 무대 견본 한 장. **진짜 판을 그대로 찍는다.**
+   *
+   * 색 스와치로 대신하지 않는 이유: 사는 사람이 알고 싶은 건 "내 판이 어떻게
+   * 보이나"지 무슨 색인가가 아니다. 돌 무늬·잔디·칸 테두리가 같이 붙어야
+   * 그 답이 된다.
+   *
+   * setSize 의 세 번째 인자를 false 로 준다 — CSS 크기를 안 건드리므로 화면이
+   * 한 번 깜빡이지 않는다. 다음 실제 렌더가 원래 크기로 되돌린다.
+   */
+  function boardShot(colors, w = 200, h = 240) {
+    const prev = new THREE.Vector2()
+    renderer.getSize(prev)
+    const prevRatio = renderer.getPixelRatio()
+    const keep = currentSkin
+    setSkin(colors)
+
+    const cam = new THREE.PerspectiveCamera(34, w / h, 0.1, 200)
+    // 판만 꽉 채우면 무대가 아니라 바닥 무늬가 된다 — 마당·울타리·잔디까지
+    // 들어와야 "어떤 무대인가"가 보인다.
+    const dist = Math.max(arena.w, arena.d) * 2.35
+    // 판을 비스듬히 내려다본다. 정면 위에서 찍으면 평면도가 되어 무대가
+    // 아니라 바닥 무늬 견본처럼 보인다.
+    cam.position.set(arena.cx, dist * 0.82, arena.cz + dist * 0.5)
+    cam.lookAt(arena.cx, 0, arena.cz)
+
+    renderer.setPixelRatio(1)
+    renderer.setSize(w, h, false)
+    renderer.render(scene, cam)
+    const url = renderer.domElement.toDataURL('image/png')
+
+    renderer.setPixelRatio(prevRatio)
+    renderer.setSize(prev.x, prev.y, false)
+    setSkin(keep)
+    return url
+  }
+
   function setSkin(colors = {}) {
+    currentSkin = colors
     const set = (mat, hex) => {
       if (mat && hex) mat.color.set(hex)
     }
@@ -1852,6 +1894,7 @@ export async function createScene({
     camera,
     renderer,
     setSkin,
+    boardShot,
     board,
     spacing,
     topY,
