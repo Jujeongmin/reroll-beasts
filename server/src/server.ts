@@ -23,6 +23,7 @@ import { createLobbyState, resolveRound, assignRanks } from '../../sim/lobbyRoun
 import { mergeProfile } from '../../sim/profile.js'
 import { addLp, sortLeaderboard, rankOf } from '../../sim/rank.js'
 import { advancePass } from '../../sim/pass.js'
+import { canBuyAvatar } from '../../sim/cosmetics.js'
 import { simulate } from '../../sim/combat.js'
 import { totalRounds } from '../../sim/rounds.js'
 import combat from '../../game/public/data/combat.json'
@@ -104,6 +105,44 @@ export class Server {
   async getProfile(): Promise<any | null> {
     const st: any = await $global.getMyState()
     return st?.profile ?? null
+  }
+
+  /**
+   * 젬으로 아바타를 산다.
+   *
+   * **판정은 여기서 한다.** 화면에서만 막으면 조작된 호출 하나로 젬 없이
+   * 아바타가 열린다. 클라와 같은 순수 함수(canBuyAvatar)를 부르므로 두 쪽이
+   * 다른 답을 낼 일이 없다 — 값이 어긋나면 화면에 "살 수 있다"고 뜨고 눌리지는
+   * 않는 물건이 생긴다.
+   *
+   * $lock 으로 묶는 이유: 두 창에서 동시에 누르면 같은 젬으로 둘을 살 수 있다.
+   */
+  async buyAvatar(id: string): Promise<any> {
+    const account = $sender.account
+    return $lock(`buy:${account}`, async () => {
+      const st: any = await $global.getMyState()
+      const profile = st?.profile
+      // 한 판도 안 한 사람은 젬이 0 이라 어차피 못 산다. 없는 전적을 여기서
+      // 만들지 않는다 — 전적은 판이 끝날 때만 생긴다.
+      if (!profile) return { ok: false, why: '아직 젬이 없다' }
+      const item = cosmetics.avatars.find((a: any) => a.id === id)
+      const owned = {
+        gems: profile.gems ?? 0,
+        avatars: profile.owned ?? [],
+        passLevel: profile.pass?.level ?? 1,
+        lp: profile.lp ?? 0,
+      }
+      const check: any = canBuyAvatar(item, owned, DATA)
+      if (!check.ok) return { ok: false, why: check.why }
+
+      const next = {
+        ...profile,
+        gems: owned.gems - check.price,
+        owned: [...owned.avatars, item.id],
+      }
+      await $global.updateUserState(account, { profile: next })
+      return { ok: true, profile: next }
+    })
   }
 
   // ── 순위표 ──────────────────────────────────────────────

@@ -4,7 +4,7 @@
 // 밀어 넣는다. 홈이 SDK 를 알면 홈을 확인하려면 네트워크가 필요해진다.
 
 import { homeView } from './home-state.js'
-import { avatarChoices } from '@sim/cosmetics.js'
+import { avatarChoices, shopAvatars } from '@sim/cosmetics.js'
 import { seasonAt, daysLeft } from '@sim/season.js'
 import { passProgress, passTrack, EMPTY_PASS } from '@sim/pass.js'
 
@@ -26,6 +26,7 @@ export function createHome({
   onPickAvatar,
   onPickedAvatar,
   onAvatarPortrait,
+  onBuyAvatar,
 }) {
   const el = {
     root: document.getElementById('home'),
@@ -46,6 +47,11 @@ export function createHome({
     skins: document.getElementById('skins'),
     skinsGrid: document.getElementById('skins-grid'),
     skinsClose: document.getElementById('skins-close'),
+    shopBtn: document.getElementById('btn-shop'),
+    shop: document.getElementById('gemshop'),
+    shopGrid: document.getElementById('shop-grid'),
+    shopGems: document.getElementById('shop-gems'),
+    shopClose: document.getElementById('shop-close'),
     hintGo: document.getElementById('hint-go'),
     hintClose: document.getElementById('hint-close'),
     board: document.getElementById('board'),
@@ -118,6 +124,9 @@ export function createHome({
   el.boardClose.addEventListener('click', () => closeSheet(el.board))
   el.skinsBtn.addEventListener('click', () => openSkins())
   el.skinsClose.addEventListener('click', () => closeSheet(el.skins))
+  el.shop.addEventListener('click', backdrop(el.shop))
+  el.shopBtn.addEventListener('click', () => openShop())
+  el.shopClose.addEventListener('click', () => closeSheet(el.shop))
 
   /**
    * 아바타 목록. 잠긴 것도 **보여 준다** — 무엇이 기다리는지 알아야 그걸
@@ -238,8 +247,63 @@ export function createHome({
 
   /** 지금 가진 것. 코스메틱 해금 판정이 이걸 본다. */
   function ownedNow() {
-    return { lp: state.profile?.lp ?? 0, passLevel: state.profile?.pass?.level ?? 1 }
+    return {
+      lp: state.profile?.lp ?? 0,
+      passLevel: state.profile?.pass?.level ?? 1,
+      gems: state.profile?.gems ?? 0,
+      avatars: state.profile?.owned ?? [],
+    }
   }
+
+  /**
+   * 젬 상점.
+   *
+   * 못 사는 것도 값을 그대로 보여 준다 — 얼마가 모자란지 알아야 모을 마음이
+   * 생긴다. 버튼만 죽인다.
+   */
+  function openShop() {
+    el.shop.classList.remove('closing')
+    el.shop.hidden = false
+    drawShop()
+  }
+
+  function drawShop() {
+    const owned = ownedNow()
+    el.shopGems.textContent = String(owned.gems)
+    el.shopGrid.innerHTML = shopAvatars(data, owned)
+      .map((s) => {
+        const cls = s.have ? ' have' : s.canBuy ? '' : ' off'
+        const btn = s.have
+          ? '<div class="buy">보유 중</div>'
+          : `<div class="buy" data-buy="${s.id}"><i class="g"></i>${s.price}</div>`
+        return (
+          `<div class="card${cls}"><img alt="" data-file="${s.file}" />` +
+          `<div class="nm">${s.name}</div>` +
+          `<div class="lvtag">패스 ${s.passLevel}단계</div>${btn}</div>`
+        )
+      })
+      .join('')
+    for (const img of el.shopGrid.querySelectorAll('img[data-file]')) {
+      onAvatarPortrait?.(img.dataset.file)
+        .then((url) => {
+          img.src = url
+        })
+        .catch(() => {})
+    }
+  }
+
+  // 구매는 **서버가** 판정한다. 여기서 잔액을 깎고 그리면, 서버가 거절했을 때
+  // 화면만 산 것처럼 남는다. 서버가 준 새 전적으로 다시 그린다.
+  el.shopGrid.addEventListener('click', async (ev) => {
+    const btn = ev.target.closest('[data-buy]')
+    if (!btn || btn.dataset.busy) return
+    btn.dataset.busy = '1'
+    const res = await onBuyAvatar?.(btn.dataset.buy)
+    if (res?.profile) state = { ...state, profile: res.profile }
+    delete btn.dataset.busy
+    drawShop()
+    render()
+  })
 
   /** 순위표를 연다. 서버가 안 주면 그 사실을 그대로 적는다 — 빈 표를 띄우면
    *  아무도 없는 것처럼 보인다. */
@@ -298,6 +362,9 @@ export function createHome({
 
     // 순위표는 서버가 붙어 있어야 볼 수 있다. 기록이 없어도 남의 등수는
     // 궁금하니 전적 유무와는 무관하게 연다.
+    // 상점은 서버가 붙어 있어야 한다 — 구매 판정이 서버에 있다. 못 붙은
+    // 채로 열어 두면 눌러도 아무 일이 없는 버튼이 된다.
+    el.shopBtn.hidden = state.status !== 'ready'
     el.rankBtn.hidden = state.status !== 'ready'
     el.rankBtn.textContent = '전체 순위 보기'
 

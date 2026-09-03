@@ -16,6 +16,9 @@ import { tierOf, TIERS } from './rank.js'
  * @param {object} owned    { passLevel, lp } — 없으면 아무것도 안 가진 것으로 친다
  */
 export function isUnlocked(item, owned = {}) {
+  // 산 것이 제일 먼저다. 젬으로 미리 산 아바타는 아직 그 단계에 못 갔어도
+  // 쓸 수 있어야 한다 — 그러라고 판 것이다.
+  if (owned.avatars?.includes(item.id)) return true
   if (item.unlock === 'free') return true
   if (item.unlock === 'pass') return (owned.passLevel ?? 0) >= (item.passLevel ?? 0)
   if (item.unlock === 'rank') {
@@ -61,6 +64,55 @@ export function avatarChoices(data, owned = {}) {
     unlocked: isUnlocked(a, owned),
     reason: isUnlocked(a, owned) ? null : lockReason(a),
   }))
+}
+
+/**
+ * 젬 값. 안 파는 물건이면 null.
+ *
+ * 랭크 아바타를 안 파는 이유: 그건 실력 표식이다. 돈으로 사면 티어 아바타가
+ * "이 사람은 골드까지 갔다"를 더 이상 뜻하지 않고, 그러면 랭크 보상 전체가
+ * 장식이 된다. 패스 트랙은 어차피 시간이면 열리는 것이라 앞당겨 파는 것뿐이다.
+ */
+export function avatarPrice(item, data) {
+  const shop = data.cosmetics.shop
+  if (!shop || item.unlock !== shop.sellUnlock) return null
+  return shop.gemPrice.base + shop.gemPrice.perLevel * (item.passLevel ?? 0)
+}
+
+/**
+ * 살 수 있나. 못 사면 왜인지 같이 준다.
+ *
+ * **서버가 이 함수로 검산한다.** 화면에서만 막으면 잠금은 장식이고, 조작된
+ * 요청 하나로 젬 없이 아바타가 열린다.
+ */
+export function canBuyAvatar(item, owned = {}, data) {
+  if (!item) return { ok: false, why: '없는 아바타' }
+  const price = avatarPrice(item, data)
+  if (price == null) return { ok: false, why: '파는 물건이 아니다' }
+  if (owned.avatars?.includes(item.id)) return { ok: false, why: '이미 갖고 있다' }
+  // 단계로 이미 열린 것을 다시 팔면 젬만 사라진다.
+  if (isUnlocked(item, owned)) return { ok: false, why: '이미 열렸다' }
+  if ((owned.gems ?? 0) < price) return { ok: false, why: '젬이 모자라다' }
+  return { ok: true, price }
+}
+
+/** 상점에 뿌릴 목록. 이미 가진 것도 남긴다 — 빠지면 목록이 판마다 달라진다. */
+export function shopAvatars(data, owned = {}) {
+  return data.cosmetics.avatars
+    .filter((a) => avatarPrice(a, data) != null)
+    .map((a) => {
+      const check = canBuyAvatar(a, owned, data)
+      return {
+        id: a.id,
+        name: a.name,
+        file: a.file,
+        price: avatarPrice(a, data),
+        have: isUnlocked(a, owned),
+        canBuy: check.ok,
+        why: check.ok ? null : check.why,
+        passLevel: a.passLevel ?? null,
+      }
+    })
 }
 
 /** id → 그 아바타의 줄. 없으면 기본값의 줄. */

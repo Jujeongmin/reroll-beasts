@@ -9,6 +9,9 @@ import {
   avatarChoices,
   avatarFile,
   avatarAnims,
+  avatarPrice,
+  canBuyAvatar,
+  shopAvatars,
 } from '../sim/cosmetics.js'
 
 let data
@@ -120,5 +123,53 @@ describe('avatarAnims', () => {
 
   it('없는 id 는 기본값의 이름표를 쓴다', () => {
     expect(avatarAnims('없음', data).idle).toBe('Idle')
+  })
+})
+
+describe('젬 상점', () => {
+  const passAv = (d) => d.cosmetics.avatars.find((a) => a.unlock === 'pass')
+  const rankAv = (d) => d.cosmetics.avatars.find((a) => a.unlock === 'rank')
+
+  it('패스 아바타만 판다 — 랭크는 실력 표식이라 팔면 뜻을 잃는다', () => {
+    expect(avatarPrice(passAv(data), data)).toBeGreaterThan(0)
+    expect(avatarPrice(rankAv(data), data)).toBe(null)
+    expect(avatarPrice({ unlock: 'free' }, data)).toBe(null)
+  })
+
+  it('늦게 열리는 것일수록 비싸다', () => {
+    const list = data.cosmetics.avatars.filter((a) => a.unlock === 'pass')
+    const sorted = [...list].sort((a, b) => a.passLevel - b.passLevel)
+    for (let i = 1; i < sorted.length; i++) {
+      expect(avatarPrice(sorted[i], data)).toBeGreaterThan(avatarPrice(sorted[i - 1], data))
+    }
+  })
+
+  it('젬이 모자라면 못 산다', () => {
+    const a = passAv(data)
+    const price = avatarPrice(a, data)
+    expect(canBuyAvatar(a, { gems: price - 1 }, data).ok).toBe(false)
+    expect(canBuyAvatar(a, { gems: price }, data).ok).toBe(true)
+  })
+
+  it('이미 열린 것은 안 판다 — 젬만 사라진다', () => {
+    const a = passAv(data)
+    const rich = { gems: 99999, passLevel: 99 }
+    expect(canBuyAvatar(a, rich, data).ok).toBe(false)
+    expect(canBuyAvatar(a, { gems: 99999, avatars: [a.id] }, data).ok).toBe(false)
+  })
+
+  it('산 것은 단계에 못 가도 쓸 수 있다 — 그러라고 판 것이다', () => {
+    const a = passAv(data)
+    expect(isUnlocked(a, { passLevel: 1 })).toBe(false)
+    expect(isUnlocked(a, { passLevel: 1, avatars: [a.id] })).toBe(true)
+    expect(resolveAvatar(a.id, data, { passLevel: 1, avatars: [a.id] })).toBe(a.id)
+  })
+
+  it('목록은 가진 것도 남긴다 — 빠지면 목록이 판마다 달라진다', () => {
+    const poor = shopAvatars(data, {})
+    const rich = shopAvatars(data, { gems: 99999, passLevel: 99 })
+    expect(rich.length).toBe(poor.length)
+    expect(rich.every((x) => x.have)).toBe(true)
+    expect(poor.every((x) => !x.have)).toBe(true)
   })
 })

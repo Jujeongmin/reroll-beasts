@@ -1,39 +1,39 @@
 {
-  "pack": "kenney-ui-pixel-adventure",
-  "root": "Tiles/Large tiles/Thick outline",
-  "note": "Kenney UI Pixel Adventure (CC0). 원본 파일명이 tile_00NN 뿐이라 여기서 이름을 붙인다. 숫자를 코드에 박으면 나중에 어느 게 뭔지 알 수 없다.",
-  "tiles": {
-    "panel_wood": 14,
-    "panel_parch": 13,
-    "panel_dark": 19,
-    "panel_steel": 29,
-    "button": 5,
-    "button_light": 4,
-    "hex_slot": 79,
-    "hex_unit": 78,
-    "hex_empty": 68,
-    "hex_hot": 81,
-    "hex_sell": 80,
-    "disc": 39,
-    "banner_l": 43,
-    "banner_m": 44,
-    "banner_r": 45,
-    "plate_l": 69,
-    "plate_m": 70,
-    "plate_r": 71
-  },
-  "slice": {
-    "note": "9-슬라이스로 늘릴 타일의 테두리 두께(px). 32px 원본 기준. 육각·원형은 늘려 쓰므로 여기 없다.",
-    "panel_wood": 6,
-    "panel_parch": 6,
-    "panel_dark": 6,
-    "panel_steel": 6,
-    "button": 6,
-    "button_light": 6
-  },
-  "smallRoot": "Tiles/Small tiles/Thick outline",
-  "smallTiles": {
-    "coin": 76,
-    "gem": 71
-  }
+ "pack": "kenney-ui-pixel-adventure",
+ "root": "Tiles/Large tiles/Thick outline",
+ "note": "Kenney UI Pixel Adventure (CC0). 원본 파일명이 tile_00NN 뿐이라 여기서 이름을 붙인다. 숫자를 코드에 박으면 나중에 어느 게 뭔지 알 수 없다.",
+ "tiles": {
+  "panel_wood": 14,
+  "panel_parch": 13,
+  "panel_dark": 19,
+  "panel_steel": 29,
+  "button": 5,
+  "button_light": 4,
+  "hex_slot": 79,
+  "hex_unit": 78,
+  "hex_empty": 68,
+  "hex_hot": 81,
+  "hex_sell": 80,
+  "disc": 39,
+  "banner_l": 43,
+  "banner_m": 44,
+  "banner_r": 45,
+  "plate_l": 69,
+  "plate_m": 70,
+  "plate_r": 71
+ },
+ "slice": {
+  "note": "9-슬라이스로 늘릴 타일의 테두리 두께(px). 32px 원본 기준. 육각·원형은 늘려 쓰므로 여기 없다.",
+  "panel_wood": 6,
+  "panel_parch": 6,
+  "panel_dark": 6,
+  "panel_steel": 6,
+  "button": 6,
+  "button_light": 6
+ },
+ "smallRoot": "Tiles/Small tiles/Thick outline",
+ "smallTiles": {
+  "coin": 76
+ },
+ "smallNote": "젬은 여기 없다 — tools/gem-icon.mjs 가 직접 찍는다. 팩의 젬은 코인과 같은 노란 보석이라 골드와 안 갈렸다."
 }

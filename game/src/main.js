@@ -138,12 +138,28 @@ try {
   // 톡 치면 그 지점으로 걸어간다.
   /** 지금 가진 것. 코스메틱 해금 판정이 이걸 본다. */
   function ownedNow() {
-    return { lp: profileLp, passLevel: profilePassLevel }
+    return {
+      lp: profileLp,
+      passLevel: profilePassLevel,
+      gems: profileGems,
+      avatars: profileOwned,
+    }
   }
-  // 서버가 준 전적. 해금 판정에 쓴다 — 서버가 못 붙으면 0/1 로 남아 잠긴
-  // 것은 잠긴 채다. 반대로 두면 접속 실패가 곧 전체 해금이 된다.
+  // 서버가 준 전적. 해금 판정에 쓴다 — 서버가 못 붙으면 비어 있어 잠긴 것은
+  // 잠긴 채다. 반대로 두면 접속 실패가 곧 전체 해금이 된다.
   let profileLp = 0
   let profilePassLevel = 1
+  let profileGems = 0
+  let profileOwned = []
+
+  /** 서버가 준 전적을 화면과 해금 판정 양쪽에 흘린다. */
+  function applyProfile(p) {
+    profileLp = p?.lp ?? 0
+    profilePassLevel = p?.pass?.level ?? 1
+    profileGems = p?.gems ?? 0
+    profileOwned = p?.owned ?? []
+    home.setProfile(p)
+  }
 
   const stick = createJoystick({
     root: document.getElementById('viewport'),
@@ -267,6 +283,20 @@ try {
     onPickedAvatar: () => resolveAvatar(pickedAvatar(), data, ownedNow()),
     onAvatarPortrait: (file) => prep.avatarPortrait(file),
     /**
+     * 젬으로 아바타를 산다. 판정은 서버가 하고 여기서는 결과만 받는다 —
+     * 여기서 잔액을 깎으면 서버가 거절해도 화면만 산 것처럼 남는다.
+     */
+    onBuyAvatar: async (id) => {
+      if (!server) return { ok: false, why: '서버에 안 붙었다' }
+      try {
+        const res = await server.remoteFunction('buyAvatar', [id])
+        if (res?.profile) applyProfile(res.profile)
+        return res
+      } catch {
+        return { ok: false, why: '구매를 못 보냈다' }
+      }
+    },
+    /**
      * 고른 아바타를 저장하고 **곧장 간판에 세운다.** 다음 판까지 기다리게
      * 하면 무엇을 골랐는지 확인할 방법이 없다.
      */
@@ -358,9 +388,7 @@ try {
     // 그때는 홈에 없다. 그래서 한 번만 받는다.
     try {
       const p = await server.remoteFunction("getProfile", [])
-      profileLp = p?.lp ?? 0
-      profilePassLevel = p?.pass?.level ?? 1
-      home.setProfile(p)
+      applyProfile(p)
     } catch {
       home.setProfile(null)
     }

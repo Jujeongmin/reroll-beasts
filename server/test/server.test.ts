@@ -235,6 +235,39 @@ describe('전적', () => {
   });
 });
 
+describe('젬 상점', () => {
+  test('전적이 없으면 못 산다 — 없는 지갑을 여기서 만들지 않는다', async (server) => {
+    const res = await server.buyAvatar('viking');
+    expect(res.ok).toBe(false);
+  });
+
+  test('랭크 아바타는 안 판다 — 실력 표식을 돈으로 사면 티어 보상이 장식이 된다', async (server) => {
+    await server.joinLobby();
+    for (let i = 0; i < 30; i++) {
+      const s = await server.resolveRound();
+      if (!s || s.phase === 'done') break;
+    }
+    const res = await server.buyAvatar('golden_knight');
+    expect(res.ok).toBe(false);
+    expect(res.why).toContain('파는');
+  });
+
+  test('젬이 모자라면 거절한다 — 화면이 아니라 여기서 막아야 한다', async (server) => {
+    await server.joinLobby();
+    for (let i = 0; i < 30; i++) {
+      const s = await server.resolveRound();
+      if (!s || s.phase === 'done') break;
+    }
+    const before = await server.getProfile();
+    const res = await server.buyAvatar('viking');
+    expect(res.ok).toBe(false);
+    const after = await server.getProfile();
+    // 거절했으면 지갑도 그대로여야 한다
+    expect(after.gems).toBe(before.gems);
+    expect(after.owned ?? []).toEqual([]);
+  });
+});
+
 describe('랭크 LP', () => {
   test('1인 방에서 끝낸 판은 LP 를 안 움직인다 — 랭크가 아니다', async (server) => {
     await server.joinLobby();
