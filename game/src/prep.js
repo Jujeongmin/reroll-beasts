@@ -118,7 +118,9 @@ export async function createPrep({ data, run, onFight, onWatch, onPickUnit, onBo
    */
   async function heroPortrait(unitId, star = 3, size = 512) {
     const gltf = await scene.protoFor(unitId, star)
-    const big = createThumbnailer({ size })
+    // 홈 배경 조명에 맞춘 역광 프리셋. 카드 조명으로 찍으면 밤 그림 위에
+    // 낮 그림이 얹힌다.
+    const big = createThumbnailer({ size, lighting: 'lobby' })
     const url = big.shoot(gltf, `${unitId}:${star}:${size}`)
     big.dispose()
     return url

@@ -838,10 +838,13 @@
      2D 일러스트를 따로 그리면 모델을 바꿀 때마다 어긋난다. */
   /* 화면 높이의 3/4 를 먹으면 배경이 안 보이고 캐릭터만 남는다. 60% 로 줄이고
      바닥 띠에 발을 붙인다. */
+  /* 채도를 조금 낮추고 주황 빛무리를 두른다 — 모델 렌더는 배경보다 채도가
+     높아 그것만으로도 오려 붙인 티가 난다. 빛무리는 배경의 노을과 캐릭터
+     윤곽을 잇는 역할이다. */
   #home .hero {
     position: absolute; left: 52%; bottom: 46px; transform: translateX(-50%);
     height: 236px; width: auto; pointer-events: none;
-    filter: drop-shadow(0 6px 14px #000a);
+    filter: saturate(.93) drop-shadow(0 0 16px #ff8a3c3d) drop-shadow(0 6px 14px #000a);
   }
   #home .hero:not([src]) { display: none; }
   /* 발밑 그림자. 없으면 선 것도 나는 것도 아닌 채로 떠 있다. */
