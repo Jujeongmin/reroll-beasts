@@ -6,7 +6,7 @@
 // 네트워크를 알면 아바타를 확인할 때마다 서버가 필요해진다.
 
 import { stepAvatar, moveToward, facingOf, clampToBounds } from '@sim/avatar.js'
-import { resolveAvatar, avatarFile } from '@sim/cosmetics.js'
+import { resolveAvatar, avatarFile, avatarAnims } from '@sim/cosmetics.js'
 
 /** 초당 이동 거리(타일 폭 기준으로 잡은 값). 걷는 느낌이 나되 답답하지 않다. */
 const SPEED = 3.4
@@ -20,7 +20,7 @@ export async function createAvatar({ scene, data, avatarId }) {
   // 아바타는 몬스터가 아니다. 판 위 말과 같은 모델을 쓰면 어느 게 싸우는
   // 말인지 흐려지고, 무엇보다 **아바타는 싸우지 않는다**.
   const id = resolveAvatar(avatarId, data)
-  const view = await scene.makeAvatarModel(avatarFile(id, data), data.cosmetics.anims)
+  const view = await scene.makeAvatarModel(avatarFile(id, data), avatarAnims(id, data))
   scene.scene.add(view.root)
   view.play(view.anims.idle)
 

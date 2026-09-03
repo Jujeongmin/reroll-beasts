@@ -13,13 +13,14 @@ import { clone as cloneSkinned } from 'three/examples/jsm/utils/SkeletonUtils.js
  * @param {'card'|'lobby'} o.lighting  조명 프리셋. 'card' 는 상점 카드용
  *   정면광, 'lobby' 는 홈 배경(뒤에서 올라오는 노을)에 맞춘 역광이다
  */
-export function createThumbnailer({ size = 128, lighting = 'card' } = {}) {
+export function createThumbnailer({ size = 128, lighting = "card", fit = 1, exposure = 1 } = {}) {
   // 카드 배경 위에 얹어야 하므로 투명 배경으로 찍는다.
   const renderer = new THREE.WebGLRenderer({ antialias: true, alpha: true })
   renderer.setPixelRatio(1)
   renderer.setSize(size, size)
   renderer.outputColorSpace = THREE.SRGBColorSpace
   renderer.toneMapping = THREE.ACESFilmicToneMapping
+  renderer.toneMappingExposure = exposure
 
   const scene = new THREE.Scene()
   if (lighting === 'lobby') {
@@ -39,6 +40,17 @@ export function createThumbnailer({ size = 128, lighting = 'card' } = {}) {
     const bounce = new THREE.DirectionalLight(0xff7a3c, 0.9)
     bounce.position.set(0, -2, 2)
     scene.add(bounce)
+  } else if (lighting === 'picker') {
+    // 고르는 화면용. 무엇인지 알아보는 게 전부라 사방에서 밝힌다 — 카드
+    // 조명은 한쪽에서만 때려서, 사람 캐릭터처럼 면이 넓은 모델은 반대쪽이
+    // 통째로 어두워져 실루엣만 남는다.
+    scene.add(new THREE.HemisphereLight(0xffffff, 0x8a86a8, 2.6))
+    const key = new THREE.DirectionalLight(0xfff4e0, 2.6)
+    key.position.set(-2, 3, 4)
+    scene.add(key)
+    const back = new THREE.DirectionalLight(0xdfe6ff, 1.4)
+    back.position.set(3, 2, -3)
+    scene.add(back)
   } else {
     scene.add(new THREE.HemisphereLight(0xcddcff, 0x30283f, 2.0))
     const key = new THREE.DirectionalLight(0xfff4e0, 2.2)
@@ -64,7 +76,9 @@ export function createThumbnailer({ size = 128, lighting = 'card' } = {}) {
     const radius = box.getSize(new THREE.Vector3()).length() / 2
 
     // 정면에서 살짝 오른쪽 위. 정면 정중앙은 날개·꼬리가 겹쳐 뭉개진다.
-    const dist = radius / Math.sin(THREE.MathUtils.degToRad(camera.fov) / 2)
+    // fit 으로 당긴다 — 사람 캐릭터는 세로로 길어 bbox 반지름이 커지고,
+    // 그 거리를 그대로 쓰면 목록에서 점만 해진다.
+    const dist = (radius / Math.sin(THREE.MathUtils.degToRad(camera.fov) / 2)) * fit
     camera.position.set(center.x + dist * 0.34, center.y + dist * 0.3, center.z + dist * 0.9)
     camera.lookAt(center)
     camera.updateProjectionMatrix()

@@ -4,6 +4,8 @@
 // 밀어 넣는다. 홈이 SDK 를 알면 홈을 확인하려면 네트워크가 필요해진다.
 
 import { homeView } from './home-state.js'
+import { avatarChoices } from '@sim/cosmetics.js'
+import { seasonAt, daysLeft } from '@sim/season.js'
 
 /**
  * @param {object} o
@@ -14,7 +16,16 @@ import { homeView } from './home-state.js'
  * @param {() => Promise<object|null>} o.onBoard  순위표를 열었다. 서버가 준
  *   { total, myRank, top[] } 를 돌려주면 그린다 — 홈은 서버를 모른다
  */
-export function createHome({ data, onPick, onCancelQueue, onRetry, onBoard }) {
+export function createHome({
+  data,
+  onPick,
+  onCancelQueue,
+  onRetry,
+  onBoard,
+  onPickAvatar,
+  onPickedAvatar,
+  onAvatarPortrait,
+}) {
   const el = {
     root: document.getElementById('home'),
     menu: document.getElementById('home-menu'),
@@ -30,6 +41,10 @@ export function createHome({ data, onPick, onCancelQueue, onRetry, onBoard }) {
     barFill: document.querySelector('#record-bar i'),
     rankBtn: document.getElementById('record-rank'),
     hint: document.getElementById('home-hint'),
+    skinsBtn: document.getElementById('btn-skins'),
+    skins: document.getElementById('skins'),
+    skinsGrid: document.getElementById('skins-grid'),
+    skinsClose: document.getElementById('skins-close'),
     hintGo: document.getElementById('hint-go'),
     hintClose: document.getElementById('hint-close'),
     board: document.getElementById('board'),
@@ -39,6 +54,7 @@ export function createHome({ data, onPick, onCancelQueue, onRetry, onBoard }) {
     note: document.getElementById('home-note'),
     retry: document.getElementById('home-retry'),
     hero: document.getElementById('home-hero'),
+    passSub: document.getElementById('pass-sub'),
   }
 
   // 플랫폼이 iframe URL 로 넣어 주는 값. 없으면 로컬 실행이다.
@@ -57,10 +73,56 @@ export function createHome({ data, onPick, onCancelQueue, onRetry, onBoard }) {
   el.hintGo.addEventListener('click', () => onPick('tutorial'))
   el.hintClose.addEventListener('click', () => {
     el.hint.hidden = true
+    el.root.classList.remove('guiding')
   })
   el.boardClose.addEventListener('click', () => {
     el.board.hidden = true
   })
+  el.skinsBtn.addEventListener('click', () => openSkins())
+  el.skinsClose.addEventListener('click', () => {
+    el.skins.hidden = true
+  })
+
+  /**
+   * 아바타 목록. 잠긴 것도 **보여 준다** — 무엇이 기다리는지 알아야 그걸
+   * 얻을 이유가 생긴다. 다만 눌리지는 않는다.
+   */
+  async function openSkins() {
+    el.skins.hidden = false
+    const picked = onPickedAvatar()
+    const list = avatarChoices(data, ownedNow())
+    el.skinsGrid.innerHTML = list
+      .map(
+        (c) =>
+          `<div class="card${c.unlocked ? '' : ' locked'}${c.id === picked ? ' on' : ''}" data-skin="${c.id}">` +
+          `<img alt="" data-file="${c.file}" />` +
+          `<span class="nm">${c.name}</span>` +
+          `<span class="why">${c.reason ?? ''}</span></div>`,
+      )
+      .join('')
+    // 초상은 3D 모델을 찍어 만든다 — 2D 아이콘을 따로 그리면 모델을 바꿀 때
+    // 어긋난다. 목록을 먼저 띄우고 그림은 오는 대로 채운다.
+    for (const img of el.skinsGrid.querySelectorAll('img[data-file]')) {
+      onAvatarPortrait?.(img.dataset.file)
+        .then((url) => {
+          img.src = url
+        })
+        .catch(() => {})
+    }
+  }
+
+  el.skinsGrid.addEventListener('click', (ev) => {
+    const card = ev.target.closest('[data-skin]')
+    if (!card || card.classList.contains('locked')) return
+    onPickAvatar(card.dataset.skin)
+    for (const c of el.skinsGrid.querySelectorAll('[data-skin]')) c.classList.remove('on')
+    card.classList.add('on')
+  })
+
+  /** 지금 가진 것. 서버 전적에서 LP 를 꺼내 쓴다 — 패스는 아직 없다. */
+  function ownedNow() {
+    return { lp: state.profile?.lp ?? 0, passLevel: 0 }
+  }
 
   /** 순위표를 연다. 서버가 안 주면 그 사실을 그대로 적는다 — 빈 표를 띄우면
    *  아무도 없는 것처럼 보인다. */
@@ -121,6 +183,12 @@ export function createHome({ data, onPick, onCancelQueue, onRetry, onBoard }) {
     el.rankBtn.hidden = state.status !== 'ready'
     el.rankBtn.textContent = '전체 순위 보기'
 
+    // 패스 칸은 아직 못 열지만 **시즌이 언제 끝나는지**는 지금도 참말이다.
+    // "준비 중"만 적어 두면 그 자리가 죽은 칸으로 읽힌다.
+    const s = seasonAt(Date.now(), data)
+    const left = daysLeft(Date.now(), data)
+    el.passSub.textContent = s ? `${s.name} · ${left}일 남음` : '준비 중'
+
     el.note.textContent = v.notice ?? ''
     el.retry.hidden = state.status !== 'failed'
   }
@@ -162,6 +230,8 @@ export function createHome({ data, onPick, onCancelQueue, onRetry, onBoard }) {
     markTutorialNew() {
       el.menu.querySelector('[data-mode="tutorial"]')?.classList.add('is-new')
       el.hint.hidden = false
+      // 나머지를 덮어 고를 것을 하나로 줄인다.
+      el.root.classList.add('guiding')
     },
     show() {
       el.root.hidden = false

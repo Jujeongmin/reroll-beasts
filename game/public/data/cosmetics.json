@@ -1,50 +1,48 @@
 {
   "_comment": "코스메틱. 밸런스에 안 닿는 것만 여기 있다 — 아바타는 판 위 말이 아니고 싸우지 않는다.",
-  "avatarDefault": "wanderer",
-  "avatars": [
-    {
-      "id": "wanderer",
-      "name": "떠돌이",
-      "file": "character-a.glb",
-      "unlock": "free"
+
+  "_packs": "팩마다 애니메이션 이름이 다르다. 코드가 아니라 여기서 나른다 — 나중에 팩이 늘거나 바뀌어도(TFT 처럼) JSON 만 고치면 된다.",
+  "packs": {
+    "chars": {
+      "src": "q-ultimate-characters/glTF",
+      "anims": { "idle": "Idle", "run": "Walk", "cheer": "Victory", "poke": "RecieveHit" }
     },
-    {
-      "id": "scout",
-      "name": "정찰병",
-      "file": "character-f.glb",
-      "unlock": "free"
-    },
-    {
-      "id": "keeper",
-      "name": "관리인",
-      "file": "character-k.glb",
-      "unlock": "free"
-    },
-    {
-      "id": "duelist",
-      "name": "결투가",
-      "file": "character-c.glb",
-      "unlock": "pass",
-      "passLevel": 5
-    },
-    {
-      "id": "archivist",
-      "name": "기록관",
-      "file": "character-n.glb",
-      "unlock": "pass",
-      "passLevel": 12
-    },
-    {
-      "id": "champion",
-      "name": "챔피언",
-      "file": "character-r.glb",
-      "unlock": "rank",
-      "tier": "gold"
+    "cute": {
+      "src": "q-cute-monsters/glTF",
+      "anims": { "idle": "Idle", "run": "Walk", "cheer": "Dance", "poke": "HitRecieve" }
     }
-  ],
-  "anims": {
-    "idle": "idle",
-    "run": "walk",
-    "cheer": "emote-yes"
-  }
+  },
+
+  "_reserved": "큐트 팩의 나머지 11종은 아바타로 안 쓴다 — 다음 시즌 유닛 세트로 남겨 둔 것이다: Alien, Alien_Tall, Cactus, Chicken, Crab, Deer, GreenDemon, Mushroom, Pig, Tree, YellowDragon",
+
+  "avatarDefault": "knight",
+  "avatars": [
+    { "id": "knight", "name": "기사", "pack": "chars", "file": "Knight_Male.glb", "unlock": "free" },
+    { "id": "elf", "name": "엘프", "pack": "chars", "file": "Elf.glb", "unlock": "free" },
+    { "id": "wizard", "name": "마법사", "pack": "chars", "file": "Wizard.glb", "unlock": "free" },
+    { "id": "ghost", "name": "유령", "pack": "cute", "file": "Ghost.glb", "unlock": "free" },
+    { "id": "penguin", "name": "펭귄", "pack": "cute", "file": "Penguin.glb", "unlock": "free" },
+
+    { "id": "viking", "name": "바이킹", "pack": "chars", "file": "Viking_Male.glb", "unlock": "pass", "passLevel": 3 },
+    { "id": "bee", "name": "꿀벌", "pack": "cute", "file": "Bee.glb", "unlock": "pass", "passLevel": 5 },
+    { "id": "ninja", "name": "닌자", "pack": "chars", "file": "Ninja_Male.glb", "unlock": "pass", "passLevel": 8 },
+    { "id": "panda", "name": "판다", "pack": "cute", "file": "Panda.glb", "unlock": "pass", "passLevel": 11 },
+    { "id": "bat", "name": "박쥐", "pack": "cute", "file": "Bat.glb", "unlock": "pass", "passLevel": 14 },
+    { "id": "witch", "name": "마녀", "pack": "chars", "file": "Witch.glb", "unlock": "pass", "passLevel": 18 },
+    { "id": "skull", "name": "해골", "pack": "cute", "file": "Skull.glb", "unlock": "pass", "passLevel": 22 },
+
+    { "id": "cyclops", "name": "키클롭스", "pack": "cute", "file": "Cyclops.glb", "unlock": "rank", "tier": "silver" },
+    { "id": "goblin", "name": "고블린", "pack": "chars", "file": "Goblin_Male.glb", "unlock": "rank", "tier": "silver" },
+    { "id": "demon", "name": "마귀", "pack": "cute", "file": "Demon.glb", "unlock": "rank", "tier": "gold" },
+    { "id": "yeti", "name": "예티", "pack": "cute", "file": "Yeti.glb", "unlock": "rank", "tier": "platinum" },
+    { "id": "cthulhu", "name": "크툴루", "pack": "cute", "file": "Cthulhu.glb", "unlock": "rank", "tier": "diamond" },
+    {
+      "id": "golden_knight",
+      "name": "황금 기사",
+      "pack": "chars",
+      "file": "Knight_Golden_Female.glb",
+      "unlock": "rank",
+      "tier": "diamond"
+    }
+  ]
 }

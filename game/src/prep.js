@@ -127,6 +127,26 @@ export async function createPrep({
    * 찍고 나서 렌더러를 바로 버린다 — 홈에 한 장 걸자고 WebGL 컨텍스트를
    * 계속 물고 있을 이유가 없다. 어떤 기기는 컨텍스트 수 자체가 빠듯하다.
    */
+  /**
+   * 아바타 고르는 화면에 걸 작은 초상. 상점 카드용 조명(정면광)을 쓴다 —
+   * 목록에서는 무엇인지 알아보는 게 먼저라 역광으로 눕히면 안 된다.
+   */
+  const avatarThumbs = new Map()
+  let pickerShots = null
+  async function avatarPortrait(file, size = 160) {
+    const key = `${file}:${size}`
+    if (!avatarThumbs.has(key)) {
+      const gltf = await scene.makeAvatarModel(file)
+      // 목록용 생성기를 따로 둔다 — 상점 카드 조명은 한쪽에서만 때려서
+      // 사람 캐릭터의 반대쪽이 통째로 어두워진다.
+      // 당기지 않는다(fit 1.05, 오히려 여백을 조금 준다) — 목록에서는 전신이
+      // 다 보여야 무엇인지 안다. 대신 노출을 올려 어둡지 않게 한다.
+      pickerShots ??= createThumbnailer({ size, lighting: 'picker', fit: 1.05, exposure: 1.25 })
+      avatarThumbs.set(key, pickerShots.shoot(gltf, key))
+    }
+    return avatarThumbs.get(key)
+  }
+
   async function heroPortrait(unitId, star = 3, size = 512) {
     const gltf = await scene.protoFor(unitId, star)
     // 홈 배경 조명에 맞춘 역광 프리셋. 카드 조명으로 찍으면 밤 그림 위에
@@ -1358,6 +1378,7 @@ export async function createPrep({
     scene,
     clearUnits,
     heroPortrait,
+    avatarPortrait,
     /**
      * 배치 시간을 세운다. 튜토리얼이 쓴다 — 멈춰 두면 타이머 숫자가 그대로
      * 남아 "시간이 안 간다"가 화면에 보인다.

@@ -12,6 +12,7 @@ import { startRun, refreshShop, grantItem } from '@sim/roster.js'
 import { roundIncome, addXp } from '@sim/economy.js'
 import { roundAt, totalRounds, defeatDamage, grantIndices, itemSeed } from '@sim/rounds.js'
 import { setupTutorial } from '@sim/tutorial.js'
+import { resolveAvatar, avatarFile, avatarAnims } from '@sim/cosmetics.js'
 import { createHome } from './home.js'
 import { createCoach, isTutorialDone, markTutorialDone } from './tutorial.js'
 import { createTutorialMatchmaker } from './tutorialMatchmaker.js'
@@ -135,43 +136,71 @@ try {
 
   // 가상 조이스틱. 빈 땅을 짚으면 그 자리에 뜬다. 손가락으로 끌면 방향,
   // 톡 치면 그 지점으로 걸어간다.
+  /** 지금 가진 것. 패스는 아직 없으니 LP 만 본다. */
+  function ownedNow() {
+    return { lp: profileLp, passLevel: 0 }
+  }
+  // 서버가 준 전적의 LP. 랭크 해금 판정에 쓴다.
+  let profileLp = 0
+
   const stick = createJoystick({
     root: document.getElementById('viewport'),
     onMove: (dx, dy) => avatar?.setStick(dx, dy),
     onTap: (x, y) => avatar?.goTo(x, y),
   })
 
-  // 남의 아바타. 정찰로 그 사람 판을 열었을 때만 세운다 — 배치 화면의 무대는
-  // **각자 자기 판**이라, 남들이 내 판 위를 같이 걸어다니는 공용 광장이 아니다.
-  let peerAvatar = null
-  let peerSeatShown = null
+  // 남의 아바타. **지금 보고 있는 판 위에 서 있는 사람들**이다.
+  //
+  // 아바타의 존재 이유가 여기 있다: 내가 남의 판을 구경 가면 내 아바타가 그
+  // 판에 나타나고, 그래서 그 사람은 "누가 내 판을 보고 있다"를 안다. 한 판에
+  // 여럿이 몰릴 수 있으므로 좌석마다 하나씩 만들어 둔다(최대 7).
+  const peers = new Map()
+
+  /** 그 좌석의 아바타 뷰. 처음 보는 좌석이면 만든다. */
+  function peerFor(seatId) {
+    if (peers.has(seatId)) return peers.get(seatId)
+    // 자리를 먼저 잡아 둔다 — 안 그러면 만드는 사이에 프레임이 또 들어와
+    // 같은 좌석의 아바타를 여러 벌 만든다.
+    peers.set(seatId, null)
+    createAvatar({ scene: prep.scene, data })
+      .then((a) => peers.set(seatId, a))
+      .catch(() => peers.delete(seatId))
+    return null
+  }
 
   /**
    * 아바타 한 프레임. 움직였을 때만 서버로 보낸다 — 가만히 서 있는 사람의
    * 좌표를 초당 몇 번씩 보내면 그게 곧 대역 낭비다.
    */
   function tickAvatar(dt, peeked) {
+    // 지금 화면에 떠 있는 판. 남의 판을 구경 중이면 그 좌석, 아니면 내 자리다.
+    const here = peeked ?? mySeatId()
 
     if (avatar) {
-      // 남의 판을 보는 동안 내 아바타는 감춘다. 그 판 위에 내가 서 있으면
-      // 누구의 자리를 보고 있는지가 흐려진다.
-      avatar.setVisible(peeked === null)
-      if (avatar.tick(dt) && peeked === null) mm?.pushAvatar?.(avatar.position)
+      // 내 아바타는 **보고 있는 판 위에** 있다. 구경 갔으면 거기 서 있는 게
+      // 맞다 — 그게 상대에게 "누가 왔다"로 보인다.
+      avatar.setVisible(true)
+      if (avatar.tick(dt)) mm?.pushAvatar?.(avatar.position, here)
     }
 
-    if (peeked !== peerSeatShown) {
-      peerSeatShown = peeked
-      peerAvatar?.setVisible(peeked !== null)
-      // 처음 보일 때는 마지막으로 받은 자리에 바로 세운다. 걸어오게 하면
-      // 무대 밖에서 들어오는 것처럼 보인다.
-      const at = peeked === null ? null : mm?.avatarOf?.(peeked)
-      if (at) peerAvatar?.setPosition(at)
+    // 이 판에 와 있는 남들. 온 사람만 그린다.
+    const hereNow = new Set()
+    for (const p of mm?.avatarsOn?.(here) ?? []) {
+      hereNow.add(p.id)
+      const v = peerFor(p.id)
+      if (!v) continue
+      v.setVisible(true)
+      v.setTarget({ x: p.x, z: p.z })
+      v.tick(dt)
     }
-    if (peerAvatar && peeked !== null) {
-      const at = mm?.avatarOf?.(peeked)
-      if (at) peerAvatar.setTarget(at)
-      peerAvatar.tick(dt)
-    }
+    // 떠난 사람은 감춘다. 지우지 않는 이유: 곧 돌아올 수 있고, 모델을 다시
+    // 만드는 것보다 세워 둔 채 감추는 편이 싸다.
+    for (const [id, v] of peers) if (v && !hereNow.has(id)) v.setVisible(false)
+  }
+
+  /** 내 좌석 번호. 로비가 아직 없으면 0(튜토리얼도 0번이다). */
+  function mySeatId() {
+    return run.lobby.find((s) => s.isPlayer)?.id ?? 0
   }
 
   function pushScout(entries) {
@@ -233,6 +262,20 @@ try {
       home.setQueue(null)
     },
     onRetry: () => connect(),
+    onPickedAvatar: () => resolveAvatar(pickedAvatar(), data, ownedNow()),
+    onAvatarPortrait: (file) => prep.avatarPortrait(file),
+    /**
+     * 고른 아바타를 저장하고 **곧장 간판에 세운다.** 다음 판까지 기다리게
+     * 하면 무엇을 골랐는지 확인할 방법이 없다.
+     */
+    onPickAvatar: (id) => {
+      try {
+        localStorage.setItem(AVATAR_KEY, id)
+      } catch {
+        // 못 적어도 이번 판에는 적용된다.
+      }
+      hero3d?.swap(avatarFile(id, data), avatarAnims(id, data)).catch(() => {})
+    },
     // 홈은 서버를 모른다. 순위표도 여기서 받아 넘긴다.
     onBoard: async () => {
       if (!server) return null
@@ -245,15 +288,20 @@ try {
     },
   })
   home.show()
-  // 간판 캐릭터. 게임 판을 배경에 깔면 라운드 중에 홈으로 돌아온 것처럼
-  // 읽히므로, 홈은 자기 그림을 쓴다. 3성 모델을 한 번 크게 찍는다.
-  prep.heroPortrait('dragon').then(home.setHero).catch(() => {})
+  // 간판은 **내가 착용한 아바타**다. 고른 것이 곧장 홈에 서야 고르는 의미가
+  // 산다. 정지 초상을 먼저 걸고, 살아 있는 모델이 준비되면 그 뒤로 숨는다.
+  const heroId = resolveAvatar(pickedAvatar(), data, ownedNow())
+  const heroFile = avatarFile(heroId, data)
+  prep.avatarPortrait(heroFile, 512).then(home.setHero).catch(() => {})
 
-  // 살아 있는 간판. 정지 초상만 있으면 배경만 움직이고 주인공은 멈춰 있어
-  // "그려 붙인 것"으로 읽힌다. 실패하면 초상이 그대로 남는다 — 기기가
-  // WebGL 컨텍스트를 더 못 줄 수도 있다.
+  // 실패하면 초상이 그대로 남는다 — 기기가 WebGL 컨텍스트를 더 못 줄 수도 있다.
   let hero3d = null
-  createHeroView({ scene: prep.scene, mount: document.getElementById('home-hero3d') })
+  createHeroView({
+    scene: prep.scene,
+    mount: document.getElementById('home-hero3d'),
+    file: heroFile,
+    anims: avatarAnims(heroId, data),
+  })
     .then((v) => {
       hero3d = v
       home.setHeroLive()
@@ -307,7 +355,9 @@ try {
     // 전적은 홈에 머무는 동안 바뀌지 않는다 — 내 판이 끝나야 바뀌는데
     // 그때는 홈에 없다. 그래서 한 번만 받는다.
     try {
-      home.setProfile(await server.remoteFunction('getProfile', []))
+      const p = await server.remoteFunction("getProfile", [])
+      profileLp = p?.lp ?? 0
+      home.setProfile(p)
     } catch {
       home.setProfile(null)
     }
@@ -335,14 +385,6 @@ try {
           if (import.meta.env.DEV && globalThis.__dev) globalThis.__dev.avatar = a
         })
         .catch((err) => console.warn('아바타 없이 간다:', err?.message))
-      // 남의 아바타는 하나만 만들어 돌려 쓴다. 정찰은 한 번에 한 사람이라
-      // 좌석마다 모델을 세울 이유가 없다 — 여덟 벌은 그냥 낭비다.
-      createAvatar({ scene: prep.scene, data })
-        .then((a) => {
-          a.setVisible(false)
-          peerAvatar = a
-        })
-        .catch(() => {})
     }
   }
 

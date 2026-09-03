@@ -868,8 +868,11 @@
   }
   /* 간판. 게임 이름은 화면에서 가장 큰 글자여야 한다 — 로비에 처음 들어온
      사람이 "무슨 게임인가"를 먼저 읽는다. */
+  /* 좌우를 프로필 카드(왼쪽 22+176)와 접속 상태(오른쪽)만큼 비워 두고 그
+     안에서 가운데 정렬한다. left:0/right:0 으로 두면 폭 700 에서 38px 제목이
+     카드 위로 올라탄다 — 화면이 넓을 때만 안 겹치는 건 안 겹치는 게 아니다. */
   #home .title {
-    position: absolute; left: 0; right: 0; top: 20px; text-align: center;
+    position: absolute; left: 208px; right: 208px; top: 20px; text-align: center;
     font-size: 38px; font-weight: 900; letter-spacing: 3px; line-height: 1;
     color: #ffe1a0;
     text-shadow:
@@ -882,7 +885,7 @@
     content: ''; display: block; width: 210px; height: 2px; margin: 8px auto 0;
     background: linear-gradient(90deg, #ffd16600, #ffd166aa, #ffd16600);
   }
-  #home .menu { display: flex; flex-direction: column; gap: 6px; }
+  #home .menu { position: relative; display: flex; flex-direction: column; gap: 6px; }
   #home .menu[hidden] { display: none; }
   /* fill 을 쓴다 — 이 버튼은 가운데도 그림이라, 안 쓰면 속이 비어 글자만 뜬다. */
   #home .btn-home {
@@ -893,6 +896,24 @@
     letter-spacing: .5px; image-rendering: pixelated;
   }
   #home .btn-home:active { border-image-source: url('/assets/ui/lobby_btn_down.png'); }
+  /* ── 첫 실행 유도 ───────────────────────────────────
+     처음 온 사람에게 고를 것을 하나로 줄인다. 나머지를 덮어 두면 "무엇부터
+     눌러야 하나"라는 질문 자체가 안 생긴다. 자동 진입과 다른 점: 언제든
+     닫고 둘러볼 수 있다. */
+  #home .veil {
+    position: absolute; inset: 0; z-index: 8; display: none;
+    background: #05030ad9;
+  }
+  #home.guiding .veil { display: block; }
+  /* 패널을 덮개 위로 올린다. 패널 자체가 쌓임 맥락이라 버튼만 올릴 수는 없다. */
+  #home.guiding .lobby-panel { z-index: 9; }
+  /* 튜토리얼만 남기고 전부 죽인다 — 보이되 안 눌린다. */
+  #home.guiding .btn-home:not(.is-new),
+  #home.guiding .btn-sub { opacity: .3; pointer-events: none; }
+  #home.guiding .record,
+  #home.guiding .pass,
+  #home.guiding .conn { opacity: .35; pointer-events: none; }
+
   /* 튜토리얼 버튼 옆 말풍선. 버튼 묶음 기준으로 붙여 화면 크기가 바뀌어도
      가리키는 곳이 안 어긋난다 — 좌표를 손으로 박으면 반드시 어긋난다. */
   #home .firsthint {
@@ -972,21 +993,85 @@
   }
   #home .record .rankbtn[hidden] { display: none; }
 
+  /* 매치 버튼보다 한 급 낮은 것. 같은 나무 액자를 주면 "이것도 게임 시작"
+     으로 읽힌다 — 여긴 꾸미는 자리다. */
+  #home .btn-sub {
+    margin-top: 2px; padding: 5px 0; font-size: 11px; color: #cbb794;
+    text-decoration: underline; text-align: left;
+  }
+  #home .btn-sub:hover { color: #ffe1a0; }
+
+  /* ── 아바타 고르기 ──────────────────────────────────── */
+  #skins {
+    position: absolute; inset: 0; z-index: 80;
+    animation: veilin .18s ease-out;
+    display: flex; align-items: center; justify-content: center;
+    background: #06040bb8;
+  }
+  #skins[hidden] { display: none; }
+  #skins .sheet {
+    animation: sheetin .18s ease-out;
+    width: 520px; max-height: 330px; display: flex; flex-direction: column; gap: 8px;
+    padding: 12px; border-radius: 10px;
+    background: #150f22f2; box-shadow: inset 0 0 0 1px #ffd16659, 0 10px 28px #000a;
+  }
+  #skins .grid {
+    display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px; overflow-y: auto;
+    /* 행이 제 크기를 갖게 한다. 기본값은 남은 높이에 맞춰 행을 늘리거나
+       **줄여서**, 172px 짜리 그림이 40px 칸에 잘려 들어간다. */
+    align-content: start;
+  }
+  /* 그림이 카드고, 글자는 그 위에 얹는다. 아래에 글자 띠를 두면 카드 절반이
+     텍스트가 되어 정작 무엇인지 보러 온 그림이 작아진다. */
+  #skins .card {
+    position: relative; height: 190px; border-radius: 7px; cursor: pointer; overflow: hidden;
+    background: #ffffff0a; box-shadow: inset 0 0 0 1px #ffffff14;
+    color: #e9dcc2;
+  }
+  #skins .card img { display: block; width: 100%; height: 100%; object-fit: contain; image-rendering: auto; }
+  /* 글자 뒤에만 옅은 그늘. 밝은 갑옷 위에서도 이름이 읽혀야 한다. */
+  #skins .card .nm,
+  #skins .card .why {
+    position: absolute; left: 7px; text-shadow: 0 1px 3px #000, 0 0 8px #000a;
+  }
+  #skins .card .nm { bottom: 17px; font-size: 12px; font-weight: 800; }
+  #skins .card .why { bottom: 4px; font-size: 10px; color: #f0c56a; }
+  /* 잠긴 것은 눌러도 안 되지만 **보이기는 한다** — 무엇이 기다리는지 알아야
+     패스를 살 이유가 생긴다. */
+  #skins .card.locked { cursor: default; }
+  #skins .card.locked img { filter: brightness(0.35) grayscale(1); }
+  #skins .card.on { background: #ffd1661f; box-shadow: inset 0 0 0 2px #ffd166aa; }
+  #skins #skins-close {
+    align-self: center; font-size: 11px; color: #cbb794; text-decoration: underline;
+  }
+
+  /* 시트가 툭 뜨면 어디서 온 창인지 안 읽힌다. 살짝 커지며 올라오면 눈이
+     그 자리를 따라간다. 0.18초 — 더 길면 두 번째부터 답답하다. */
+  @keyframes sheetin {
+    from { opacity: 0; transform: translateY(10px) scale(.97); }
+  }
+  @keyframes veilin { from { opacity: 0; } }
+
   /* ── 순위표 ─────────────────────────────────────────── */
   #board {
     position: absolute; inset: 0; z-index: 80;
+    animation: veilin .18s ease-out;
     display: flex; align-items: center; justify-content: center;
     background: #06040bb8;
   }
   #board[hidden] { display: none; }
   #board .sheet {
+    animation: sheetin .18s ease-out;
     width: 320px; max-height: 300px; display: flex; flex-direction: column; gap: 6px;
     padding: 12px; border-radius: 10px;
     background: #150f22f2; box-shadow: inset 0 0 0 1px #ffd16659, 0 10px 28px #000a;
   }
-  #board .bhead { display: flex; align-items: baseline; gap: 8px; }
-  #board .bhead b { font-size: 15px; color: #ffe1a0; }
-  #board .bhead span { font-size: 10px; color: #a99a86; }
+  #board .bhead,
+  #skins .bhead { display: flex; align-items: baseline; gap: 8px; }
+  #board .bhead b,
+  #skins .bhead b { font-size: 15px; color: #ffe1a0; }
+  #board .bhead span,
+  #skins .bhead span { font-size: 10px; color: #a99a86; }
   #board .rows { overflow-y: auto; display: flex; flex-direction: column; gap: 2px; }
   #board .row {
     display: flex; align-items: center; gap: 8px; padding: 4px 7px; border-radius: 5px;
@@ -1025,15 +1110,15 @@
      높아 그것만으로도 오려 붙인 티가 난다. 빛무리는 배경의 노을과 캐릭터
      윤곽을 잇는 역할이다. */
   #home .hero {
-    position: absolute; left: 52%; bottom: 46px; transform: translateX(-50%);
+    position: absolute; left: 52%; bottom: 22px; transform: translateX(-50%);
     height: 236px; width: auto; pointer-events: none;
     filter: saturate(.93) drop-shadow(0 0 16px #ff8a3c3d) drop-shadow(0 6px 14px #000a);
   }
   #home .hero:not([src]) { display: none; }
   /* 살아 있는 간판. 정지 초상과 같은 자리·같은 크기라 교대가 안 보인다. */
   #home .hero3d-mount {
-    position: absolute; left: 52%; bottom: 46px; transform: translateX(-50%);
-    width: 236px; height: 236px;
+    position: absolute; left: 52%; bottom: 22px; transform: translateX(-50%);
+    width: 250px; height: 250px;
     /* 캔버스는 눌린다 — 몸을 누르면 움찔한다(heroView 의 레이캐스트).
        빈 자리는 레이캐스트가 걸러 내므로 뒤 버튼을 막지 않는다. */
     pointer-events: auto;
@@ -1042,8 +1127,8 @@
   #home .hero3d-mount canvas { display: block; width: 100%; height: 100%; }
   /* 발밑 그림자. 없으면 선 것도 나는 것도 아닌 채로 떠 있다. */
   #home .hero-shadow {
-    position: absolute; left: 52%; bottom: 64px; transform: translateX(-50%);
-    width: 132px; height: 22px; pointer-events: none;
+    position: absolute; left: 52%; bottom: 30px; transform: translateX(-50%);
+    width: 116px; height: 20px; pointer-events: none;
     background: radial-gradient(50% 50% at 50% 50%, #000000aa 0%, #00000000 72%);
   }
   /* 시즌 패스 자리. 지금은 팔 물건이 없어 잠겨 있다. */
@@ -1133,6 +1218,9 @@
   </div>
 
   <div id="home" hidden>
+    <!-- 첫 실행 유도. 튜토리얼만 남기고 나머지를 덮는다 — 처음 온 사람이
+         고를 것이 하나뿐이면 헤맬 일이 없다. 닫으면 사라진다. -->
+    <div class="veil"></div>
     <div class="title">REROLL BEASTS</div>
     <div class="lobby-panel">
       <div class="menu" id="home-menu">
@@ -1140,16 +1228,17 @@
         <button class="btn-home" data-mode="ranked">랭크 매치</button>
         <!-- 서버 없이 도는 유일한 경로다. 접속 상태와 무관하게 늘 눌린다. -->
         <button class="btn-home" data-mode="tutorial">튜토리얼</button>
+        <!-- 처음 온 사람에게 어디를 누를지 말해 준다. 버튼 묶음 안에 두어야
+             튜토리얼 줄에 붙는다 — 패널 바닥에 붙이면 아래 버튼들만큼 내려간다. -->
+        <div class="firsthint" id="home-hint" hidden>
+          <button class="go" id="hint-go">처음이라면 여기부터 시작</button>
+          <button class="x" id="hint-close" title="닫기">✕</button>
+        </div>
       </div>
+      <button class="btn-sub" id="btn-skins">아바타 고르기</button>
       <div class="queue" id="queue-status" hidden>
         <span id="queue-text"></span>
         <button id="queue-cancel">취소</button>
-      </div>
-      <!-- 처음 온 사람에게 어디를 누를지 말해 준다. 자동으로 게임에 밀어
-           넣는 대신 손가락만 가리킨다 — 닫으면 다시 안 뜬다. -->
-      <div class="firsthint" id="home-hint" hidden>
-        <button class="go" id="hint-go">처음이라면 여기부터 시작</button>
-        <button class="x" id="hint-close" title="닫기">✕</button>
       </div>
     </div>
     <!-- 프로필. 왼쪽 위 — 로비에서 눈이 먼저 가는 자리이고, 간판(가운데 위)
@@ -1165,6 +1254,15 @@
       <div class="head" id="record-head">첫 판을 기다린다</div>
       <div class="recent" id="record-recent"></div>
       <button class="rankbtn" id="record-rank" hidden></button>
+    </div>
+    <!-- 아바타 고르기. 무대에서 걸어다닐 캐릭터를 정한다 — 싸우는 말과는
+         무관하다(밸런스에 안 닿는다). -->
+    <div id="skins" hidden>
+      <div class="sheet">
+        <div class="bhead"><b>아바타</b><span>무대에서 걸어다닐 모습이다. 전투에는 영향이 없다</span></div>
+        <div class="grid" id="skins-grid"></div>
+        <button id="skins-close">닫기</button>
+      </div>
     </div>
     <!-- 순위표. 프로필의 등수를 누르면 열린다. -->
     <div id="board" hidden>
@@ -1189,7 +1287,7 @@
     <div class="pass" id="home-pass">
       <img class="lock" src="/assets/ui/lock_closed.png" alt="" />
       <div class="ttl">시즌 패스</div>
-      <div class="sub">준비 중</div>
+      <div class="sub" id="pass-sub">준비 중</div>
     </div>
     <div class="conn" id="home-conn">
       <span id="home-note"></span>

@@ -257,12 +257,15 @@ export class Server {
    * 것이 곧 오므로 방송만으로 충분하다 — 늦게 들어온 사람은 그 사람이
    * 한 걸음 뗄 때 비로소 보인다.
    */
-  async updateAvatar(x: number, z: number): Promise<{ ok: boolean }> {
+  async updateAvatar(x: number, z: number, at: number): Promise<{ ok: boolean }> {
     const state = await readLobby()
     if (!state) return { ok: false }
     const seat = state.seats.find((s: any) => s.account === $sender.account)
     if (!seat) return { ok: false }
-    $room.broadcastToRoom('AVATAR_MOVED', { id: seat.id, x, z })
+    // at = 지금 **어느 판에 서 있는가**. 남의 판을 구경 가면 그 좌석 번호다.
+    // 이게 아바타의 존재 이유다 — 내 판을 누가 보고 있는지 알려면 보는 쪽이
+    // 어디에 있는지가 같이 와야 한다.
+    $room.broadcastToRoom('AVATAR_MOVED', { id: seat.id, x, z, at })
     return { ok: true }
   }
 

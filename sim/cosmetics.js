@@ -63,9 +63,26 @@ export function avatarChoices(data, owned = {}) {
   }))
 }
 
+/** id → 그 아바타의 줄. 없으면 기본값의 줄. */
+function avatarOf(id, data) {
+  const list = data.cosmetics.avatars
+  return list.find((a) => a.id === id) ?? list.find((a) => a.id === data.cosmetics.avatarDefault)
+}
+
 /** id → 파일. 없으면 기본값의 파일. */
 export function avatarFile(id, data) {
-  const list = data.cosmetics.avatars
-  return (list.find((a) => a.id === id) ?? list.find((a) => a.id === data.cosmetics.avatarDefault))
-    ?.file
+  return avatarOf(id, data)?.file
+}
+
+/**
+ * 그 아바타의 애니메이션 이름표.
+ *
+ * **팩마다 다르다** — 캐릭터 팩은 환호가 Victory 인데 큐트 팩은 Dance 고,
+ * 피격은 RecieveHit 와 HitRecieve 로 철자까지 뒤집혀 있다. 전역 하나로 두면
+ * 팩을 섞는 순간 한쪽이 안 움직인다. 아바타 줄이 자기 팩을 가리키고, 그
+ * 팩이 이름표를 갖는다 — 새 팩이 와도 JSON 만 는다.
+ */
+export function avatarAnims(id, data) {
+  const a = avatarOf(id, data)
+  return data.cosmetics.packs[a?.pack]?.anims ?? {}
 }

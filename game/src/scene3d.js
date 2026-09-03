@@ -1147,6 +1147,8 @@ export async function createScene({
     const key = `avatar/${file}`
     if (!protoCache.has(key)) protoCache.set(key, loader.loadAsync(`/assets/avatars/${file}`))
     const gltf = await protoCache.get(key)
+    // anims 없이 부르면 원본 gltf 만 준다 — 초상 생성기가 그걸 찍는다.
+    if (!anims) return gltf
     const v = new UnitView(gltf, 'A', spacing, 1, AVATAR_SCALE)
     v.anims = anims
     return v

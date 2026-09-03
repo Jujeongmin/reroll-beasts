@@ -10,7 +10,8 @@
 | 육각 타일 (풀·물), 나무·바위·수련 | [KayKit Medieval Hexagon Pack 1.0](https://kaylousberg.com) | Kay Lousberg | CC0 1.0 |
 | UI 프레임·버튼·육각 칸·배너·금화·보석 | [UI Pack: Pixel Adventure 2.0](https://kenney.nl) | Kenney | CC0 1.0 |
 | 로비 패널·버튼 | [UI Pack: RPG Expansion](https://kenney.nl/assets/ui-pack-rpg-expansion) | Kenney | CC0 1.0 |
-| 아바타 캐릭터 6종 | [Blocky Characters](https://kenney.nl/assets/blocky-characters) | Kenney | CC0 1.0 |
+| 아바타 캐릭터 8종 | [Ultimate Animated Character Pack](https://quaternius.com/packs/ultimatedanimatedcharacter.html) | Quaternius | CC0 1.0 |
+| 아바타 몬스터 10종 | [Cute Animated Monsters](https://quaternius.com/packs/cutemonsters.html) | Quaternius | CC0 1.0 |
 | 홈 배경 그림 1장 | AI 생성 (프로젝트 소유자 제공) | — | 저장소 소유 |
 | 전투 이펙트 (고리·폭발·잔상·불꽃) | [Particle Pack](https://kenney.nl/assets/particle-pack) | Kenney | CC0 1.0 |
 | 자물쇠 · 시계 아이콘 | 이 저장소 (`tools/make-icons.mjs`) | — | CC0 1.0 |

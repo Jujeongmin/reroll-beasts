@@ -17,10 +17,11 @@
  * @param {string} o.unitId
  * @param {number} o.star
  */
-export async function createHeroView({ scene, mount, unitId = 'dragon', star = 3 }) {
+export async function createHeroView({ scene, mount, file, anims }) {
   const THREE = scene.THREE
 
-  const view = await scene.makeUnit(unitId, star, 'A')
+  // 간판은 **내가 착용한 아바타**다. 고른 것이 곧장 보여야 고르는 의미가 산다.
+  let view = await scene.makeAvatarModel(file, anims)
 
   const s3 = new THREE.Scene()
   s3.add(view.root)
@@ -52,10 +53,14 @@ export async function createHeroView({ scene, mount, unitId = 'dragon', star = 3
   function frame() {
     const box = new THREE.Box3().setFromObject(view.root)
     const center = box.getCenter(new THREE.Vector3())
-    const radius = box.getSize(new THREE.Vector3()).length() / 2
+    const size = box.getSize(new THREE.Vector3())
+    const radius = size.length() / 2
     const dist = radius / Math.sin(THREE.MathUtils.degToRad(camera.fov) / 2)
-    camera.position.set(center.x + dist * 0.34, center.y + dist * 0.3, center.z + dist * 0.9)
-    camera.lookAt(center)
+    // 사람 캐릭터는 세로로 길어 bbox 로만 맞추면 화면을 꽉 채운다. 조금 물린다.
+    camera.position.set(center.x + dist * 0.3, center.y + dist * 0.26, center.z + dist * 1.25)
+    // 가운데보다 아주 조금 위를 본다 — 많이 올리면 머리가 잘린다. 발이 바닥에
+    // 닿아 보이는 건 캔버스를 배경의 땅선까지 내려 붙여서 맞춘다(CSS).
+    camera.lookAt(center.x, center.y + size.y * 0.05, center.z)
     camera.updateProjectionMatrix()
   }
 
@@ -78,6 +83,7 @@ export async function createHeroView({ scene, mount, unitId = 'dragon', star = 3
   const raycaster = new THREE.Raycaster()
   const ndc = new THREE.Vector2()
   let poking = false
+  // swap 이 뷰를 갈아끼우므로 const 가 아니다.
 
   function poke(ev) {
     if (poking) return
@@ -87,10 +93,10 @@ export async function createHeroView({ scene, mount, unitId = 'dragon', star = 3
     raycaster.setFromCamera(ndc, camera)
     if (!raycaster.intersectObject(view.root, true).length) return
     poking = true
-    view.play(view.anims.hit, { loop: false })
+    view.play(view.anims.poke ?? view.anims.idle, { loop: false })
     // 클립이 끝나면 스스로 대기로 돌아온다. 길이를 재서 기다리는 이유:
     // finished 이벤트는 믹서에 리스너를 계속 달게 되고, 여기선 한 번이면 된다.
-    const clip = view.actions.get(view.anims.hit)?.getClip()
+    const clip = view.actions.get(view.anims.poke)?.getClip()
     setTimeout(
       () => {
         view.play(view.anims.idle)
@@ -115,6 +121,24 @@ export async function createHeroView({ scene, mount, unitId = 'dragon', star = 3
   addEventListener('resize', resize)
 
   return {
+    /**
+     * 다른 아바타로 갈아입는다.
+     *
+     * 뷰를 통째로 새로 만들지 않고 모델만 바꾼다 — 렌더러를 다시 만들면
+     * WebGL 컨텍스트를 하나 더 잡았다 놓는 셈이라, 몇 번 갈아입다 보면
+     * 기기가 컨텍스트를 안 준다.
+     */
+    async swap(nextFile, nextAnims) {
+      const next = await scene.makeAvatarModel(nextFile, nextAnims)
+      s3.remove(view.root)
+      view.dispose()
+      view = next
+      s3.add(view.root)
+      view.play(view.anims.idle)
+      poking = false
+      frame()
+    },
+
     /** 홈이 열려 있는 동안만 돈다. 매치 중에 계속 그리면 그냥 낭비다. */
     start() {
       if (raf) return

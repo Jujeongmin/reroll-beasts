@@ -8,6 +8,7 @@ import {
   resolveAvatar,
   avatarChoices,
   avatarFile,
+  avatarAnims,
 } from '../sim/cosmetics.js'
 
 let data
@@ -98,5 +99,26 @@ describe('avatarFile', () => {
   it('없는 id 면 기본값의 파일이다', () => {
     const def = data.cosmetics.avatars.find((a) => a.id === data.cosmetics.avatarDefault)
     expect(avatarFile('없음', data)).toBe(def.file)
+  })
+})
+
+describe('avatarAnims', () => {
+  it('팩마다 다른 이름표를 준다 — 섞으면 한쪽이 안 움직인다', () => {
+    const chars = data.cosmetics.avatars.find((a) => a.pack === 'chars')
+    const cute = data.cosmetics.avatars.find((a) => a.pack === 'cute')
+    expect(avatarAnims(chars.id, data).cheer).toBe('Victory')
+    expect(avatarAnims(cute.id, data).cheer).toBe('Dance')
+    expect(avatarAnims(chars.id, data).poke).toBe('RecieveHit')
+    expect(avatarAnims(cute.id, data).poke).toBe('HitRecieve')
+  })
+
+  it('모든 아바타가 아는 팩을 가리킨다', () => {
+    for (const a of data.cosmetics.avatars) {
+      expect(data.cosmetics.packs[a.pack], `${a.id} 의 팩 ${a.pack}`).toBeTruthy()
+    }
+  })
+
+  it('없는 id 는 기본값의 이름표를 쓴다', () => {
+    expect(avatarAnims('없음', data).idle).toBe('Idle')
   })
 })

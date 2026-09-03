@@ -56,33 +56,5 @@ try {
   process.exit(1)
 }
 
-// 아바타 모델. cosmetics.json 이 가리키는 것만 옮긴다 — 18종을 통째로
-// 배포에 넣으면 안 쓰는 파일이 2MB 쌓인다.
-const AV_SRC = resolve(
-  import.meta.dirname,
-  '../art-src/kenney-blocky-characters/Models/GLB format',
-)
-const AV_OUT = resolve(import.meta.dirname, '../game/public/assets/avatars')
-const cosmetics = JSON.parse(
-  await (await import('node:fs/promises')).readFile(
-    resolve(import.meta.dirname, '../game/public/data/cosmetics.json'),
-    'utf8',
-  ),
-)
-await copyAll(
-  cosmetics.avatars.map((a) => [a.file, a.file]),
-  AV_SRC,
-  AV_OUT,
-)
-
-// 이 팩의 glb 는 텍스처를 **바깥 파일로** 참조한다(Textures/texture-x.png).
-// 모델만 옮기면 흰 덩어리가 뜬다 — 로더가 조용히 텍스처만 못 찾는다.
-// 파일 이름이 규칙적이라(character-a → texture-a) 여기서 유도한다.
-await copyAll(
-  cosmetics.avatars.map((a) => {
-    const suffix = a.file.replace(/^character-|\.glb$/g, '')
-    return [`Textures/texture-${suffix}.png`, `Textures/texture-${suffix}.png`]
-  }),
-  AV_SRC,
-  AV_OUT,
-)
+// 아바타 모델은 tools/build-avatars.mjs 가 따로 굽는다 — 몬스터와 다른 팩이고
+// 굽는 방식(meshopt)도 달라서 여기 섞으면 둘 다 읽기 어려워진다.

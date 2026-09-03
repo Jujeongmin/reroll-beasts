@@ -13,6 +13,7 @@ const FILES = [
   'lobby',
   'items',
   'cosmetics',
+  'season',
 ]
 
 const isNode =

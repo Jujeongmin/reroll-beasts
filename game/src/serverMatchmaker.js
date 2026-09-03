@@ -176,12 +176,13 @@ export async function createServerMatchmaker({ data, server, roomId = null, time
   const levelScout = scoutSender('updateLevel')
   const avatarScout = scoutSender('updateAvatar')
 
-  // 남의 아바타 위치. 좌석마다 마지막으로 받은 좌표를 들고 있고, 화면이
-  // 그걸 읽어 그린다 — 여기서 3D 를 만지면 매치메이커가 무대를 알게 된다.
+  // 남의 아바타. 좌석마다 마지막으로 받은 **위치와 어느 판에 있는지**를 들고
+  // 있고, 화면이 그걸 읽어 그린다 — 여기서 3D 를 만지면 매치메이커가 무대를
+  // 알게 된다.
   const avatars = new Map()
   server.onRoomMessage(myRoom, 'AVATAR_MOVED', (m) => {
     if (m.id === mySeat.id) return
-    avatars.set(m.id, { x: m.x, z: m.z })
+    avatars.set(m.id, { x: m.x, z: m.z, at: m.at })
   })
 
   /**
@@ -302,13 +303,18 @@ export async function createServerMatchmaker({ data, server, roomId = null, time
      * 내 아바타 위치. 정찰과 같은 쓰로틀을 탄다 — 걷는 동안 초당 수십
      * 프레임이 나가면 SDK 가 10회/초에서 거절한다.
      */
-    pushAvatar(pos) {
-      avatarScout.push(pos.x, pos.z)
+    pushAvatar(pos, at) {
+      avatarScout.push(pos.x, pos.z, at)
     },
 
-    /** 그 좌석의 아바타가 마지막으로 있던 자리. 없으면 null. */
-    avatarOf(seatId) {
-      return avatars.get(seatId) ?? null
+    /**
+     * 지금 그 판 위에 서 있는 남들. 내 판을 보고 있는 사람이 여기 나온다 —
+     * 그게 아바타를 만든 이유다.
+     */
+    avatarsOn(seatId) {
+      const out = []
+      for (const [id, a] of avatars) if (a.at === seatId) out.push({ id, x: a.x, z: a.z })
+      return out
     },
 
     /** 서버 시드. 상점 리롤 등 런 전체 무작위성의 뿌리로 쓴다. */
