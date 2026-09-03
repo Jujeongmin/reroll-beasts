@@ -11,8 +11,10 @@ import { homeView } from './home-state.js'
  * @param {(mode: string) => void} o.onPick  모드를 골랐다
  * @param {() => void} o.onCancelQueue       대기를 취소했다
  * @param {() => void} o.onRetry             다시 붙어 보라
+ * @param {() => Promise<object|null>} o.onBoard  순위표를 열었다. 서버가 준
+ *   { total, myRank, top[] } 를 돌려주면 그린다 — 홈은 서버를 모른다
  */
-export function createHome({ data, onPick, onCancelQueue, onRetry }) {
+export function createHome({ data, onPick, onCancelQueue, onRetry, onBoard }) {
   const el = {
     root: document.getElementById('home'),
     menu: document.getElementById('home-menu'),
@@ -26,6 +28,11 @@ export function createHome({ data, onPick, onCancelQueue, onRetry }) {
     lp: document.getElementById('record-lp'),
     bar: document.getElementById('record-bar'),
     barFill: document.querySelector('#record-bar i'),
+    rankBtn: document.getElementById('record-rank'),
+    board: document.getElementById('board'),
+    boardRows: document.getElementById('board-rows'),
+    boardSub: document.getElementById('board-sub'),
+    boardClose: document.getElementById('board-close'),
     note: document.getElementById('home-note'),
     retry: document.getElementById('home-retry'),
     hero: document.getElementById('home-hero'),
@@ -42,6 +49,35 @@ export function createHome({ data, onPick, onCancelQueue, onRetry }) {
     onPick(btn.dataset.mode)
   })
   el.queueCancel.addEventListener('click', () => onCancelQueue())
+  el.rankBtn.addEventListener('click', () => openBoard())
+  el.boardClose.addEventListener('click', () => {
+    el.board.hidden = true
+  })
+
+  /** 순위표를 연다. 서버가 안 주면 그 사실을 그대로 적는다 — 빈 표를 띄우면
+   *  아무도 없는 것처럼 보인다. */
+  async function openBoard() {
+    el.board.hidden = false
+    el.boardRows.innerHTML = '<div class="empty">불러오는 중…</div>'
+    const lb = await onBoard?.()
+    if (!lb) {
+      el.boardRows.innerHTML = '<div class="empty">순위표를 못 받았다</div>'
+      el.boardSub.textContent = ''
+      return
+    }
+    el.boardSub.textContent = lb.myRank ? `${lb.total}명 중 ${lb.myRank}등` : `${lb.total}명`
+    if (!lb.top.length) {
+      el.boardRows.innerHTML = '<div class="empty">아직 랭크 판을 끝낸 사람이 없다</div>'
+      return
+    }
+    el.boardRows.innerHTML = lb.top
+      .map(
+        (r) =>
+          `<div class="row${r.mine ? ' mine' : ''}"><span class="no">${r.rank}</span>` +
+          `<span class="nm">${r.name}</span><span class="lp">${r.lp} LP</span></div>`,
+      )
+      .join('')
+  }
   el.retry.addEventListener('click', () => onRetry())
 
   function render() {
@@ -71,6 +107,11 @@ export function createHome({ data, onPick, onCancelQueue, onRetry }) {
       el.barFill.style.width = `${Math.round(next.ratio * 100)}%`
       el.bar.title = `${next.name}까지 ${next.need} LP`
     }
+
+    // 순위표는 서버가 붙어 있어야 볼 수 있다. 기록이 없어도 남의 등수는
+    // 궁금하니 전적 유무와는 무관하게 연다.
+    el.rankBtn.hidden = state.status !== 'ready'
+    el.rankBtn.textContent = '전체 순위 보기'
 
     el.note.textContent = v.notice ?? ''
     el.retry.hidden = state.status !== 'failed'

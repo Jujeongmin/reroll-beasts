@@ -1,7 +1,15 @@
 // LP·티어 규칙. 한 번 틀리면 되돌릴 근거가 없다 — 누적만 하고 원본 기록을
 // 안 남기기 때문이다. 그래서 표와 경계를 여기서 못박는다.
 import { describe, it, expect } from 'vitest'
-import { lpForRank, addLp, tierOf, tierProgress, TIERS } from '../sim/rank.js'
+import {
+  lpForRank,
+  addLp,
+  tierOf,
+  tierProgress,
+  sortLeaderboard,
+  rankOf,
+  TIERS,
+} from '../sim/rank.js'
 
 describe('lpForRank', () => {
   it('1위가 가장 크고 8위가 가장 작다', () => {
@@ -77,5 +85,45 @@ describe('tierProgress', () => {
     for (let i = 1; i < TIERS.length; i++) {
       expect(TIERS[i].at).toBeGreaterThan(TIERS[i - 1].at)
     }
+  })
+})
+
+describe('순위표', () => {
+  const rows = [
+    { account: 'c', lp: 700, best: 3 },
+    { account: 'a', lp: 900, best: 1 },
+    { account: 'b', lp: 700, best: 1 },
+    { account: 'd', lp: 0, best: 8 },
+  ]
+
+  it('LP 내림차순이다', () => {
+    expect(sortLeaderboard(rows).map((r) => r.account)).toEqual(['a', 'b', 'c', 'd'])
+  })
+
+  it('동점이면 최고 순위가 좋은 쪽이 앞이다', () => {
+    const s = sortLeaderboard(rows)
+    expect(s[1].account).toBe('b')
+    expect(s[2].account).toBe('c')
+  })
+
+  it('LP·최고까지 같으면 계정 순으로 고정한다 — 새로고침마다 등수가 바뀌면 안 된다', () => {
+    const tie = [
+      { account: 'z', lp: 100, best: 2 },
+      { account: 'y', lp: 100, best: 2 },
+    ]
+    expect(sortLeaderboard(tie).map((r) => r.account)).toEqual(['y', 'z'])
+    expect(sortLeaderboard([...tie].reverse()).map((r) => r.account)).toEqual(['y', 'z'])
+  })
+
+  it('원본을 안 고친다', () => {
+    const before = rows.map((r) => r.account)
+    sortLeaderboard(rows)
+    expect(rows.map((r) => r.account)).toEqual(before)
+  })
+
+  it('등수는 1부터, 없으면 null', () => {
+    expect(rankOf(rows, 'a')).toBe(1)
+    expect(rankOf(rows, 'd')).toBe(4)
+    expect(rankOf(rows, '없는사람')).toBe(null)
   })
 })

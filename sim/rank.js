@@ -63,4 +63,29 @@ export function tierProgress(lp) {
   }
 }
 
+/**
+ * 순위표 정렬. LP 내림차순이 기본이고, 같으면 최고 순위가 좋은 쪽, 그것도
+ * 같으면 계정 순이다.
+ *
+ * 동점을 계정 순으로까지 가르는 이유: 정렬이 흔들리면 같은 LP 인 사람들의
+ * 등수가 새로고침할 때마다 바뀐다. 근거 없는 순서라도 **고정**돼야 한다.
+ *
+ * 원본을 안 고친다 — 서버가 컬렉션에서 읽은 배열을 그대로 넘기는데, 그걸
+ * 제자리에서 뒤집으면 같은 요청 안에서 다른 계산이 이미 뒤집힌 걸 본다.
+ */
+export function sortLeaderboard(rows) {
+  return [...rows].sort(
+    (a, b) =>
+      (b.lp ?? 0) - (a.lp ?? 0) ||
+      (a.best ?? 99) - (b.best ?? 99) ||
+      String(a.account).localeCompare(String(b.account)),
+  )
+}
+
+/** 그 계정의 등수(1부터). 목록에 없으면 null. */
+export function rankOf(rows, account) {
+  const i = sortLeaderboard(rows).findIndex((r) => r.account === account)
+  return i < 0 ? null : i + 1
+}
+
 export { TIERS }

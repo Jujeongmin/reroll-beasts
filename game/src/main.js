@@ -165,6 +165,16 @@ try {
       home.setQueue(null)
     },
     onRetry: () => connect(),
+    // 홈은 서버를 모른다. 순위표도 여기서 받아 넘긴다.
+    onBoard: async () => {
+      if (!server) return null
+      try {
+        return await server.remoteFunction('getLeaderboard', [10])
+      } catch (err) {
+        console.warn('순위표 실패:', err?.message)
+        return null
+      }
+    },
   })
   home.show()
   // 간판 캐릭터. 게임 판을 배경에 깔면 라운드 중에 홈으로 돌아온 것처럼

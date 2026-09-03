@@ -21,7 +21,7 @@
  */
 import { createLobbyState, resolveRound, assignRanks } from '../../sim/lobbyRound.js'
 import { mergeProfile } from '../../sim/profile.js'
-import { addLp } from '../../sim/rank.js'
+import { addLp, sortLeaderboard, rankOf } from '../../sim/rank.js'
 import { simulate } from '../../sim/combat.js'
 import { totalRounds } from '../../sim/rounds.js'
 import combat from '../../game/public/data/combat.json'
@@ -87,6 +87,46 @@ export class Server {
   async getProfile(): Promise<any | null> {
     const st: any = await $global.getMyState()
     return st?.profile ?? null
+  }
+
+  // ── 순위표 ──────────────────────────────────────────────
+  //
+  // 유저 상태는 계정 하나씩만 읽을 수 있다 — "전체에서 몇 등인가"를 물으려면
+  // 따로 줄을 세워 둬야 한다. 그래서 랭크 판이 끝날 때마다 컬렉션에 적는다.
+
+  /** 내 줄을 갱신한다. 없으면 만든다. */
+  private async putLeaderboard(account: string, profile: any): Promise<void> {
+    const rows = await $global.getCollectionItems('leaderboard')
+    const mine: any = rows.find((x: any) => x.account === account)
+    const row = { account, lp: profile.lp, games: profile.games, best: profile.best }
+    if (mine) await $global.updateCollectionItem('leaderboard', { ...mine, ...row })
+    else await $global.addCollectionItem('leaderboard', row)
+  }
+
+  /**
+   * 상위 몇 명과 내 등수.
+   *
+   * 정렬을 서버가 직접 안 하고 sim/rank 를 부르는 이유: 동점 처리(최고 순위 →
+   * 계정 순)가 흔들리면 새로고침할 때마다 등수가 바뀐다. 그 규칙은 테스트가
+   * 덮는 자리에 있어야 한다.
+   */
+  async getLeaderboard(limit: number = 10): Promise<any> {
+    const rows: any[] = await $global.getCollectionItems('leaderboard')
+    const sorted = sortLeaderboard(rows)
+    const me = $sender.account
+    return {
+      total: sorted.length,
+      myRank: rankOf(rows, me),
+      top: sorted.slice(0, Math.max(1, Math.min(50, limit))).map((r: any, i: number) => ({
+        rank: i + 1,
+        // 계정 전체를 넘기지 않는다 — 화면에 쓸 것도 아니고, 남의 지갑
+        // 주소를 목록으로 뿌릴 이유가 없다.
+        name: `유저${String(r.account).slice(-4)}`,
+        mine: r.account === me,
+        lp: r.lp ?? 0,
+        games: r.games ?? 0,
+      })),
+    }
   }
 
   // ── 매칭 큐 ─────────────────────────────────────────────
@@ -255,6 +295,9 @@ export class Server {
         if (scored) profile.lp = addLp(prev?.profile?.lp ?? 0, r.rank)
         else profile.lp = prev?.profile?.lp ?? 0
         await $global.updateUserState(r.account, { profile })
+        // 순위표는 랭크 판에서만 갱신한다. 일반 판으로도 줄이 생기면 LP 0 인
+        // 사람이 목록을 채워 "몇 등인가"가 아무 뜻도 없어진다.
+        if (scored) await this.putLeaderboard(r.account, profile)
       }
 
       await $room.updateRoomState({ lobby: state })

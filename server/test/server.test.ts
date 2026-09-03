@@ -232,3 +232,22 @@ describe('랭크 LP', () => {
     expect(p.lp).toBe(0);
   });
 });
+
+describe('순위표', () => {
+  test('아무도 랭크를 안 했으면 비어 있다 — 0 등을 지어내지 않는다', async (server) => {
+    const lb = await server.getLeaderboard();
+    expect(lb.total).toBe(0);
+    expect(lb.top).toEqual([]);
+    expect(lb.myRank).toBe(null);
+  });
+
+  test('일반 판은 순위표에 안 올라간다 — LP 0 인 줄이 목록을 채우면 등수가 뜻을 잃는다', async (server) => {
+    await server.joinLobby();
+    for (let i = 0; i < 30; i++) {
+      const s = await server.resolveRound();
+      if (!s || s.phase === 'done') break;
+    }
+    const lb = await server.getLeaderboard();
+    expect(lb.total).toBe(0);
+  });
+});
