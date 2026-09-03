@@ -1,6 +1,5 @@
-// 서버 로비 매치메이커. createLocalMatchmaker 와 같은 모양의 객체를 낸다 —
-// main.js 는 어느 쪽이 꽂혔는지 모른다 (그 파일 주석이 처음부터 그렇게
-// 설계해 뒀다: "서버가 붙으면 이 파일만 갈아끼운다").
+// 서버 로비 매치메이커. 상대가 어디서 오는지를 아는 유일한 파일이다 —
+// main.js 는 여기서 받은 객체를 화면에 잇기만 한다.
 //
 // ── 결정론 미러 ──────────────────────────────────────────
 // 서버가 준 시드 하나로 클라가 **서버와 같은 함수**(sim/lobbyRound.js)를 돌려
@@ -9,8 +8,8 @@
 // 기다릴 필요가 없다: 클라는 즉시 진행하고, 서버는 같은 계산으로 검증하며,
 // ROUND_RESOLVED 가 오면 미러를 맞춰 어긋남을 잡는다.
 //
-// 서버가 죽거나 로컬 개발이라 접속이 안 되면 이 파일 대신 기존
-// createLocalMatchmaker 로 떨어진다 — main.js 의 try/catch 가 그 갈림길이다.
+// 접속이 안 되면 떨어질 곳이 없다. 홈이 실패 상태로 남고 게임은 안 열린다 —
+// 봇과 붙으면서 사람과 붙는 줄 아는 것보다 못 붙었다고 듣는 편이 낫다.
 
 import { GameServer } from '@agent8/gameserver/dist/src/server/GameServer'
 import { simulate } from '@sim/combat.js'
@@ -25,11 +24,11 @@ const SCOUT_MS = 250
 /**
  * 서버 로비에 붙는다. 접속·입장까지 끝난 매치메이커를 돌려준다.
  *
- * 실패하면 던진다 — 호출자가 로컬 매치메이커로 갈아탄다. 조용히 봇 모드로
- * 떨어지면 "서버에 붙은 줄 알았는데 혼자였다"가 되므로 성공/실패를 밖에 알린다.
+ * 실패하면 던진다 — 홈이 그것을 실패 상태로 그린다. 조용히 삼키면 "서버에
+ * 붙은 줄 알았는데 아니었다"가 되므로 성공/실패를 밖에 알린다.
  */
-// 접속 대기 상한. 로컬 개발(서버 미배포)에서는 이 시간만큼 기다렸다 실패하고
-// 봇 로비로 떨어진다 — 길게 잡을수록 오프라인 개발이 그만큼 매번 느려진다.
+// 접속 대기 상한. 인증 없는 로컬 실행에서는 이 시간만큼 기다렸다 실패한다 —
+// 길게 잡을수록 홈이 그만큼 오래 회색으로 멈춰 있다.
 export async function connectServer({ timeoutMs = 3500 } = {}) {
   const server = GameServer.getInstance()
   const ok = await Promise.race([
@@ -89,7 +88,8 @@ export function startQueue({ server, mode, data, onUpdate, onMatched }) {
 /**
  * 로비에 붙은 매치메이커를 만든다.
  *
- * roomId 를 주면 그 매치 방(사람들이 모인 방), 없으면 연습 방(봇 7).
+ * roomId 를 주면 그 매치 방(사람들이 모인 방), 없으면 1인 방(봇 7). 1인 방은
+ * 지금 홈에서 못 들어가지만 서버 함수가 살아 있다 — 튜토리얼이 그 위에 선다.
  */
 export async function createServerMatchmaker({ data, server, roomId = null, timeoutMs = 3500 }) {
   server = server ?? (await connectServer({ timeoutMs }))
@@ -109,7 +109,7 @@ export async function createServerMatchmaker({ data, server, roomId = null, time
   let pairs = []
   let opponentId = null
 
-  // 서버 브로드캐스트로 미러를 맞춘다. 연습 방(봇 7)에선 조용하고, 매치
+  // 서버 브로드캐스트로 미러를 맞춘다. 1인 방(봇 7)에선 조용하고, 매치
   // 방에선 **다른 사람의 배치가 이 경로로 실시간으로 들어온다** — 정찰이다.
   const myRoom = roomId ?? `solo-${server.account}`
   server.onRoomMessage(myRoom, 'BOARD_CHANGED', (m) => {

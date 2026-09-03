@@ -2,8 +2,8 @@
 //
 // 흐름: 배치·상점 → 전투 리플레이 → 정산 → 다음 라운드 배치
 //
-// "상대가 어디서 오는가"는 전부 matchmaker.js 가 안다. 지금은 봇 일곱이지만
-// 서버가 붙으면 그 파일만 갈아끼운다 — 여기는 한 줄도 안 바뀐다.
+// "상대가 어디서 오는가"는 전부 serverMatchmaker.js 가 안다. 홈에서 모드를
+// 고르면 그 파일이 로비를 세우고, 여기는 받은 것을 화면에 잇는다.
 
 import { loadData } from '@sim/data.js'
 import { createRng } from '@sim/rng.js'
@@ -11,7 +11,7 @@ import { simulate } from '@sim/combat.js'
 import { startRun, refreshShop, grantItem } from '@sim/roster.js'
 import { roundIncome, addXp } from '@sim/economy.js'
 import { roundAt, totalRounds, defeatDamage, grantIndices, itemSeed } from '@sim/rounds.js'
-import { createLocalMatchmaker } from './matchmaker.js'
+import { createHome } from './home.js'
 import { createServerMatchmaker, connectServer, startQueue } from './serverMatchmaker.js'
 import { createPrep } from './prep.js'
 import { createBattle } from './battle.js'
@@ -50,9 +50,9 @@ try {
 
   const { state, pool } = startRun(data, rng)
 
-  // 상대는 여기서만 나온다. 어느 모드로 갈지는 **메인화면이 정하고**, 이
-  // 변수는 그 결과를 받는다. 서버가 안 붙으면(오프라인 개발·미배포) 기존 봇
-  // 로비로 떨어진다 — 조용히 죽는 대신 혼자라도 돈다.
+  // 상대는 여기서만 나온다. 어느 모드로 갈지는 **홈이 정하고**, 이 변수는
+  // 그 결과를 받는다. 서버가 안 붙으면 여기는 계속 null 이다 — 봇으로
+  // 떨어지지 않는다. 봇과 붙으면서 사람과 붙는 줄 아는 것이 더 나쁘다.
   let mm = null
   const run = {
     state,
@@ -101,8 +101,8 @@ try {
    * 배치가 바뀌었다고 서버에 알린다 — 남이 내 자리를 열어 두고 있으면
    * 방금 산 말이 그 화면에 바로 뜬다.
    *
-   * mm 은 메인화면에서 모드를 고른 뒤에야 정해지므로 호출 시점에 읽는다.
-   * 로컬 봇 로비에는 이 함수들이 없다 — 오프라인에서도 그냥 지나간다.
+   * mm 은 홈에서 모드를 고른 뒤에야 정해지므로 호출 시점에 읽는다. 배치가
+   * 열리기 전에는 없으니 옵셔널 체이닝을 유지한다.
    */
   function pushScout(entries) {
     mm?.pushBoardLive?.(entries)
@@ -140,111 +140,81 @@ try {
   // 부팅이 끝나면 바로 게임이 아니라 여기가 뜬다. 모드를 고르는 곳이라
   // 없으면 매칭이란 개념 자체가 설 자리가 없다. 무대(3D)는 이미 그려져
   // 있으므로 그 위에 겹친다 — 배경 그림을 따로 만들면 로딩만 는다.
-  const home = document.getElementById('home')
-  const queueBox = document.getElementById('queue-status')
-  const queueText = document.getElementById('queue-text')
-  const homeNote = document.getElementById('home-note')
-  const modeButtons = ['btn-normal', 'btn-ranked', 'btn-practice'].map((id) =>
-    document.getElementById(id),
-  )
+  //
+  // 서버가 필수다. 못 붙으면 못 논다 — 봇과 붙으면서 사람과 붙는 줄 아는
+  // 것보다 못 붙었다고 듣는 편이 낫다.
   let queue = null
+  let server = null
 
-  home.hidden = false
+  const home = createHome({
+    data,
+    onPick: (mode) => startMatch(mode),
+    onCancelQueue: () => {
+      queue?.cancel()
+      queue = null
+      home.setQueue(null)
+    },
+    onRetry: () => connect(),
+  })
+  home.show()
 
-  /** 서버는 한 번만 붙는다. 실패는 기억해 두고 매번 3.5초씩 다시 기다리지 않는다. */
-  let serverPromise = null
-  function getServer() {
-    if (!serverPromise) serverPromise = connectServer()
-    return serverPromise
+  /** 서버에 붙고 전적을 받아 온다. 실패는 홈의 실패 상태로 끝난다. */
+  async function connect() {
+    home.setStatus('connecting')
+    try {
+      server = await connectServer()
+    } catch (err) {
+      console.warn('서버 접속 실패:', err?.message)
+      home.setStatus('failed')
+      return
+    }
+    home.setStatus('ready')
+    // 전적은 홈에 머무는 동안 바뀌지 않는다 — 내 판이 끝나야 바뀌는데
+    // 그때는 홈에 없다. 그래서 한 번만 받는다.
+    try {
+      home.setProfile(await server.remoteFunction('getProfile', []))
+    } catch {
+      home.setProfile(null)
+    }
   }
+  connect()
 
-  function setBusy(busy) {
-    for (const b of modeButtons) b.disabled = busy
-  }
-
-  /** 로비가 정해졌다. 판을 세우고 메인화면을 닫는다. */
-  function enterGame(matchmaker, note) {
+  /** 로비가 정해졌다. 판을 세우고 홈을 닫는다. */
+  function enterGame(matchmaker) {
     mm = matchmaker
     run.lobby = mm.seats
     drawRound()
-    home.hidden = true
+    home.hide()
     document.getElementById('prep').hidden = false
     // 1라운드도 지급 라운드일 수 있다 — settle() 은 라운드 2부터 도니 여기서
     // 한 번은 짚어야 한다. 지금 일정은 1라운드가 아니라 no-op 이다.
     grantIfDue(run.index)
     prep.show()
-    if (note) console.log(note)
   }
 
-  /** 연습·폴백. 서버가 되면 봇 7명 방, 안 되면 완전 로컬. */
-  async function startPractice() {
-    setBusy(true)
-    try {
-      const server = await getServer()
-      enterGame(
-        await createServerMatchmaker({ data, server }),
-        '연습 로비(서버) 입장',
-      )
-    } catch (err) {
-      console.warn('서버 없음, 로컬 봇 로비로 진행:', err?.message)
-      enterGame(createLocalMatchmaker({ data, seed }), '로컬 봇 로비 입장')
-    }
-  }
-
-  async function startMatch(mode) {
-    setBusy(true)
-    homeNote.textContent = ''
-    let server
-    try {
-      server = await getServer()
-    } catch (err) {
-      // 서버가 없으면 매칭 자체가 성립하지 않는다. 연습으로 떨어뜨리되
-      // 왜 그랬는지는 말한다 — 조용히 봇과 붙이면 속은 기분이 된다.
-      homeNote.textContent = '서버에 못 붙었다 — 연습으로 시작한다'
-      return startPractice()
-    }
-
-    queueBox.hidden = false
-    queueText.textContent = '대기열 참가 중…'
+  function startMatch(mode) {
+    if (!server) return
     queue = startQueue({
       server,
       mode,
       data,
       onUpdate(r) {
-        if (r.status === 'error') {
-          queueText.textContent = `오류: ${r.message}`
-          return
-        }
-        const waited = Math.floor((r.waitedMs ?? 0) / 1000)
-        queueText.textContent =
-          mode === 'ranked'
-            ? `랭크 대기 ${r.queued}/${data.lobby.size} · ${waited}초`
-            : `일반 대기 ${r.queued}/${data.lobby.size} · ${waited}초 (시간이 차면 봇으로 시작)`
+        if (r.status === 'error') return
+        home.setQueue({ mode, queued: r.queued, waitedMs: r.waitedMs ?? 0 })
       },
       async onMatched(roomId) {
         queue = null
-        queueBox.hidden = true
+        home.setQueue(null)
         try {
-          enterGame(
-            await createServerMatchmaker({ data, server, roomId }),
-            `매치 입장 — ${roomId}`,
-          )
+          enterGame(await createServerMatchmaker({ data, server, roomId }))
         } catch (err) {
-          homeNote.textContent = `방 입장 실패: ${err?.message}`
-          setBusy(false)
+          console.warn('방 입장 실패:', err?.message)
+          home.setStatus('failed')
         }
       },
     })
-  }
-
-  document.getElementById('btn-normal').onclick = () => startMatch('normal')
-  document.getElementById('btn-ranked').onclick = () => startMatch('ranked')
-  document.getElementById('btn-practice').onclick = () => startPractice()
-  document.getElementById('queue-cancel').onclick = () => {
-    queue?.cancel()
-    queue = null
-    queueBox.hidden = true
-    setBusy(false)
+    // 폴링 첫 응답이 오기 전에도 대기 중임이 보여야 한다.
+    home.setQueue({ mode, queued: 1, waitedMs: 0 })
   }
 
   async function startFight(entries) {
@@ -253,9 +223,9 @@ try {
     // 치명타·타겟 순서가 매판 똑같아진다.
     const battleSeed = roundSeed(run.index)
     const enemy = mm.opponentBoard(run.index)
-    // 서버 로비면 최종 보드를 지금 올린다 — 서버가 같은 판으로 판정해야
-    // 결과가 일치한다. 로컬 로비면 pushBoard 가 없어 그냥 지나간다.
-    mm.pushBoard?.(entries)
+    // 최종 보드를 지금 올린다 — 서버가 같은 판으로 판정해야 결과가 일치한다.
+    // 여기만 쓰로틀을 안 탄다(serverMatchmaker.pushBoard 참고).
+    mm.pushBoard(entries)
 
     let result
     try {

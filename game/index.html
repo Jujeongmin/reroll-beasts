@@ -752,24 +752,32 @@
   /* 부팅 — 리소스를 **전부** 받고 나서 게임을 연다. 중간에 받으면 상점 카드가
      빈 채로 뜨고 말이 한 박자 늦게 나타난다. */
   /* ── 메인화면 ─────────────────────────────────────
-     부팅이 끝나면 바로 게임이 아니라 여기가 뜬다. 모드(일반/랭크/연습)를
+     부팅이 끝나면 바로 게임이 아니라 여기가 뜬다. 모드(일반/랭크)를
      고르는 곳이라 없으면 매칭이란 개념 자체가 설 자리가 없다.
      판 위에 겹치는 오버레이다 — 무대(3D)는 뒤에서 이미 그려져 있어
      배경으로 쓴다. 따로 배경 그림을 만들면 로딩만 는다. */
+  /* 홈은 로비다 — 왼쪽 패널이 메뉴와 전적을 쥐고, 오른쪽은 무대를 보여 준다.
+     무대(3D)는 이미 그려져 있으므로 배경 그림을 따로 만들지 않는다. */
+  /* #viewport 안에 있다 — 밖에 두면 812×390 설계 상자를 안 타고 실제 창
+     가장자리에 붙어, 패널 152px 이 화면 크기마다 다른 비율로 보인다. */
   #home {
-    position: fixed; inset: 0; z-index: 70;
-    display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 10px;
-    background: radial-gradient(120% 100% at 50% 10%, #3a4d7d66 0%, #0d1120cc 70%);
+    position: absolute; inset: 0; z-index: 70;
+    background: radial-gradient(120% 100% at 60% 5%, #4a3a2666 0%, #17110bcc 70%);
   }
   #home[hidden] { display: none; }
-  #home .title {
-    font-size: 34px; font-weight: 900; letter-spacing: 1px; color: #ffe9bd;
-    text-shadow: 0 2px 0 #7a4f2c, 0 5px 14px #000c;
-    margin-bottom: 6px;
+  #home .lobby-panel {
+    position: absolute; left: 0; top: 0; bottom: 0; width: 152px;
+    display: flex; flex-direction: column; gap: 8px; padding: 12px 10px;
+    background: #2a1f14f5; box-shadow: inset -1px 0 0 #d8b98455, 4px 0 12px #0009;
   }
+  #home .title {
+    font-size: 22px; font-weight: 900; line-height: 1.05; color: #ffd98a;
+    text-shadow: 0 2px 0 #6b4a2a, 0 5px 14px #000c;
+  }
+  #home .menu { display: flex; flex-direction: column; gap: 6px; }
+  #home .menu[hidden] { display: none; }
   #home .btn-home {
-    width: 220px; height: 44px; font-size: 15px; font-weight: 800;
-    display: flex; align-items: center; justify-content: center; gap: 8px;
+    height: 34px; font-size: 14px; font-weight: 800; text-align: left; padding: 0 10px;
     border-style: solid; border-width: 6px; border-image-slice: 6;
     border-image-repeat: repeat; border-image-source: url('/assets/ui/panel_wood.png');
     background: #c58747; color: #fff2d8; text-shadow: 0 1px 2px #0009;
@@ -777,18 +785,25 @@
   }
   #home .btn-home:active { filter: brightness(1.12); }
   #home .btn-home[disabled] { filter: grayscale(.7) brightness(.7); cursor: default; }
-  #home .btn-home small { font-size: 10px; font-weight: 700; color: #ffe9bd; opacity: .85; }
-  /* 대기 중 상태줄. 버튼 아래 한 줄 — 몇 명 모였는지, 취소. */
+  /* 대기 중에는 메뉴가 사라지고 이 줄이 그 자리를 쓴다 — 누를 수 있는 것과
+     기다리는 중이 한 화면에 같이 있으면 지금 뭘 하는 중인지 흐려진다. */
   #home .queue {
-    display: flex; align-items: center; gap: 8px; height: 24px;
-    font-size: 12px; color: #cfe3ff; text-shadow: 0 1px 2px #000c;
+    display: flex; align-items: center; gap: 6px; font-size: 12px; color: #e6cfa2;
   }
   #home .queue[hidden] { display: none; }
   #home .queue button {
     font-size: 11px; padding: 2px 8px; border-radius: 4px;
     background: #00000055; box-shadow: inset 0 0 0 1px #ffffff2a; color: #ffb3a6;
   }
-  #home .note { font-size: 10px; color: #8fa3c8; text-shadow: 0 1px 2px #000c; }
+  #home .record { margin-top: auto; font-size: 11px; color: #e6cfa2; }
+  #home .record .recent { font-size: 10px; color: #a9a08f; letter-spacing: 1px; }
+  #home .conn {
+    position: absolute; right: 8px; top: 8px; display: flex; align-items: center; gap: 6px;
+    font-size: 10px; color: #e6cfa2;
+    background: #2a1f14e8; box-shadow: inset 0 0 0 1px #d8b98455; padding: 3px 8px;
+  }
+  #home .conn button { font-size: 10px; color: #ffd98a; text-decoration: underline; }
+  #home .conn button[hidden] { display: none; }
 
   #boot {
     position: fixed; inset: 0; z-index: 80;
@@ -857,20 +872,30 @@
     </div>
   </div>
 
+  <div id="home" hidden>
+    <div class="lobby-panel">
+      <div class="title">REROLL<br>BEASTS</div>
+      <div class="menu" id="home-menu">
+        <button class="btn-home" data-mode="normal">일반 매치</button>
+        <button class="btn-home" data-mode="ranked">랭크 매치</button>
+      </div>
+      <div class="queue" id="queue-status" hidden>
+        <span id="queue-text"></span>
+        <button id="queue-cancel">취소</button>
+      </div>
+      <div class="record" id="home-record">
+        <div class="head" id="record-head">첫 판을 기다린다</div>
+        <div class="recent" id="record-recent"></div>
+      </div>
+    </div>
+    <div class="conn" id="home-conn">
+      <span id="home-note"></span>
+      <button id="home-retry" hidden>다시 시도</button>
+    </div>
+  </div>
   </div>
 
   <div id="ghost"><img alt="" /></div>
-  <div id="home" hidden>
-    <div class="title">Reroll Beasts</div>
-    <button class="btn-home" id="btn-normal">일반 매치 <small>사람+봇</small></button>
-    <button class="btn-home" id="btn-ranked">랭크 매치 <small>8인 대기</small></button>
-    <button class="btn-home" id="btn-practice">연습 <small>봇 7</small></button>
-    <div class="queue" id="queue-status" hidden>
-      <span id="queue-text"></span>
-      <button id="queue-cancel">취소</button>
-    </div>
-    <div class="note" id="home-note"></div>
-  </div>
   <div id="rotate">가로로 돌려주세요</div>
   <div id="boot">
     <div class="msg">불러오는 중…</div>
