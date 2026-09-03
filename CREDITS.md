@@ -9,6 +9,7 @@
 | 유닛 26종 + 3성 진화 모델 6종 | Ultimate Monsters | [Quaternius](https://quaternius.com) | CC0 1.0 |
 | 육각 타일 (풀·물), 나무·바위·수련 | [KayKit Medieval Hexagon Pack 1.0](https://kaylousberg.com) | Kay Lousberg | CC0 1.0 |
 | UI 프레임·버튼·육각 칸·배너·금화·보석 | [UI Pack: Pixel Adventure 2.0](https://kenney.nl) | Kenney | CC0 1.0 |
+| 로비 패널·버튼 | [UI Pack: RPG Expansion](https://kenney.nl/assets/ui-pack-rpg-expansion) | Kenney | CC0 1.0 |
 | 전투 이펙트 (고리·폭발·잔상·불꽃) | [Particle Pack](https://kenney.nl/assets/particle-pack) | Kenney | CC0 1.0 |
 | 자물쇠 · 시계 아이콘 | 이 저장소 (`tools/make-icons.mjs`) | — | CC0 1.0 |
 | 시너지 아이콘 11종 | 이 저장소 (`tools/trait-icons.mjs`) | — | CC0 1.0 |
