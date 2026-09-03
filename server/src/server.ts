@@ -28,6 +28,7 @@ import {
   cosmeticById,
   resolveBoard,
   resolveAvatar,
+  resolveBoom,
 } from '../../sim/cosmetics.js'
 import { purchaseGrant } from '../../sim/store.js'
 import { simulate } from '../../sim/combat.js'
@@ -408,7 +409,7 @@ export class Server {
   }
 
   /**
-   * 내 겉모습(무대·아바타)을 좌석에 붙인다.
+   * 내 겉모습(무대·아바타·승리 이펙트)을 좌석에 붙인다.
    *
    * 이게 서버를 타는 이유: 남의 판을 구경 가면 **그 사람 무대**가 보이고,
    * 내가 남의 판에 서면 **내 아바타**로 보여야 한다.
@@ -418,7 +419,7 @@ export class Server {
    * 가진 것인지 여기서 검산한다 — 클라가 보내는 값이라 안 막으면 아무나
    * 최고 티어 무대를 깔고 앉는다. 못 가진 것이면 조용히 기본값으로 떨어진다.
    */
-  async updateLook(boardId: string, avatarId: string): Promise<any> {
+  async updateLook(boardId: string, avatarId: string, boomId: string): Promise<any> {
     const state = await readLobby()
     if (!state) return { ok: false }
     const seat = state.seats.find((s: any) => s.account === $sender.account)
@@ -434,12 +435,16 @@ export class Server {
     }
     const skin = resolveBoard(boardId, DATA, owned)
     const avatar = resolveAvatar(avatarId, DATA, owned)
-    if (seat.skin === skin && seat.avatar === avatar) return { ok: true, skin, avatar }
+    const boom = resolveBoom(boomId, DATA, owned)
+    if (seat.skin === skin && seat.avatar === avatar && seat.boom === boom) {
+      return { ok: true, skin, avatar, boom }
+    }
     seat.skin = skin
     seat.avatar = avatar
+    seat.boom = boom
     await $room.updateRoomState({ lobby: state })
-    $room.broadcastToRoom('LOOK_CHANGED', { id: seat.id, skin, avatar })
-    return { ok: true, skin, avatar }
+    $room.broadcastToRoom('LOOK_CHANGED', { id: seat.id, skin, avatar, boom })
+    return { ok: true, skin, avatar, boom }
   }
 
   /**

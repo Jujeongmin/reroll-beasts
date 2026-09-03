@@ -75,6 +75,7 @@ function choicesOf(list, data, owned) {
       name: a.name,
       file: a.file ?? null,
       colors: a.colors ?? null,
+      fx: a.fx ?? null,
       unlocked,
       reason: unlocked ? null : lockReason(a),
       price,
@@ -93,6 +94,33 @@ export function avatarChoices(data, owned = {}) {
 /** 무대 스킨. 아바타와 같은 해금 규칙을 탄다 — 규칙이 하나여야 한다. */
 export function boardChoices(data, owned = {}) {
   return choicesOf(data.cosmetics.boards, data, owned)
+}
+
+/** 승리 이펙트. 내가 이겼을 때 **진 판**에 떨어진다 — TFT 의 부머와 같다. */
+export function boomChoices(data, owned = {}) {
+  return choicesOf(data.cosmetics.booms, data, owned)
+}
+
+/** id → 그 이펙트의 줄. 없으면 기본값. */
+function boomOf(id, data) {
+  const list = data.cosmetics.booms
+  return list.find((b) => b.id === id) ?? list.find((b) => b.id === data.cosmetics.boomDefault)
+}
+
+/** 고른 이펙트가 유효한지 확인해서 실제로 쓸 id 를 돌려준다. */
+export function resolveBoom(picked, data, owned = {}) {
+  const found = data.cosmetics.booms.find((b) => b.id === picked)
+  if (found && isUnlocked(found, owned)) return found.id
+  return data.cosmetics.boomDefault
+}
+
+/**
+ * 화면이 그릴 이펙트 명세. 무대가 색만 받는 것과 같은 이유로 여기서
+ * 스프라이트 이름과 색까지 다 준다 — 무대·전투 코드가 코스메틱 규칙을
+ * 알 필요는 없다.
+ */
+export function boomFx(id, data) {
+  return boomOf(id, data)?.fx ?? {}
 }
 
 /** id → 그 보드의 줄. 없으면 기본값. */
@@ -118,6 +146,7 @@ export function cosmeticById(id, data) {
   return (
     data.cosmetics.avatars.find((a) => a.id === id) ??
     data.cosmetics.boards.find((b) => b.id === id) ??
+    data.cosmetics.booms.find((b) => b.id === id) ??
     null
   )
 }

@@ -15,6 +15,9 @@ import {
   resolveBoard,
   boardColors,
   cosmeticById,
+  boomChoices,
+  resolveBoom,
+  boomFx,
 } from '../sim/cosmetics.js'
 
 let data
@@ -202,5 +205,45 @@ describe('무대 스킨', () => {
     expect(cosmeticById(data.cosmetics.avatars[0].id, data)).toBeTruthy()
     expect(cosmeticById(data.cosmetics.boards[0].id, data)).toBeTruthy()
     expect(cosmeticById('없음', data)).toBe(null)
+  })
+})
+
+describe('승리 이펙트', () => {
+  it('아바타·무대와 같은 해금 규칙을 탄다', () => {
+    const list = boomChoices(data, {})
+    expect(list.length).toBe(data.cosmetics.booms.length)
+    expect(list.find((b) => b.id === data.cosmetics.boomDefault).unlocked).toBe(true)
+    expect(list.some((b) => !b.unlocked)).toBe(true)
+  })
+
+  it('잠긴 걸 고른 채로 남아 있으면 기본값으로 돌린다', () => {
+    const locked = data.cosmetics.booms.find((b) => b.unlock !== 'free')
+    expect(resolveBoom(locked.id, data, {})).toBe(data.cosmetics.boomDefault)
+    expect(resolveBoom(locked.id, data, { avatars: [locked.id] })).toBe(locked.id)
+    expect(resolveBoom('없음', data)).toBe(data.cosmetics.boomDefault)
+  })
+
+  it('모든 이펙트가 그릴 명세를 다 갖고 있다 — 빠지면 그것만 안 터진다', () => {
+    for (const b of data.cosmetics.booms) {
+      const fx = boomFx(b.id, data)
+      expect(fx.color, b.id).toMatch(/^#[0-9a-f]{6}$/i)
+      for (const k of ['ring', 'burst', 'spark']) expect(typeof fx[k], `${b.id}.${k}`).toBe('string')
+      expect(fx.shots, b.id).toBeGreaterThan(0)
+    }
+  })
+
+  it('id 가 아바타·무대와 안 겹친다 — 겹치면 하나를 사고 둘이 열린다', () => {
+    const ids = [
+      ...data.cosmetics.avatars,
+      ...data.cosmetics.boards,
+      ...data.cosmetics.booms,
+    ].map((x) => x.id)
+    expect(new Set(ids).size).toBe(ids.length)
+  })
+
+  it('파는 이펙트에는 값이 붙어 있다', () => {
+    for (const b of data.cosmetics.booms) {
+      if (b.unlock === data.cosmetics.shop.sellUnlock) expect(priceOf(b, data)).toBeGreaterThan(0)
+    }
   })
 })

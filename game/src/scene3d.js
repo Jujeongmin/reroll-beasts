@@ -1870,6 +1870,60 @@ export async function createScene({
     return url
   }
 
+  /**
+   * 승리 이펙트. 이긴 사람의 것이 **진 판** 위에 떨어진다 — TFT 의 부머와
+   * 같은 자리다. 이긴 판에 터뜨리면 자축이 되고, 진 판에 떨어져야 \"내가
+   * 이겼다\"가 상대 화면에서도 읽힌다.
+   *
+   * 새 에셋을 안 만든다. 이미 있는 무채색 스프라이트를 색만 바꿔 쓰므로
+   * 이펙트가 늘어도 파일은 안 는다(전투 이펙트와 같은 규칙).
+   */
+  function playBoom(fx = {}, { enemyHalf = true } = {}) {
+    const color = new THREE.Color(fx.color ?? '#ffd166').getHex()
+    // 진 쪽 절반의 한가운데. 교전선(frontZ)을 기준으로 가른다.
+    const cz = enemyHalf ? (arena.minZ + frontZ) / 2 : (frontZ + arena.maxZ) / 2
+    const y = topY + 0.05
+
+    // 1) 바닥 고리 — 어디에 떨어졌는지를 먼저 말한다.
+    spawnFx(fx.ring ?? 'ring_thick', new THREE.Vector3(arena.cx, y, cz), {
+      color,
+      size: 3.2,
+      grow: 2.4,
+      life: 0.7,
+      rise: 0.05,
+    })
+    // 2) 가운데 폭발 — 조금 늦게 터져야 고리가 먼저 읽힌다.
+    setTimeout(() => {
+      spawnFx(fx.burst ?? 'burst', new THREE.Vector3(arena.cx, y + 0.5, cz), {
+        color,
+        size: 2.6,
+        grow: 2.2,
+        life: 0.55,
+        rise: 0.5,
+      })
+    }, 90)
+    // 3) 불티. 판 위에 흩어 뿌린다 — 한 점에서만 터지면 그 칸만 축하받는
+    //    꼴이라 '판이 졌다'로 안 읽힌다.
+    const shots = Math.max(1, fx.shots ?? 5)
+    for (let i = 0; i < shots; i++) {
+      const t = i / shots
+      setTimeout(
+        () => {
+          // 무작위를 안 쓴다 — sim 이 아니라 화면이지만, 같은 판을 두 번
+          // 보면 같게 보이는 편이 낫다(관전·리플레이).
+          const a = t * Math.PI * 2 * 1.618
+          const r = (0.25 + 0.6 * t) * Math.min(arena.w, arena.d) * 0.5
+          spawnFx(
+            fx.spark ?? 'spark',
+            new THREE.Vector3(arena.cx + Math.cos(a) * r, y + 0.3, cz + Math.sin(a) * r * 0.6),
+            { color, size: 1.1, grow: 1.9, life: 0.5, rise: 0.35, spin: 3 },
+          )
+        },
+        140 + i * 55,
+      )
+    }
+  }
+
   function setSkin(colors = {}) {
     currentSkin = colors
     const set = (mat, hex) => {
@@ -1895,6 +1949,7 @@ export async function createScene({
     renderer,
     setSkin,
     boardShot,
+    playBoom,
     board,
     spacing,
     topY,

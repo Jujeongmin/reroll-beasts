@@ -162,6 +162,8 @@ export function createLobbyState({ seed, account, accounts, now, data }) {
       // 아바타도 같은 이유로 좌석에 붙는다 — 남의 판에 서 있는 내 모습이
       // 기본 캐릭터로 보이면 아바타를 산 값이 화면에 안 남는다.
       avatar: data.cosmetics.avatarDefault,
+      // 승리 이펙트. 진 판에 떨어지는 물건이라 **남이 보는 값**이다.
+      boom: data.cosmetics.boomDefault,
     })
   }
   const state = {

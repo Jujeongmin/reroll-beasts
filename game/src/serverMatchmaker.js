@@ -123,6 +123,7 @@ export async function createServerMatchmaker({ data, server, roomId = null, time
     if (!seat) return
     seat.skin = m.skin
     seat.avatar = m.avatar
+    seat.boom = m.boom
   })
   server.onRoomMessage(myRoom, 'ROUND_RESOLVED', (m) => {
     // 서버 판정으로 미러를 다시 맞춘다. 결정론이 지켜졌으면 이미 같은 값이라
@@ -308,8 +309,8 @@ export async function createServerMatchmaker({ data, server, roomId = null, time
      * 쓰로틀을 안 태운다 — 겉모습은 판마다 한 번 바꿀까 말까 한 값이라
      * 초당 여러 번 나갈 일이 없다.
      */
-    pushLook(boardId, avatarId) {
-      return server.remoteFunction('updateLook', [boardId, avatarId]).catch(() => {})
+    pushLook(boardId, avatarId, boomId) {
+      return server.remoteFunction('updateLook', [boardId, avatarId, boomId]).catch(() => {})
     },
 
     /** 레벨도 정찰 대상이다 — 상대 레벨이 다음 판 인원을 말한다. */

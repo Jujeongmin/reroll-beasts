@@ -4,7 +4,7 @@
 // 밀어 넣는다. 홈이 SDK 를 알면 홈을 확인하려면 네트워크가 필요해진다.
 
 import { homeView } from './home-state.js'
-import { avatarChoices, boardChoices } from '@sim/cosmetics.js'
+import { avatarChoices, boardChoices, boomChoices } from '@sim/cosmetics.js'
 import { storeProducts } from '@sim/store.js'
 import { seasonAt, daysLeft } from '@sim/season.js'
 import { passProgress, passTrack, EMPTY_PASS } from '@sim/pass.js'
@@ -31,6 +31,8 @@ export function createHome({
   onBuyAvatar,
   onPickBoard,
   onPickedBoard,
+  onPickBoom,
+  onPickedBoom,
   onStoreItems,
   onBuyPack,
 }) {
@@ -158,11 +160,15 @@ export function createHome({
   /** 지금 탭의 목록. 아바타든 무대든 같은 모양으로 그린다. */
   function skinList() {
     const owned = ownedNow()
-    return skinTab === 'avatar' ? avatarChoices(data, owned) : boardChoices(data, owned)
+    if (skinTab === 'avatar') return avatarChoices(data, owned)
+    if (skinTab === 'board') return boardChoices(data, owned)
+    return boomChoices(data, owned)
   }
 
   function currentId() {
-    return skinTab === 'avatar' ? onPickedAvatar() : onPickedBoard?.()
+    if (skinTab === 'avatar') return onPickedAvatar()
+    if (skinTab === 'board') return onPickedBoard?.()
+    return onPickedBoom?.()
   }
 
   function drawSkins() {
@@ -178,6 +184,17 @@ export function createHome({
         // 실제로 바뀌는 색 셋(잔디·돌·테두리)을 그대로 보여 준다.
         // 무대는 **진짜 판을 찍어** 보여 준다. 색 스와치는 그림이 오기
         // 전까지 자리를 채운다 — 빈 칸을 두면 목록이 한 번 덜컹인다.
+        // 승리 이펙트는 판 위에서만 보이는 물건이라 카드에 담을 그림이 없다.
+        // 색으로라도 무엇이 터질지 말해 준다.
+        if (skinTab === 'boom') {
+          return (
+            `<div class="card${c.unlocked ? '' : ' locked'}${c.id === cur ? ' on' : ''}` +
+            `${c.id === skinPick ? ' sel' : ''}" data-skin="${c.id}">` +
+            `<span class="boomart" style="color:${c.fx?.color ?? '#ffd166'}"><i></i></span>` +
+            `<span class="nm">${c.name}</span>` +
+            `<span class="why">${c.unlocked ? '' : c.reason}</span></div>`
+          )
+        }
         const art = c.file
           ? `<img alt="" data-file="${c.file}" />`
           : `<span class="swatch"><i class="g1" style="background:${c.colors?.ground}"></i>` +
@@ -286,7 +303,8 @@ export function createHome({
   /** 고른 것을 실제로 입힌다. 저장은 main 이 한다(홈은 저장소를 모른다). */
   function applySkin(id) {
     if (skinTab === 'avatar') onPickAvatar(id)
-    else onPickBoard?.(id)
+    else if (skinTab === 'board') onPickBoard?.(id)
+    else onPickBoom?.(id)
     drawSkins()
   }
 

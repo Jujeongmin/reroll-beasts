@@ -1080,6 +1080,16 @@
     width: 15px; height: 15px; image-rendering: pixelated;
     background: url('/assets/ui/gem.png') center/contain no-repeat;
   }
+  /* 승리 이펙트 견본. 실제로는 판 위에 터지는 물건이라 카드에 담을 그림이
+     없다 — 그 이펙트의 색으로 빛나는 고리를 그려 색만이라도 맞춰 보여 준다. */
+  #skins .boomart {
+    width: 100%; height: 100%; display: flex; align-items: center; justify-content: center;
+  }
+  #skins .boomart i {
+    width: 64px; height: 64px; border-radius: 50%;
+    box-shadow: inset 0 0 0 3px currentColor, 0 0 18px currentColor, 0 0 40px currentColor;
+  }
+
   /* 무대 견본. 3D 판을 여기서 그릴 수는 없으니 색 세 겹으로 보여 준다 —
      바깥 잔디, 판 돌, 내 칸 테두리. 실제로 바뀌는 것이 이 셋이다. */
   /* 찍어 온 판. 스와치 위에 덮는다 — 오기 전까지는 아래 색이 자리를 지킨다. */
@@ -1536,6 +1546,7 @@
           <div class="tabs" id="skins-tabs">
             <button class="tab on" data-tab="avatar">아바타</button>
             <button class="tab" data-tab="board">무대</button>
+            <button class="tab" data-tab="boom">승리</button>
           </div>
           <div class="wallet"><i class="g"></i><span id="skins-gems">0</span></div>
         </div>

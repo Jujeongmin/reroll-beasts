@@ -1335,6 +1335,9 @@ export async function createPrep({
     if (running) {
       tickTimer(dt)
       for (const v of views.values()) v.mixer.update(dt)
+      // 이펙트도 여기서 늙는다. 전투 루프에만 두면 배치 중에 터뜨린 것(승리
+      // 이펙트 미리보기)이 나이를 안 먹어 화면에 굳은 채로 남는다.
+      scene.updateFx(dt)
       // 아바타는 배치 중에만 걷는다. 전투 중에는 리플레이가 무대를 쥐고 있어
       // 그 위를 돌아다니면 누가 싸우는 말인지 흐려진다.
       // peekId 를 인자로 넘긴다. 부르는 쪽이 prep 을 되짚으면, 이 루프가

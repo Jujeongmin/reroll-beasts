@@ -37,6 +37,10 @@ export async function createBattle({ data, scene }) {
   let playing = false
   let speed = 1
   let onDone = null
+  // 로그가 끝나는 **그 순간** 한 번. 승리 이펙트가 여기서 터진다 — onBack 은
+  // 결과 화면을 닫을 때라 몇 초 늦다.
+  let onEnd = null
+  let endFired = false
   let active = false
   let endHold = 0
   // casterId → { range, bolt } — 사거리 밖에서 때리는 말만 투사체를 쏜다
@@ -401,6 +405,10 @@ export async function createBattle({ data, scene }) {
         }
       } else {
         acc = 0
+        if (!endFired) {
+          endFired = true
+          onEnd?.(result.winner)
+        }
         // 끝난 판을 잠깐 보여주고 스스로 넘어간다
         endHold += dt * TICK_RATE
         if (endHold >= END_HOLD_TICKS) {
@@ -448,12 +456,16 @@ export async function createBattle({ data, scene }) {
       return null
     },
 
-    async load(nextResult, { onBack, atTick = 0 } = {}) {
+    async load(nextResult, { onBack, onEnd: onEndCb, atTick = 0 } = {}) {
       for (const v of views.values()) v.dispose()
       views = new Map()
 
       result = nextResult
       onDone = onBack
+      onEnd = onEndCb
+      // 같은 전투를 중간부터 다시 틀 수 있다(관전에서 돌아올 때). 이미 끝을
+      // 지나온 지점에서 열면 이펙트를 다시 터뜨리지 않는다.
+      endFired = atTick > 0
       spawns = result.log.filter((e) => e.type === 'spawn')
       teamById = new Map(spawns.map((s) => [s.casterId, s.team]))
 

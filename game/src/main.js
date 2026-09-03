@@ -18,6 +18,8 @@ import {
   avatarAnims,
   resolveBoard,
   boardColors,
+  resolveBoom,
+  boomFx,
 } from '@sim/cosmetics.js'
 import { createHome } from './home.js'
 import { createStore } from './vxshop.js'
@@ -134,11 +136,15 @@ try {
    */
   const AVATAR_KEY = 'rr.avatar'
   const BOARD_KEY = 'rr.board'
+  const BOOM_KEY = 'rr.boom'
   function pickedAvatar() {
     return readKey(AVATAR_KEY)
   }
   function pickedBoard() {
     return readKey(BOARD_KEY)
+  }
+  function pickedBoom() {
+    return readKey(BOOM_KEY)
   }
   function readKey(k) {
     try {
@@ -169,6 +175,29 @@ try {
   /** 지금 내가 쓰는 무대. 못 가진 것을 골라 뒀으면 기본값으로 떨어진다. */
   function myBoardId() {
     return resolveBoard(pickedBoard(), data, ownedNow())
+  }
+
+  /** 지금 내가 쓰는 승리 이펙트. */
+  function myBoomId() {
+    return resolveBoom(pickedBoom(), data, ownedNow())
+  }
+
+  /**
+   * 전투가 끝났다. **이긴 쪽 이펙트를 진 쪽 판에** 떨어뜨린다.
+   *
+   * @param {string} winner  'A' | 'B' | 'draw' — A 가 화면 아래쪽(내 쪽)이다
+   * @param {object} o
+   * @param {string} o.aBoom  A 진영 사람의 이펙트 id
+   * @param {string} o.bBoom  B 진영 사람의 이펙트 id
+   */
+  function playWinFx(winner, { aBoom, bBoom }) {
+    // 무승부면 아무것도 안 터진다 — 이긴 사람이 없다.
+    if (winner !== 'A' && winner !== 'B') return
+    const id = winner === 'A' ? aBoom : bBoom
+    prep.scene.playBoom(boomFx(id ?? data.cosmetics.boomDefault, data), {
+      // 진 쪽 절반에 떨어진다. A 가 이겼으면 위쪽(상대 절반)이다.
+      enemyHalf: winner === 'A',
+    })
   }
 
   /** 서버가 준 전적을 화면과 해금 판정 양쪽에 흘린다. */
@@ -388,7 +417,7 @@ try {
       }
       hero3d?.swap(avatarFile(id, data), avatarAnims(id, data)).catch(() => {})
       // 판 안이면 좌석에도 붙인다 — 구경 온 사람 화면의 내 모습이 바뀐다.
-      mm?.pushLook?.(myBoardId(), id)
+      mm?.pushLook?.(myBoardId(), id, myBoomId())
       // 내 무대 위 아바타도 갈아 끼운다. 다음 판까지 기다리면 방금 고른 것이
       // 어떻게 생겼는지 확인할 방법이 없다.
       if (avatar) {
@@ -400,6 +429,21 @@ try {
       }
     },
     onPickedBoard: () => resolveBoard(pickedBoard(), data, ownedNow()),
+    onPickedBoom: () => myBoomId(),
+    /**
+     * 승리 이펙트를 골랐다. 고른 자리에서 **한 번 터뜨려 보여 준다** —
+     * 이건 이겨야 보이는 물건이라 안 틀어 주면 다음 승리까지 무엇을 샀는지
+     * 알 수 없다.
+     */
+    onPickBoom: (id) => {
+      try {
+        localStorage.setItem(BOOM_KEY, id)
+      } catch {
+        // 못 적어도 이번 판에는 적용된다.
+      }
+      mm?.pushLook?.(myBoardId(), pickedAvatar(), id)
+      prep.scene.playBoom(boomFx(id, data), { enemyHalf: true })
+    },
     /**
      * 무대를 골랐다. **곧장 판에 입힌다** — 다음 판까지 기다리게 하면 무엇을
      * 골랐는지 확인할 방법이 없다. 무대는 이미 서 있으므로 색만 갈아 끼운다.
@@ -412,7 +456,7 @@ try {
       }
       prep.scene.setSkin(boardColors(id, data))
       // 좌석에도 붙인다 — 남이 구경 왔을 때 보이는 값이다.
-      mm?.pushLook?.(id, pickedAvatar())
+      mm?.pushLook?.(id, pickedAvatar(), myBoomId())
     },
     // 홈은 서버를 모른다. 순위표도 여기서 받아 넘긴다.
     onBoard: async () => {
@@ -515,7 +559,7 @@ try {
     // 내 무대를 좌석에 붙인다. 판에 들어올 때마다 보내는 이유: 좌석은 방마다
     // 새로 생기고 기본값으로 시작한다 — 안 보내면 남에게는 늘 기본 무대다.
     prep.scene.setSkin(boardColors(myBoardId(), data))
-    mm?.pushLook?.(myBoardId(), pickedAvatar())
+    mm?.pushLook?.(myBoardId(), pickedAvatar(), myBoomId())
     prep.show()
     // 판이 선 뒤에 세운다 — 무대 범위(stageBounds)가 그때 정해진다.
     if (!avatar) {
@@ -586,7 +630,16 @@ try {
     // 아직 안 누른 줄 안다. 결과가 나오면 finish() 가 다시 올린다.
     coach?.hide()
     prep.hide()
-    await battle.load(result, { onBack })
+    await battle.load(result, {
+      onBack,
+      // 상대 이펙트는 그 좌석에 붙어 온다 — 내가 지면 그 사람 것이 내 판에
+      // 떨어져야 한다.
+      onEnd: (winner) =>
+        playWinFx(winner, {
+          aBoom: myBoomId(),
+          bBoom: run.lobby.find((x) => x.id === run.opponentId)?.boom,
+        }),
+    })
   }
 
   /**
@@ -604,9 +657,17 @@ try {
     prep.refresh()
     // 한 라운드의 전투는 동시에 벌어진다 — 보던 시점 그대로 남의 판을 본다.
     // 0 부터 다시 틀면 내 판으로 돌아왔을 때 이미 본 전투를 또 보게 된다.
+    const boomOfSeat = (id) =>
+      id === 0 ? myBoomId() : run.lobby.find((x) => x.id === id)?.boom
     battle.load(mine ? run.fight.result : f.result, {
       onBack: run.fight.onBack,
       atTick: battle.tick(),
+      // 남의 전투를 보는 중이면 그 판의 두 사람 이펙트를 쓴다.
+      onEnd: (winner) =>
+        playWinFx(winner, {
+          aBoom: mine ? myBoomId() : boomOfSeat(f.a),
+          bBoom: mine ? boomOfSeat(run.opponentId) : boomOfSeat(f.b),
+        }),
     })
   }
 

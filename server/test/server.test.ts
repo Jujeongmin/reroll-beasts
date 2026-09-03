@@ -379,14 +379,15 @@ describe('결제 훅', () => {
   });
 });
 
-describe('겉모습 공유(무대·아바타)', () => {
+describe('겉모습 공유(무대·아바타·승리 이펙트)', () => {
   test('안 가진 것을 보내면 기본값으로 떨어진다 — 아무나 최고 무대·아바타를 쓰면 안 된다', async (server) => {
     server.connect({ account: 'skin1' });
     await server.joinLobby();
-    const res = await server.updateLook('champion', 'golden_knight');
+    const res = await server.updateLook('champion', 'golden_knight', 'crownfall');
     expect(res.ok).toBe(true);
     expect(res.skin).toBe('stone');
     expect(res.avatar).toBe('knight');
+    expect(res.boom).toBe('flare');
     const s = await server.getLobby();
     expect(s.seats[0].skin).toBe('stone');
     expect(s.seats[0].avatar).toBe('knight');
@@ -398,6 +399,7 @@ describe('겉모습 공유(무대·아바타)', () => {
     for (const seat of s.seats) {
       expect(typeof seat.skin).toBe('string');
       expect(typeof seat.avatar).toBe('string');
+      expect(typeof seat.boom).toBe('string');
     }
   });
 });
