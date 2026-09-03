@@ -1344,6 +1344,30 @@ export async function createScene({
     await Promise.all(ids.map(loadItemIcon))
   }
 
+  /**
+   * 전투 이펙트 텍스처를 미리 받는다.
+   *
+   * 게으르게 두면 **첫 타격이 일어나는 그 프레임에** 디코드가 걸린다 —
+   * 하필 화면이 가장 바쁠 때다. 여덟 장뿐이라 부팅에서 치르는 편이 싸다.
+   */
+  const FX_KINDS = ['burst', 'glow', 'ring', 'ring_thick', 'slash', 'spark', 'trail', 'wisp']
+  function preloadFx() {
+    return Promise.all(
+      FX_KINDS.map(
+        (kind) =>
+          new Promise((resolve) => {
+            const t = fxTexture(kind)
+            if (t.image) return resolve()
+            // 못 받아도 게임은 굴러가야 한다 — 그 이펙트만 안 뜬다.
+            t.addEventListener?.('dispose', resolve)
+            const img = new Image()
+            img.onload = img.onerror = () => resolve()
+            img.src = `/assets/fx/${kind}.webp`
+          }),
+      ),
+    )
+  }
+
   // 선반 스프라이트용 텍스처. 16×16 원본을 그대로 몇 배 키워 붙이므로
   // 기본(Linear) 필터를 쓰면 확대할 때 경계가 뭉개진다 — 나머지 UI가
   // 전부 image-rendering:pixelated 인데 여기만 흐리면 어긋난다. id 별로
@@ -1757,6 +1781,7 @@ export async function createScene({
     pickObjects,
     makeBadge,
     preloadItemIcons,
+    preloadFx,
     itemSlots: itemShelfSlots,
     setItemShelf,
     spawnFx,

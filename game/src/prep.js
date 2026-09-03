@@ -1311,6 +1311,9 @@ export async function createPrep({ data, run, onFight, onWatch, onPickUnit, onBo
     const jobs = [
       ...ids.flatMap((id) => [() => thumbFor(id, 1), () => thumbFor(id, 3)]),
       () => scene.preloadItemIcons(data.items.items.map((i) => i.id)),
+      // 전투 이펙트도 부팅에서 받는다 — 첫 타격 프레임에 디코드가 걸리면
+      // 하필 화면이 가장 바쁠 때 끊긴다.
+      () => scene.preloadFx(),
     ]
     let done = 0
     for (const job of jobs) {

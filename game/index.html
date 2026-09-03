@@ -4,6 +4,9 @@
 <meta charset="utf-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover, user-scalable=no" />
 <title>Reroll Beasts</title>
+<!-- 홈 배경은 부팅 화면 뒤에서 미리 받아 둔다. CSS 가 홈을 그릴 때 처음
+     받으면 첫 진입에서 배경 없는 홈이 한 번 번쩍인다. -->
+<link rel="preload" as="image" href="/assets/home/bg_scene.webp" />
 <style>
   /* ─────────────────────────────────────────────────────────
      TFT 배치를 따른다. 판이 화면의 주인이고 HUD 는 그 위에 뜬다.
