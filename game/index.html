@@ -763,34 +763,14 @@
      배경은 그림 파일이 아니라 CSS 다. 간판 캐릭터 뒤에 따뜻한 빛무리를 깔고
      위아래를 어둡게 눌러 시선이 가운데로 모이게 한다 — 사진 한 장을 깔면
      용량이 늘고 화면비마다 잘리는 데가 달라진다. */
+  /* 배경은 그림 한 장이다. 도형과 실루엣 조각으로 짜 맞추던 것을 걷어냈다 —
+     조각은 아무리 맞춰도 "스티커 붙인" 인상이 남고, 화면 폭이 700~1040 으로
+     변할 때마다 조각들 사이 간격이 따로 논다. 그림은 가운데가 비어 있어
+     좌우가 잘려도 캐릭터 자리는 안 흔들린다 (cover + center).
+     1.6MB PNG 를 WebP 로 구워 51KB 다 (tools/build-ui-rpg.mjs). */
   #home {
     position: absolute; inset: 0; z-index: 70; overflow: hidden;
-    background:
-      /* 별. 점 몇 개는 CSS 로 찍는 게 싸다 */
-      radial-gradient(1.4px 1.4px at 34% 14%, #e8e2ffcc 50%, transparent 51%),
-      radial-gradient(1.2px 1.2px at 44% 25%, #e8e2ff99 50%, transparent 51%),
-      radial-gradient(1.4px 1.4px at 58% 11%, #e8e2ffbb 50%, transparent 51%),
-      radial-gradient(1.2px 1.2px at 69% 20%, #e8e2ff88 50%, transparent 51%),
-      radial-gradient(1.5px 1.5px at 80% 10%, #e8e2ffaa 50%, transparent 51%),
-      radial-gradient(1.2px 1.2px at 89% 24%, #e8e2ff77 50%, transparent 51%),
-      radial-gradient(1.2px 1.2px at 28% 30%, #e8e2ff77 50%, transparent 51%),
-      /* 지평선 뒤에서 올라오는 불빛 */
-      radial-gradient(46% 42% at 52% 78%, #d9963f66 0%, #6b3f1a00 70%),
-      radial-gradient(120% 90% at 50% 0%, #3b2f5e 0%, #1a1424 55%, #0d0a12 100%);
-  }
-  /* 바닥. 능선을 도형으로 그렸더니 색종이를 오린 것처럼 보여서 걷어냈다 —
-     대신 평평한 땅 한 겹만 두고 위 가장자리를 흐린다. 실루엣이 여기 선다. */
-  #home::before {
-    content: ''; position: absolute; left: 0; right: 0; bottom: 0; height: 92px;
-    background: linear-gradient(#0e0a17ee 0%, #08050e 40%);
-    box-shadow: 0 -12px 26px 6px #12091baa;
-    pointer-events: none;
-  }
-  /* 바닥 안개. 캐릭터 발밑이 잘린 것처럼 보이지 않게 아래를 흐린다. */
-  #home::after {
-    content: ''; position: absolute; left: 0; right: 0; bottom: 56px; height: 46px;
-    background: linear-gradient(#6b4a7a00, #6b4a7a2e);
-    pointer-events: none;
+    background: #150f22 url('/assets/home/bg_scene.webp') center / cover no-repeat;
   }
   #home[hidden] { display: none; }
   /* 9-slice. 원본 panel_brown 은 100×100 에 모서리가 12px 쯤이다 —
@@ -842,25 +822,6 @@
   /* 배경 그림 조각. brightness(0) 으로 눌러 실루엣만 남긴다 — 팩은 평면
      컬러라 그대로 얹으면 밤 하늘 위에 낮 그림이 붙은 꼴이 된다.
      멀수록 옅게: 거리에 따라 대비가 줄어야 깊이가 생긴다. */
-  /* 스카이라인은 **주인공을 피해서** 선다. 드래곤 뒤로 지나가면 실루엣이
-     다리 사이로 삐져나와 지저분해진다. 드래곤은 화면의 37~67% 를 쓰므로
-     성·탑은 그 왼쪽, 나무는 오른쪽에 둔다. */
-  #home .sil { position: absolute; pointer-events: none; bottom: 74px; }
-  #home .castle { left: 21%; height: 76px; filter: brightness(0) opacity(.85); }
-  #home .tower { left: 30%; height: 88px; filter: brightness(0) opacity(.8); }
-  #home .tree1 { left: 68%; height: 78px; filter: brightness(0) opacity(.85); }
-  #home .tree2 { left: 74%; height: 46px; filter: brightness(0) opacity(.75); }
-  #home .tree3 { left: 34%; height: 34px; filter: brightness(0) opacity(.6); }
-  /* 달은 누르지 않는다 — 하나뿐인 광원이라 실루엣이 되면 배경이 통째로 밤이 된다.
-     패널(152px)보다 확실히 오른쪽에 둔다. 좁은 화면에서 패널에 물린다. */
-  #home .moon {
-    left: 27%; top: 18px; bottom: auto; width: 44px;
-    filter: brightness(1.1) sepia(.25);
-  }
-  #home .cloud {
-    left: 58%; top: 22px; bottom: auto; width: 112px;
-    filter: brightness(0) opacity(.18);
-  }
   /* 불티. 배경이 멈춰 있으면 화면이 죽은 사진처럼 보인다. 몇 점만 아주
      느리게 올린다 — 많으면 메뉴를 읽는 눈이 따라다닌다. */
   #home .ember {
@@ -991,15 +952,6 @@
         <div class="recent" id="record-recent"></div>
       </div>
     </div>
-    <!-- 스카이라인. 팩 그림을 실루엣으로 눌러 쓴다 — 평면 컬러 그대로 두면
-         밤 하늘과 따로 논다. 바닥 띠 위에 세워 발밑을 맞춘다. -->
-    <img class="sil moon" src="/assets/home/bg_moon.png" alt="" />
-    <img class="sil cloud" src="/assets/home/bg_cloud.png" alt="" />
-    <img class="sil castle" src="/assets/home/bg_castle.png" alt="" />
-    <img class="sil tower" src="/assets/home/bg_tower.png" alt="" />
-    <img class="sil tree1" src="/assets/home/bg_tree_tall.png" alt="" />
-    <img class="sil tree2" src="/assets/home/bg_tree.png" alt="" />
-    <img class="sil tree3" src="/assets/home/bg_tree.png" alt="" />
     <i class="ember" style="left: 40%; bottom: 40px; animation-delay: 0s"></i>
     <i class="ember" style="left: 47%; bottom: 24px; animation-delay: 2.6s"></i>
     <i class="ember" style="left: 55%; bottom: 52px; animation-delay: 5.1s"></i>

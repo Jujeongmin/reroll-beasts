@@ -7,7 +7,7 @@ import { mkdir, copyFile, readdir } from 'node:fs/promises'
 import { resolve } from 'node:path'
 
 const SRC = resolve(import.meta.dirname, '../art-src/kenney-ui-pack-rpg-expansion/PNG')
-const BG_SRC = resolve(import.meta.dirname, '../art-src/kenney-background-elements/PNG')
+const BG_SRC = resolve(import.meta.dirname, '../art-src/home-bg')
 const OUT = resolve(import.meta.dirname, '../game/public/assets/ui')
 const BG_OUT = resolve(import.meta.dirname, '../game/public/assets/home')
 
@@ -19,17 +19,6 @@ const JOBS = [
   ['buttonLong_beige_pressed.png', 'lobby_btn_down.png'],
   // 전적 칸. 안으로 파인 판이라 "읽는 것"과 "누르는 것"이 눈에 갈린다.
   ['panelInset_brown.png', 'lobby_inset.png'],
-]
-
-// 홈 배경 조각. 평면 컬러 그림이라 그대로 쓰면 밤 하늘과 안 맞는다 —
-// CSS 에서 실루엣으로 눌러 능선 위 스카이라인으로 쓴다. 달만 그대로.
-const BG_JOBS = [
-  ['castle_grey.png', 'bg_castle.png'],
-  ['tower_grey.png', 'bg_tower.png'],
-  ['tree22.png', 'bg_tree_tall.png'],
-  ['tree05.png', 'bg_tree.png'],
-  ['moon_full.png', 'bg_moon.png'],
-  ['cloud3.png', 'bg_cloud.png'],
 ]
 
 async function copyAll(jobs, src, out) {
@@ -49,4 +38,19 @@ async function copyAll(jobs, src, out) {
 }
 
 await copyAll(JOBS, SRC, OUT)
-await copyAll(BG_JOBS, BG_SRC, BG_OUT)
+
+// 홈 배경 한 장. 원본 PNG 는 1.6MB 인데 WebP 로 구우면 51KB 다 — 노을·안개가
+// 그라디언트뿐이라 PNG 의 무손실 압축이 거의 안 먹는다. 화면에서 쓰는 폭은
+// 최대 1040 이므로 1624 로 줄여도 2배 화면까지 충분하다.
+await mkdir(BG_OUT, { recursive: true })
+try {
+  const { default: sharp } = await import('sharp')
+  await sharp(resolve(BG_SRC, 'bg_scene.png'))
+    .resize(1624, null, { withoutEnlargement: true })
+    .webp({ quality: 82 })
+    .toFile(resolve(BG_OUT, 'bg_scene.webp'))
+  console.log('bg_scene.png → bg_scene.webp')
+} catch (err) {
+  console.error(`홈 배경을 못 구웠다: ${err.message}`)
+  process.exit(1)
+}
