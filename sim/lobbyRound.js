@@ -169,3 +169,48 @@ export function createLobbyState({ seed, account, accounts, now, data }) {
   growBotSeats(state, data)
   return state
 }
+
+/**
+ * 탈락한 좌석에 순위를 박는다.
+ *
+ * 순위를 **죽는 그 자리에서** 정하는 이유: 나중에 되짚으려면 누가 언제
+ * 죽었는지를 따로 적어 둬야 하는데, 그 기록이 상태와 어긋나는 순간 전적이
+ * 조용히 거짓말을 시작한다. 같은 라운드에 죽은 좌석은 가를 근거가 없으므로
+ * 같은 순위를 준다.
+ *
+ * final 은 23라운드를 다 채워 끝난 경우다. 살아남은 사람들 사이는 체력으로
+ * 가른다 — 그때까지 덜 맞은 쪽이 더 잘한 것이다.
+ */
+export function assignRanks(state, { final = false } = {}) {
+  const out = []
+  const take = (seat, rank) => {
+    if (seat.rank != null) return
+    seat.rank = rank
+    if (seat.account) out.push({ account: seat.account, rank })
+  }
+
+  const alive = state.seats.filter((s) => s.alive)
+  for (const seat of state.seats) {
+    if (!seat.alive) take(seat, alive.length + 1)
+  }
+
+  if (alive.length === 1) take(alive[0], 1)
+  else if (final && alive.length > 1) {
+    // 체력 내림차순. 같은 체력이면 같은 순위이고, 그다음은 인원수만큼 건너뛴다
+    // (공동 2위가 둘이면 다음은 4위) — 스포츠 순위와 같은 셈법이다.
+    const sorted = [...alive].sort((a, b) => b.hp - a.hp)
+    let rank = 1
+    let seen = 0
+    let prevHp = null
+    for (const seat of sorted) {
+      seen += 1
+      if (seat.hp !== prevHp) {
+        rank = seen
+        prevHp = seat.hp
+      }
+      take(seat, rank)
+    }
+  }
+
+  return out
+}
