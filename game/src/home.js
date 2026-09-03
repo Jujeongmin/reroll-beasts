@@ -140,9 +140,18 @@ export function createHome({ data, onPick, onCancelQueue, onRetry, onBoard }) {
       state = { ...state, queue }
       render()
     },
-    /** 간판 캐릭터. 부팅에서 한 번 찍어 넘어온다. */
+    /** 간판 캐릭터(정지 초상). 부팅에서 한 번 찍어 넘어온다. */
     setHero(url) {
       el.hero.src = url
+    },
+    /**
+     * 살아 있는 모델이 준비됐다. 정지 초상을 내린다.
+     *
+     * 초상을 먼저 띄우고 나중에 바꾸는 이유: 모델·믹서 준비가 몇 프레임
+     * 걸리는데 그동안 자리가 비면 홈이 한 번 휑해 보인다.
+     */
+    setHeroLive() {
+      el.hero.hidden = true
     },
     /**
      * 아직 튜토리얼을 안 본 사람에게 표를 단다.

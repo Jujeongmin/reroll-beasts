@@ -847,6 +847,8 @@
      이미 갖고 있다. */
   #home .lobby-panel {
     position: absolute; left: 22px; top: 50%; transform: translateY(-50%);
+    /* 간판 캐릭터(z 없음)보다 위. 말풍선이 드래곤 뒤로 들어가면 안 읽힌다. */
+    z-index: 4;
     display: flex; flex-direction: column; gap: 8px; width: 176px;
   }
   /* 간판. 게임 이름은 화면에서 가장 큰 글자여야 한다 — 로비에 처음 들어온
@@ -921,7 +923,7 @@
   /* 반투명 띠. 코치 말풍선과 같은 말투를 쓴다 — 화면에 얹힌 정보는 다 같은
      재질이어야 어느 것이 그림이고 어느 것이 UI 인지 헷갈리지 않는다. */
   #home .record {
-    position: absolute; left: 22px; top: 16px; width: 176px;
+    position: absolute; left: 22px; top: 16px; width: 176px; z-index: 4;
     padding: 8px 10px; border-radius: 9px; white-space: nowrap;
     font-size: 10px; line-height: 1.4; color: #f0dcb4;
     background: #140e1cbf; backdrop-filter: blur(3px); -webkit-backdrop-filter: blur(3px);
@@ -1013,6 +1015,16 @@
     filter: saturate(.93) drop-shadow(0 0 16px #ff8a3c3d) drop-shadow(0 6px 14px #000a);
   }
   #home .hero:not([src]) { display: none; }
+  /* 살아 있는 간판. 정지 초상과 같은 자리·같은 크기라 교대가 안 보인다. */
+  #home .hero3d-mount {
+    position: absolute; left: 52%; bottom: 46px; transform: translateX(-50%);
+    width: 236px; height: 236px;
+    /* 캔버스는 눌린다 — 몸을 누르면 움찔한다(heroView 의 레이캐스트).
+       빈 자리는 레이캐스트가 걸러 내므로 뒤 버튼을 막지 않는다. */
+    pointer-events: auto;
+  }
+  #home .hero3d-mount[hidden] { display: none; }
+  #home .hero3d-mount canvas { display: block; width: 100%; height: 100%; }
   /* 발밑 그림자. 없으면 선 것도 나는 것도 아닌 채로 떠 있다. */
   #home .hero-shadow {
     position: absolute; left: 52%; bottom: 64px; transform: translateX(-50%);
@@ -1152,7 +1164,10 @@
     <i class="ember" style="left: 55%; bottom: 52px; animation-delay: 5.1s"></i>
     <i class="ember" style="left: 62%; bottom: 30px; animation-delay: 7.4s"></i>
     <i class="hero-shadow"></i>
+    <!-- 정지 초상. 살아 있는 모델(hero3d)이 준비되면 그 뒤로 숨는다 —
+         WebGL 컨텍스트를 못 얻는 기기에서는 이게 그대로 남는다. -->
     <img class="hero" id="home-hero" alt="" />
+    <div class="hero3d-mount" id="home-hero3d"></div>
     <!-- 팔 물건(코스메틱)이 아직 없다. 자리만 잡아 두고 눌리지 않게 둔다 —
          동작 없는 버튼을 열어 두면 거짓말이 된다. 자물쇠를 다는 이유도 같다:
          "지금은 못 연다"가 글자보다 그림으로 먼저 읽힌다. -->

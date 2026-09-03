@@ -15,6 +15,7 @@ import { setupTutorial } from '@sim/tutorial.js'
 import { createHome } from './home.js'
 import { createCoach, isTutorialDone, markTutorialDone } from './tutorial.js'
 import { createTutorialMatchmaker } from './tutorialMatchmaker.js'
+import { createHeroView } from './heroView.js'
 import { createServerMatchmaker, connectServer, startQueue } from './serverMatchmaker.js'
 import { createPrep } from './prep.js'
 import { createBattle } from './battle.js'
@@ -181,6 +182,18 @@ try {
   // 읽히므로, 홈은 자기 그림을 쓴다. 3성 모델을 한 번 크게 찍는다.
   prep.heroPortrait('dragon').then(home.setHero).catch(() => {})
 
+  // 살아 있는 간판. 정지 초상만 있으면 배경만 움직이고 주인공은 멈춰 있어
+  // "그려 붙인 것"으로 읽힌다. 실패하면 초상이 그대로 남는다 — 기기가
+  // WebGL 컨텍스트를 더 못 줄 수도 있다.
+  let hero3d = null
+  createHeroView({ scene: prep.scene, mount: document.getElementById('home-hero3d') })
+    .then((v) => {
+      hero3d = v
+      home.setHeroLive()
+      if (!document.getElementById('home').hidden) v.start()
+    })
+    .catch((err) => console.warn('간판 애니메이션 없이 간다:', err?.message))
+
   // 처음 온 사람도 **메인화면을 먼저 본다.** 부팅하자마자 게임 안으로 밀어
   // 넣으면 무슨 게임인지 보기도 전에 조작을 배우게 되고, 나가는 길도 모른다.
   // 대신 튜토리얼 버튼에 표를 달아 눈이 가게 한다.
@@ -240,6 +253,7 @@ try {
     run.lobby = mm.seats
     drawRound()
     home.hide()
+    hero3d?.stop()
     document.getElementById('prep').hidden = false
     // 1라운드도 지급 라운드일 수 있다 — settle() 은 라운드 2부터 도니 여기서
     // 한 번은 짚어야 한다. 지금 일정은 1라운드가 아니라 no-op 이다.
