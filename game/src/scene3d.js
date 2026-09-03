@@ -502,6 +502,9 @@ export async function createScene({
   // 돌이 **실제로** 끝나는 선. PLAZA 는 상한일 뿐이다 — 격자가 칸 단위로
   // 떨어지므로 마지막 타일은 PLAZA 보다 한참 안쪽에서 끝날 수 있다 (실측
   // 0.7 차이). 반드시 깔린 타일에서 잰 값만 쓴다.
+  // 마당 돌 재질. 무대 스킨이 판만 물들이면 판 안쪽만 색이 바뀌어
+  // 반쯤 칠하다 만 그림이 된다 — 마당도 같이 물들어야 한 무대로 읽힌다.
+  const apronRefs = []
   let stoneEdgeX = 0
   let stoneEdgeZ = 0
 
@@ -523,6 +526,7 @@ export async function createScene({
     const apronMats = apronSets.map((set) => {
       const mat = set.mat.clone()
       mat.color.multiplyScalar(0.42)
+      apronRefs.push(mat)
       return mat
     })
 
@@ -1830,6 +1834,9 @@ export async function createScene({
       if (mat && hex) mat.color.set(hex)
     }
     set(floorMat, colors.floor)
+    // 마당은 판보다 어둡게 유지한다. 같은 색을 그대로 주면 판과 마당의
+    // 경계가 사라져 어디까지가 싸우는 자리인지 안 읽힌다.
+    for (const m of apronRefs) if (colors.floor) m.color.set(colors.floor).multiplyScalar(0.42)
     set(baseMat, colors.base)
     set(groundMat, colors.ground)
     // 내 칸 테두리. 판 색이 바뀌면 청록 하나로는 안 읽히는 무대가 생긴다.
