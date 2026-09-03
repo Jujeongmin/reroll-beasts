@@ -884,7 +884,10 @@
      정작 그 안에 든 건 버튼 셋뿐이라 액자만 무거웠다. 버튼은 자기 액자를
      이미 갖고 있다. */
   #home .lobby-panel {
-    position: absolute; left: 22px; top: 50%; transform: translateY(-50%);
+    /* 가운데 정렬이 아니라 **프로필 카드 아래**로 못 박는다. 세로 가운데에
+       두면 카드가 한 줄 늘어날 때(이름이 생겼다) 그만큼 겹친다 — 카드가
+       기준이어야 겹칠 자리가 없다. */
+    position: absolute; left: 22px; top: 118px;
     /* 간판 캐릭터(z 없음)보다 위. 말풍선이 드래곤 뒤로 들어가면 안 읽힌다. */
     z-index: 4;
     display: flex; flex-direction: column; gap: 8px; width: 176px;
