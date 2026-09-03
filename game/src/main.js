@@ -16,6 +16,7 @@ import { createHome } from './home.js'
 import { createCoach, isTutorialDone, markTutorialDone } from './tutorial.js'
 import { createTutorialMatchmaker } from './tutorialMatchmaker.js'
 import { createHeroView } from './heroView.js'
+import { createAvatar } from './avatarView.js'
 import { createServerMatchmaker, connectServer, startQueue } from './serverMatchmaker.js'
 import { createPrep } from './prep.js'
 import { createBattle } from './battle.js'
@@ -113,6 +114,19 @@ try {
   // 타므로 그때 이 변수가 이미 있어야 한다.
   let coach = null
 
+  // 무대 위 아바타. 같은 이유로 prep 보다 먼저 선언한다 — prep 의 콜백이
+  // 이 변수를 읽는다.
+  let avatar = null
+
+  /**
+   * 아바타 한 프레임. 움직였을 때만 서버로 보낸다 — 가만히 서 있는 사람의
+   * 좌표를 초당 몇 번씩 보내면 그게 곧 대역 낭비다.
+   */
+  function tickAvatar(dt) {
+    if (!avatar) return
+    if (avatar.tick(dt)) mm?.pushAvatar?.(avatar.position)
+  }
+
   function pushScout(entries) {
     // 판이 바뀌면 단계가 넘어갔는지 코치가 다시 본다. refresh() 가 판이
     // 바뀌는 모든 자리에서 불리므로 여기 하나면 빠뜨릴 곳이 없다.
@@ -131,6 +145,10 @@ try {
     onFight: startFight,
     onWatch: watchFight,
     onBoardChange: pushScout,
+    // 빈 땅을 짚으면 아바타가 그리로 걷는다. 말을 짚었으면 prep 이 먼저
+    // 드래그로 처리하므로 여기까지 안 온다.
+    onGroundTap: (x, y) => avatar?.goTo(x, y),
+    onTickAvatar: (dt) => tickAvatar(dt),
     // battle 은 prep 다음에 만들어진다. 화살표 안에서 읽으므로 그때는 이미 있다.
     onPickUnit: (x, y) => battle?.unitAt(x, y) ?? null,
   })
@@ -259,6 +277,16 @@ try {
     // 한 번은 짚어야 한다. 지금 일정은 1라운드가 아니라 no-op 이다.
     grantIfDue(run.index)
     prep.show()
+    // 판이 선 뒤에 세운다 — 무대 범위(stageBounds)가 그때 정해진다.
+    if (!avatar) {
+      createAvatar({ scene: prep.scene })
+        .then((a) => {
+          avatar = a
+          // 개발 중 확인용. 아바타는 화면에만 있어 콘솔에서 잡을 손잡이가 없다.
+          if (import.meta.env.DEV && globalThis.__dev) globalThis.__dev.avatar = a
+        })
+        .catch((err) => console.warn('아바타 없이 간다:', err?.message))
+    }
   }
 
   function startMatch(mode) {

@@ -1276,6 +1276,36 @@ export async function createScene({
   observer.observe(mount)
   resize()
 
+  /**
+   * 화면 좌표 → 무대 바닥의 월드 좌표.
+   *
+   * 타일에 안 붙는다 — 아바타는 칸 위가 아니라 **바닥 아무 데나** 선다.
+   * tileAt 은 같은 광선을 쓰고 그 뒤에 가장 가까운 칸으로 접는다.
+   */
+  function groundAt(clientX, clientY) {
+    const r = renderer.domElement.getBoundingClientRect()
+    ndc.x = ((clientX - r.left) / r.width) * 2 - 1
+    ndc.y = -((clientY - r.top) / r.height) * 2 + 1
+    raycaster.setFromCamera(ndc, camera)
+    if (!raycaster.ray.intersectPlane(pickPlane, hit)) return null
+    return { x: hit.x, z: hit.z }
+  }
+
+  /**
+   * 아바타가 돌아다닐 수 있는 범위. 판을 기준으로 잡고 한 칸씩 넉넉히 준다 —
+   * 판 위에만 가두면 말들 사이에 끼여 어디에 서 있는지 안 보인다.
+   */
+  function stageBounds() {
+    const xs = board.tiles.map((t) => t.x)
+    const zs = board.tiles.map((t) => t.z)
+    return {
+      minX: Math.min(...xs) - spacing.stepX,
+      maxX: Math.max(...xs) + spacing.stepX,
+      minZ: Math.min(...zs) - spacing.stepZ,
+      maxZ: Math.max(...zs) + spacing.stepZ,
+    }
+  }
+
   /** 화면 좌표 → 가장 가까운 타일 번호. 보드 밖이면 null. */
   function tileAt(clientX, clientY) {
     const r = renderer.domElement.getBoundingClientRect()
@@ -1797,6 +1827,8 @@ export async function createScene({
     setRange,
     ringStyles: { idle: ringIdle, hot: ringHot, sell: ringSell, range: ringRange },
     tileAt,
+    groundAt,
+    stageBounds,
     resize,
     setBattleMode,
     render: () => renderer.render(scene, camera),

@@ -39,7 +39,16 @@ const STAR = ['', '★', '★★', '★★★']
 // 성급 색. scene3d 의 STAR_COLOR 와 같은 값이어야 배지와 패널이 안 어긋난다.
 const STAR_COLOR = ['#d99154', '#e6edf5', '#ffd166']
 
-export async function createPrep({ data, run, onFight, onWatch, onPickUnit, onBoardChange }) {
+export async function createPrep({
+  data,
+  run,
+  onFight,
+  onWatch,
+  onPickUnit,
+  onBoardChange,
+  onGroundTap,
+  onTickAvatar,
+}) {
   const el = {
     root: document.getElementById('prep'),
     stage: document.getElementById('stage'),
@@ -1188,6 +1197,10 @@ export async function createPrep({ data, run, onFight, onWatch, onPickUnit, onBo
     const found = unitAtPointer(ev.clientX, ev.clientY)
     if (!found) {
       hideInfo()
+      // 빈 땅을 짚었다 = 말을 집으려던 게 아니다. 아바타 목적지로 넘긴다 —
+      // 손가락 하나뿐인 화면에서 "말 옮기기"와 "걸어가기"를 가르는 유일한
+      // 단서가 무엇을 짚었느냐다.
+      onGroundTap?.(ev.clientX, ev.clientY)
       return
     }
     // 전투 중에도 대기석 말은 집을 수 있다 (팔거나 자리를 옮긴다).
@@ -1284,6 +1297,9 @@ export async function createPrep({ data, run, onFight, onWatch, onPickUnit, onBo
     if (running) {
       tickTimer(dt)
       for (const v of views.values()) v.mixer.update(dt)
+      // 아바타는 배치 중에만 걷는다. 전투 중에는 리플레이가 무대를 쥐고 있어
+      // 그 위를 돌아다니면 누가 싸우는 말인지 흐려진다.
+      onTickAvatar?.(dt)
       scene.render()
     }
     requestAnimationFrame(frame)
