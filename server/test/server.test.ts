@@ -196,3 +196,26 @@ describe('매칭 큐', () => {
     expect(after.fights.length).toBe(0);
   });
 });
+
+describe('전적', () => {
+  test('판을 안 끝냈으면 전적이 없다 — 0 으로 채우지 않는다', async (server) => {
+    expect(await server.getProfile()).toBe(null);
+  });
+
+  // 혼자 있는 연습 방은 사람이 하나뿐이라 early 로 즉시 마감된다. 라운드를
+  // 끝까지 밀면 23라운드 완주로 게임이 끝나고, 그때 순위가 박힌다.
+  test('판이 끝나면 전적이 쌓인다', async (server) => {
+    await server.joinLobby();
+    for (let i = 0; i < 30; i++) {
+      const s = await server.resolveRound();
+      if (!s || s.phase === 'done') break;
+    }
+    const p = await server.getProfile();
+    expect(p).toBeTruthy();
+    expect(p.games).toBe(1);
+    expect(p.recent.length).toBe(1);
+    expect(p.best).toBe(p.recent[0]);
+    expect(p.recent[0]).toBeGreaterThanOrEqual(1);
+    expect(p.recent[0]).toBeLessThanOrEqual(8);
+  });
+});

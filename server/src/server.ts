@@ -19,7 +19,8 @@
  * 그래서 마감도 매칭도 **클라 호출이 트리거**다: 서버는 시각·조건만 쥐고,
  * 클라가 찾아올 때 판정한다. 동시 호출은 $lock 으로 한 번만 처리된다.
  */
-import { createLobbyState, resolveRound } from '../../sim/lobbyRound.js'
+import { createLobbyState, resolveRound, assignRanks } from '../../sim/lobbyRound.js'
+import { mergeProfile } from '../../sim/profile.js'
 import { simulate } from '../../sim/combat.js'
 import { totalRounds } from '../../sim/rounds.js'
 import combat from '../../game/public/data/combat.json'
@@ -73,6 +74,15 @@ export class Server {
 
   async getLobby(): Promise<any | null> {
     return readLobby()
+  }
+
+  /**
+   * 내 전적. 없으면 null 을 준다 — 0 으로 채운 표는 "0판 · 최고 0위" 라는
+   * 거짓 정보가 되고, 화면이 그걸 그대로 그린다.
+   */
+  async getProfile(): Promise<any | null> {
+    const st: any = await $global.getMyState()
+    return st?.profile ?? null
   }
 
   // ── 매칭 큐 ─────────────────────────────────────────────
@@ -225,6 +235,15 @@ export class Server {
       const humans = state.seats.filter((s: any) => !s.isBot && s.alive).length
       const { changed, fights } = resolveRound(state, Date.now(), DATA, { early: humans <= 1 })
       if (!changed) return state
+
+      // 순위는 서버가 박는다. 클라가 "나 1등"이라고 올리면 그대로 믿게 된다.
+      const ranked = assignRanks(state, { final: state.phase === 'done' })
+      for (const r of ranked) {
+        const prev: any = await $global.getUserState(r.account)
+        await $global.updateUserState(r.account, {
+          profile: mergeProfile(prev?.profile ?? null, r.rank),
+        })
+      }
 
       await $room.updateRoomState({ lobby: state })
       $room.broadcastToRoom('ROUND_RESOLVED', {
