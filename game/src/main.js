@@ -118,13 +118,38 @@ try {
   // 이 변수를 읽는다.
   let avatar = null
 
+  // 남의 아바타. 정찰로 그 사람 판을 열었을 때만 세운다 — 배치 화면의 무대는
+  // **각자 자기 판**이라, 남들이 내 판 위를 같이 걸어다니는 공용 광장이 아니다.
+  let peerAvatar = null
+  let peerSeatShown = null
+
   /**
    * 아바타 한 프레임. 움직였을 때만 서버로 보낸다 — 가만히 서 있는 사람의
    * 좌표를 초당 몇 번씩 보내면 그게 곧 대역 낭비다.
    */
   function tickAvatar(dt) {
-    if (!avatar) return
-    if (avatar.tick(dt)) mm?.pushAvatar?.(avatar.position)
+    const peeked = prep.peekedSeat()
+
+    if (avatar) {
+      // 남의 판을 보는 동안 내 아바타는 감춘다. 그 판 위에 내가 서 있으면
+      // 누구의 자리를 보고 있는지가 흐려진다.
+      avatar.setVisible(peeked === null)
+      if (avatar.tick(dt) && peeked === null) mm?.pushAvatar?.(avatar.position)
+    }
+
+    if (peeked !== peerSeatShown) {
+      peerSeatShown = peeked
+      peerAvatar?.setVisible(peeked !== null)
+      // 처음 보일 때는 마지막으로 받은 자리에 바로 세운다. 걸어오게 하면
+      // 무대 밖에서 들어오는 것처럼 보인다.
+      const at = peeked === null ? null : mm?.avatarOf?.(peeked)
+      if (at) peerAvatar?.setPosition(at)
+    }
+    if (peerAvatar && peeked !== null) {
+      const at = mm?.avatarOf?.(peeked)
+      if (at) peerAvatar.setTarget(at)
+      peerAvatar.tick(dt)
+    }
   }
 
   function pushScout(entries) {
@@ -286,6 +311,14 @@ try {
           if (import.meta.env.DEV && globalThis.__dev) globalThis.__dev.avatar = a
         })
         .catch((err) => console.warn('아바타 없이 간다:', err?.message))
+      // 남의 아바타는 하나만 만들어 돌려 쓴다. 정찰은 한 번에 한 사람이라
+      // 좌석마다 모델을 세울 이유가 없다 — 여덟 벌은 그냥 낭비다.
+      createAvatar({ scene: prep.scene, team: 'B' })
+        .then((a) => {
+          a.setVisible(false)
+          peerAvatar = a
+        })
+        .catch(() => {})
     }
   }
 

@@ -174,6 +174,15 @@ export async function createServerMatchmaker({ data, server, roomId = null, time
   }
   const boardScout = scoutSender('updateBoard')
   const levelScout = scoutSender('updateLevel')
+  const avatarScout = scoutSender('updateAvatar')
+
+  // 남의 아바타 위치. 좌석마다 마지막으로 받은 좌표를 들고 있고, 화면이
+  // 그걸 읽어 그린다 — 여기서 3D 를 만지면 매치메이커가 무대를 알게 된다.
+  const avatars = new Map()
+  server.onRoomMessage(myRoom, 'AVATAR_MOVED', (m) => {
+    if (m.id === mySeat.id) return
+    avatars.set(m.id, { x: m.x, z: m.z })
+  })
 
   /**
    * 전투에 쓸 **최종** 보드를 알린다.
@@ -287,6 +296,19 @@ export async function createServerMatchmaker({ data, server, roomId = null, time
     /** 레벨도 정찰 대상이다 — 상대 레벨이 다음 판 인원을 말한다. */
     pushLevel(level) {
       levelScout.push(level)
+    },
+
+    /**
+     * 내 아바타 위치. 정찰과 같은 쓰로틀을 탄다 — 걷는 동안 초당 수십
+     * 프레임이 나가면 SDK 가 10회/초에서 거절한다.
+     */
+    pushAvatar(pos) {
+      avatarScout.push(pos.x, pos.z)
+    },
+
+    /** 그 좌석의 아바타가 마지막으로 있던 자리. 없으면 null. */
+    avatarOf(seatId) {
+      return avatars.get(seatId) ?? null
     },
 
     /** 서버 시드. 상점 리롤 등 런 전체 무작위성의 뿌리로 쓴다. */

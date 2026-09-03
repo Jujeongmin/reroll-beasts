@@ -249,6 +249,23 @@ export class Server {
     return { ok: true }
   }
 
+  /**
+   * 아바타 위치. 방 사람들에게 그대로 흘린다.
+   *
+   * **룸 상태에 안 적는다.** 초당 몇 번씩 바뀌는 값이라 매번 상태를 쓰면
+   * 보드·체력이 든 그 문서를 하루 종일 다시 쓰게 된다. 위치는 놓쳐도 다음
+   * 것이 곧 오므로 방송만으로 충분하다 — 늦게 들어온 사람은 그 사람이
+   * 한 걸음 뗄 때 비로소 보인다.
+   */
+  async updateAvatar(x: number, z: number): Promise<{ ok: boolean }> {
+    const state = await readLobby()
+    if (!state) return { ok: false }
+    const seat = state.seats.find((s: any) => s.account === $sender.account)
+    if (!seat) return { ok: false }
+    $room.broadcastToRoom('AVATAR_MOVED', { id: seat.id, x, z })
+    return { ok: true }
+  }
+
   /** 레벨도 정찰 대상이다 — 상대 레벨이 다음 판 인원을 말한다. */
   async updateLevel(level: number): Promise<{ ok: boolean }> {
     const state = await readLobby()

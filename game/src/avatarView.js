@@ -15,8 +15,8 @@ const SPEED = 3.4
  * @param {object} o.scene   scene3d
  * @param {string} o.unitId  아바타로 쓸 모델. 나중에 코스메틱이 이걸 바꾼다
  */
-export async function createAvatar({ scene, unitId = 'frog', star = 1 }) {
-  const view = await scene.makeUnit(unitId, star, 'A')
+export async function createAvatar({ scene, unitId = 'frog', star = 1, team = 'A' }) {
+  const view = await scene.makeUnit(unitId, star, team)
   scene.scene.add(view.root)
   view.play(view.anims.idle)
 
@@ -54,9 +54,20 @@ export async function createAvatar({ scene, unitId = 'frog', star = 1 }) {
       return { ...pos }
     },
 
-    /** 남이 보내온 위치로 맞춘다(관전). 내 아바타에는 안 쓴다. */
+    /**
+     * 남이 보내온 위치로 맞춘다(정찰). 내 아바타에는 안 쓴다.
+     *
+     * 곧장 순간이동시키지 않고 걸어가게 한다 — 위치는 250ms 마다 오는데
+     * 그때마다 툭툭 옮기면 남의 아바타만 순간이동하는 것처럼 보인다.
+     */
+    setTarget(p) {
+      target = clampToBounds(p, bounds)
+    },
+
+    /** 처음 보일 때는 그 자리에 바로 세운다. 걸어오게 하면 무대 밖에서 들어온다. */
     setPosition(p) {
       pos = clampToBounds(p, bounds)
+      target = null
       place()
     },
 
@@ -95,6 +106,11 @@ export async function createAvatar({ scene, unitId = 'frog', star = 1 }) {
       view.mixer.update(dt)
       place()
       return moved
+    },
+
+    /** 화면에서 감춘다. 남의 판을 보는 동안 내 아바타가 그 위에 서 있으면 안 된다. */
+    setVisible(on) {
+      view.root.visible = on
     },
 
     dispose() {

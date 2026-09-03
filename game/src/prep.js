@@ -851,10 +851,16 @@ export async function createPrep({
   // 오토체스 관례를 따른다 (W 배치 · E 판매 · D 리롤 · F 경험치).
   // 손이 상점 버튼과 판 사이를 오가지 않아도 되는 게 이 장르의 조작 속도다.
 
-  /** 가리키는 말을 판 ↔ 대기석으로 옮긴다. */
+  /**
+   * 가리키는 말을 판 ↔ 대기석으로 옮긴다.
+   *
+   * 가리키는 게 없으면 **말없이 넘어간다.** W 는 아바타를 앞으로 걷게 하는
+   * 키이기도 해서, 걸을 때마다 "가리키는 말이 없다"가 뜨면 화면이 잔소리가
+   * 된다. E(판매)는 아바타와 안 겹치므로 거긴 그대로 알려준다.
+   */
   function toggleSpot() {
     const found = unitAtPointer(ptr.x, ptr.y)
-    if (!found) return hint('가리키는 말이 없다')
+    if (!found) return
     const at = findUnit(run.state, found.uid)
     if (!at) return
     if (at.where === 'board') {
@@ -1396,6 +1402,8 @@ export async function createPrep({
       renderShop()
     },
     /** 판 위 유닛 수. 화면 밖에서도 인구를 물어볼 일이 있다. */
+    /** 지금 남의 판을 보고 있으면 그 좌석 번호. 아니면 null. */
+    peekedSeat: () => peekId,
     boardCount: () => boardCount(run.state),
     allUnits: () => allUnits(run.state),
   }
