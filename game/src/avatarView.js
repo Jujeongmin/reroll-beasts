@@ -38,17 +38,14 @@ export async function createAvatar({ scene, data, avatarId }) {
   let stick = null
   let walking = false
 
-  const keys = new Set()
-  const onKeyDown = (ev) => {
-    // 배치 단축키(W/E/D/F)와 겹친다. **아바타는 WASD 만** 먹고, 나머지는
-    // 손대지 않는다 — W 가 둘 다에 걸리는 건 감수한다: 판에 올릴 말을
-    // 가리키고 있을 때만 그쪽이 반응하기 때문이다.
-    if (['KeyW', 'KeyA', 'KeyS', 'KeyD'].includes(ev.code)) keys.add(ev.code)
-  }
-  const onKeyUp = (ev) => keys.delete(ev.code)
-  addEventListener('keydown', onKeyDown)
-  addEventListener('keyup', onKeyUp)
-
+  // 이동 키(WASD)는 안 쓴다.
+  //
+  // 배치 단축키와 정면으로 겹친다 — D 는 리롤(골드 2), W 는 판에 올리기다.
+  // 아바타를 걷게 하려고 누른 키가 골드를 쓸어간다. TFT 도 같은 이유로 꼬마
+  // 전설이에 이동 키를 안 두고 **바닥을 클릭하면 그쪽으로 걸어가게** 한다:
+  // 키보드는 상점 몫이고, 판은 손이 가리키는 대로 움직인다.
+  //
+  // 그래서 조작은 둘뿐이다 — 빈 땅 클릭(PC) · 조이스틱과 탭(모바일).
   function place() {
     view.root.position.set(pos.x, scene.topY, pos.z)
     view.root.rotation.y = facing
@@ -95,18 +92,14 @@ export async function createAvatar({ scene, data, avatarId }) {
     },
 
     /**
-     * 한 프레임. 키가 눌려 있으면 키가 이긴다 — 걸어가는 중에 키를 잡으면
-     * 목적지를 버리고 손이 시키는 대로 간다.
+     * 한 프레임. 조이스틱을 잡고 있으면 그쪽이 이긴다 — 걸어가는 중에
+     * 손가락을 대면 목적지를 버리고 손이 시키는 대로 간다.
      */
     tick(dt) {
       const before = { ...pos }
-      // 키가 먼저, 그다음 조이스틱. 둘 다 잡을 일은 없지만 순서는 정해 둔다.
-      let dx = (keys.has('KeyD') ? 1 : 0) - (keys.has('KeyA') ? 1 : 0)
-      let dz = (keys.has('KeyS') ? 1 : 0) - (keys.has('KeyW') ? 1 : 0)
-      if (!dx && !dz && stick) {
-        dx = stick.dx
-        dz = stick.dz
-      }
+      // 조이스틱을 잡고 있으면 그 방향, 아니면 찍어 둔 목적지로 걸어간다.
+      const dx = stick ? stick.dx : 0
+      const dz = stick ? stick.dz : 0
 
       if (dx || dz) {
         target = null
@@ -136,8 +129,6 @@ export async function createAvatar({ scene, data, avatarId }) {
     },
 
     dispose() {
-      removeEventListener('keydown', onKeyDown)
-      removeEventListener('keyup', onKeyUp)
       view.dispose()
     },
   }
