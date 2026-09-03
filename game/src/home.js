@@ -58,6 +58,9 @@ export function createHome({
     pass: document.getElementById('home-pass'),
     passSub: document.getElementById('pass-sub'),
     passLv: document.getElementById('pass-lv'),
+    passGems: document.getElementById('pass-gems'),
+    passNext: document.getElementById('pass-next'),
+    passNextLv: document.getElementById('pass-next-lv'),
     passBar: document.querySelector('#pass-bar i'),
     passSheet: document.getElementById('passtrack'),
     passRows: document.getElementById('pass-rows'),
@@ -209,6 +212,30 @@ export function createHome({
     cur?.scrollIntoView({ inline: 'start', block: 'nearest' })
   }
 
+  /**
+   * 홈 패스 카드의 "다음 보상" 미리보기.
+   *
+   * 초상은 3D 모델을 찍어 오는 무거운 일이라, 같은 파일이면 다시 안 찍는다 —
+   * render() 는 접속 상태가 바뀔 때마다 도는데 그때마다 찍으면 홈이 끊긴다.
+   */
+  let nextShown = null
+  function showNextReward(level) {
+    const next = data.cosmetics.avatars
+      .filter((a) => a.unlock === 'pass' && a.passLevel > level)
+      .sort((a, b) => a.passLevel - b.passLevel)[0]
+    // 남은 아바타가 없으면 칸을 비운다. 빈 액자를 남기면 "받을 게 있는데
+    // 그림을 못 불러왔다"로 읽힌다.
+    el.passNext.parentElement.hidden = !next
+    if (!next || next.file === nextShown) return
+    nextShown = next.file
+    el.passNextLv.textContent = `${next.passLevel}단계`
+    onAvatarPortrait?.(next.file)
+      .then((url) => {
+        el.passNext.src = url
+      })
+      .catch(() => {})
+  }
+
   /** 지금 가진 것. 코스메틱 해금 판정이 이걸 본다. */
   function ownedNow() {
     return { lp: state.profile?.lp ?? 0, passLevel: state.profile?.pass?.level ?? 1 }
@@ -282,6 +309,8 @@ export function createHome({
     const prog = passProgress(state.profile?.pass?.xp ?? 0, data)
     el.passLv.textContent = `${prog.level}단계`
     el.passBar.style.width = `${Math.round(prog.ratio * 100)}%`
+    el.passGems.textContent = String(state.profile?.gems ?? 0)
+    showNextReward(prog.level)
 
     el.note.textContent = v.notice ?? ''
     el.retry.hidden = state.status !== 'failed'

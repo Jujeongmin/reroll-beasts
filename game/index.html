@@ -1186,20 +1186,48 @@
     border-image-repeat: repeat; border-image-source: url('/assets/ui/lobby_panel.png');
     image-rendering: pixelated; cursor: pointer;
   }
-  #home .pass:hover { filter: brightness(1.12); }
+  #home .pass:hover { filter: brightness(1.1); }
   #home .pass:active { transform: translateY(1px); }
-  #home .pass .gemico { width: 24px; image-rendering: pixelated; }
-  #home .pass .ttl { font-size: 17px; font-weight: 900; color: #ffd98a; text-shadow: 0 2px 0 #6b4a2a; }
+  #home .pass .ttl {
+    font-size: 16px; font-weight: 900; color: #ffd98a; text-shadow: 0 2px 0 #6b4a2a;
+  }
+
+  /* 다음 보상 미리보기. 양피지 액자에 넣어 "받을 물건"으로 읽히게 한다. */
+  #home .pass .next { position: relative; width: 50px; height: 50px; margin: 2px 0 4px; }
+  #home .pass .next img {
+    width: 100%; height: 100%; object-fit: contain; box-sizing: border-box;
+    border-style: solid; border-width: 6px; border-image-slice: 6 fill;
+    border-image-source: url('/assets/ui/panel_parch.png');
+  }
+  #home .pass .next span {
+    position: absolute; left: 50%; bottom: -5px; transform: translateX(-50%);
+    padding: 0 4px; background: #1b1208e6; box-shadow: inset 0 0 0 1px #ffd16659;
+    font-size: 9px; font-weight: 800; color: #ffd166; white-space: nowrap;
+  }
+  #home .pass .meter { display: flex; flex-direction: column; align-items: center; gap: 3px; }
   #home .pass .lv { font-size: 12px; font-weight: 800; color: #ffe1a0; }
   /* 게이지. 숫자만 적으면 "얼마나 남았나"를 매번 뺄셈해야 한다. */
   #home .pass .bar {
-    width: 118px; height: 5px; background: #00000066; box-shadow: inset 0 0 0 1px #00000059;
+    width: 118px; height: 6px; background: #00000066; box-shadow: inset 0 0 0 1px #00000059;
   }
   #home .pass .bar i {
     display: block; height: 100%; width: 0;
     background: linear-gradient(90deg, #ffd166, #ff9a3c);
+    box-shadow: 0 0 6px #ffb04a99;
   }
   #home .pass .sub { font-size: 10px; color: #cbb794; }
+  /* 지갑. 젬이 어디 쌓이는지 눈에 있어야 트랙의 젬 보상이 값으로 읽힌다. */
+  #home .pass .wallet {
+    position: absolute; right: -5px; top: -8px;
+    display: flex; align-items: center; gap: 3px; height: 20px; padding: 0 6px;
+    border-style: solid; border-width: 0 9px; border-image-slice: 0 9 0 9 fill;
+    border-image-source: url('/assets/ui/plate_m.png');
+    font-size: 11px; font-weight: 800; color: #eaf4ff; text-shadow: 0 1px 0 #00000080;
+  }
+  #home .pass .wallet .g {
+    width: 12px; height: 12px; image-rendering: pixelated;
+    background: url('/assets/ui/gem.png') center/contain no-repeat;
+  }
 
   /* ── 패스 트랙 ──────────────────────────────────────── */
   #passtrack {
@@ -1405,11 +1433,16 @@
     <!-- 시즌 패스 요약. 누르면 트랙이 열린다. 단계와 게이지를 여기에 두는
          이유: 진행도가 안 보이면 눌러 볼 이유가 없다. -->
     <div class="pass" id="home-pass">
-      <img class="gemico" src="/assets/ui/gem.png" alt="" />
       <div class="ttl">시즌 패스</div>
-      <div class="lv" id="pass-lv">1단계</div>
-      <div class="bar" id="pass-bar"><i></i></div>
+      <!-- 다음에 받을 것. 진행도 숫자만으로는 계속할 이유가 안 생긴다 —
+           무엇이 기다리는지 그림으로 보여야 한다. -->
+      <div class="next"><img id="pass-next" alt="" /><span id="pass-next-lv"></span></div>
+      <div class="meter">
+        <div class="lv" id="pass-lv">1단계</div>
+        <div class="bar" id="pass-bar"><i></i></div>
+      </div>
       <div class="sub" id="pass-sub">준비 중</div>
+      <div class="wallet"><i class="g"></i><span id="pass-gems">0</span></div>
     </div>
     <!-- 패스 트랙. 25단계를 **가로로** 민다 — 세로로 세우면 한 화면에 네댓
          줄만 보여 "얼마나 남았나"가 안 읽힌다. -->
