@@ -1,5 +1,7 @@
 // 홈이 무엇을 그릴지 정한다. DOM 을 모른다 — 그래야 상태 전이가 브라우저
 // 없이 검사된다. 그리는 일은 home.js 가 한다.
+import { tierOf, tierProgress } from '@sim/rank.js'
+
 
 /**
  * 상태에서 화면을 계산한다.
@@ -49,8 +51,16 @@ export function homeView({ status, hasAuth, profile, queue, data }) {
 /** 기록이 없으면 null. 홈이 "첫 판을 기다린다" 를 대신 그린다. */
 function viewProfile(profile) {
   if (!profile || !profile.games) return null
+  const lp = profile.lp ?? 0
+  const tier = tierOf(lp)
+  const p = tierProgress(lp)
   return {
     head: `전적 ${profile.games}판 · 최고 ${profile.best}위`,
     recent: profile.recent ?? [],
+    tier: tier.name,
+    tierId: tier.id,
+    lp,
+    // 다음 티어까지. 최고 티어면 남은 게 없으니 막대도 안 그린다.
+    next: p ? { name: p.next.name, need: p.need, ratio: Math.max(0, Math.min(1, p.ratio)) } : null,
   }
 }

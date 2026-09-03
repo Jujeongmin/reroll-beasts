@@ -219,3 +219,16 @@ describe('전적', () => {
     expect(p.recent[0]).toBeLessThanOrEqual(8);
   });
 });
+
+describe('랭크 LP', () => {
+  test('1인 방에서 끝낸 판은 LP 를 안 움직인다 — 랭크가 아니다', async (server) => {
+    await server.joinLobby();
+    for (let i = 0; i < 30; i++) {
+      const s = await server.resolveRound();
+      if (!s || s.phase === 'done') break;
+    }
+    const p = await server.getProfile();
+    expect(p.games).toBe(1);
+    expect(p.lp).toBe(0);
+  });
+});

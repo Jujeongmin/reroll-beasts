@@ -21,6 +21,7 @@
  */
 import { createLobbyState, resolveRound, assignRanks } from '../../sim/lobbyRound.js'
 import { mergeProfile } from '../../sim/profile.js'
+import { addLp } from '../../sim/rank.js'
 import { simulate } from '../../sim/combat.js'
 import { totalRounds } from '../../sim/rounds.js'
 import combat from '../../game/public/data/combat.json'
@@ -67,7 +68,10 @@ export class Server {
     // 룸 시드. sim/ 밖이라 Date.now 를 써도 결정론이 안 깨진다 — 한 번 정해
     // 룸 상태에 박아 두면 이후 대진·봇 편성은 전부 이 값에서 재현된다.
     const seed = (Date.now() ^ hashAccount(account)) >>> 0
-    const state = createLobbyState({ seed, account, now: Date.now(), data: DATA })
+    const state: any = createLobbyState({ seed, account, now: Date.now(), data: DATA })
+    // 1인 방은 랭크가 아니다. 모드를 상태에 박아 두면 마감 때 방 이름을
+    // 다시 파싱하지 않아도 된다 — 이름 규칙이 바뀌면 조용히 틀릴 자리다.
+    state.mode = 'solo'
     await $room.updateRoomState({ lobby: state })
     return state
   }
@@ -176,12 +180,14 @@ export class Server {
       const match: any = matches.find((m: any) => m.roomId === roomId)
       if (!match) return null
 
-      const state = createLobbyState({
+      const state: any = createLobbyState({
         seed: match.seed,
         accounts: match.accounts,
         now: Date.now(),
         data: DATA,
       })
+      // 랭크 판정의 근거다. 큐가 정한 모드를 방 상태에 박아 둔다.
+      state.mode = match.mode
       await $room.updateRoomState({ lobby: state })
       return state
     })
@@ -238,11 +244,17 @@ export class Server {
 
       // 순위는 서버가 박는다. 클라가 "나 1등"이라고 올리면 그대로 믿게 된다.
       const ranked = assignRanks(state, { final: state.phase === 'done' })
+      // LP 는 **랭크 방에서만** 움직인다. 봇이 섞이는 일반 판이 랭크 점수를
+      // 좌우하면 티어가 실력을 안 가리킨다.
+      const scored = state.mode === 'ranked'
       for (const r of ranked) {
         const prev: any = await $global.getUserState(r.account)
-        await $global.updateUserState(r.account, {
-          profile: mergeProfile(prev?.profile ?? null, r.rank),
-        })
+        const profile = mergeProfile(prev?.profile ?? null, r.rank)
+        // 티어는 저장하지 않는다 — LP 에서 언제든 나오는 값이라, 같이 적어
+        // 두면 둘이 어긋날 자리를 하나 더 만드는 것뿐이다.
+        if (scored) profile.lp = addLp(prev?.profile?.lp ?? 0, r.rank)
+        else profile.lp = prev?.profile?.lp ?? 0
+        await $global.updateUserState(r.account, { profile })
       }
 
       await $room.updateRoomState({ lobby: state })

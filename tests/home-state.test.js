@@ -73,3 +73,32 @@ describe('튜토리얼 버튼', () => {
     expect(v.tutorial).toBe('hidden')
   })
 })
+
+describe('프로필 티어', () => {
+  const withLp = (lp) => homeView({
+    ...base,
+    profile: { games: 9, wins: 1, best: 2, recent: [2], lp },
+  }).profile
+
+  it('LP 에서 티어를 만든다 — 티어를 서버에 저장하지 않는다', () => {
+    expect(withLp(0).tier).toBe('브론즈')
+    expect(withLp(300).tier).toBe('실버')
+    expect(withLp(1800).tier).toBe('다이아')
+  })
+
+  it('다음 티어까지 남은 LP 와 진행도를 준다', () => {
+    const v = withLp(100)
+    expect(v.next.name).toBe('실버')
+    expect(v.next.need).toBe(200)
+    expect(v.next.ratio).toBeCloseTo(1 / 3, 3)
+  })
+
+  it('최고 티어면 다음이 없다 — 막대를 안 그린다', () => {
+    expect(withLp(2000).next).toBe(null)
+  })
+
+  it('LP 가 없던 전적은 0 으로 읽는다 — 예전 기록에는 lp 가 없다', () => {
+    expect(withLp(undefined).lp).toBe(0)
+    expect(withLp(undefined).tier).toBe('브론즈')
+  })
+})

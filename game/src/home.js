@@ -21,6 +21,11 @@ export function createHome({ data, onPick, onCancelQueue, onRetry }) {
     queueCancel: document.getElementById('queue-cancel'),
     head: document.getElementById('record-head'),
     recent: document.getElementById('record-recent'),
+    tier: document.getElementById('record-tier'),
+    badge: document.getElementById('record-badge'),
+    lp: document.getElementById('record-lp'),
+    bar: document.getElementById('record-bar'),
+    barFill: document.querySelector('#record-bar i'),
     note: document.getElementById('home-note'),
     retry: document.getElementById('home-retry'),
     hero: document.getElementById('home-hero'),
@@ -54,6 +59,18 @@ export function createHome({ data, onPick, onCancelQueue, onRetry }) {
 
     el.head.textContent = v.profile ? v.profile.head : '첫 판을 기다린다'
     el.recent.textContent = v.profile ? v.profile.recent.join(' · ') : ''
+
+    // 기록이 없으면 티어 줄도 비워 둔다 — 한 판도 안 한 사람에게 "브론즈 0"
+    // 을 붙이면 진 것 같은 인상이 된다.
+    el.tier.textContent = v.profile ? v.profile.tier : '랭크 없음'
+    el.badge.className = `badge ${v.profile ? v.profile.tierId : ''}`
+    el.lp.textContent = v.profile ? `${v.profile.lp} LP` : ''
+    const next = v.profile?.next
+    el.bar.hidden = !next
+    if (next) {
+      el.barFill.style.width = `${Math.round(next.ratio * 100)}%`
+      el.bar.title = `${next.name}까지 ${next.need} LP`
+    }
 
     el.note.textContent = v.notice ?? ''
     el.retry.hidden = state.status !== 'failed'
