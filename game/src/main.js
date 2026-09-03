@@ -93,6 +93,24 @@ try {
     run.opponentId = opponentId
   }
 
+  // 마지막으로 서버에 알린 레벨. 레벨은 라운드에 한두 번 바뀌는데 판이
+  // 바뀔 때마다 같이 보내면 서버가 룸 상태를 헛되이 쓰고 방송한다.
+  let pushedLevel = 0
+
+  /**
+   * 배치가 바뀌었다고 서버에 알린다 — 남이 내 자리를 열어 두고 있으면
+   * 방금 산 말이 그 화면에 바로 뜬다.
+   *
+   * mm 은 메인화면에서 모드를 고른 뒤에야 정해지므로 호출 시점에 읽는다.
+   * 로컬 봇 로비에는 이 함수들이 없다 — 오프라인에서도 그냥 지나간다.
+   */
+  function pushScout(entries) {
+    mm?.pushBoardLive?.(entries)
+    if (run.state.level === pushedLevel) return
+    pushedLevel = run.state.level
+    mm?.pushLevel?.(run.state.level)
+  }
+
   // 무대는 **하나**다. 배치가 만들고 전투가 이어 쓴다 — 화면을 갈아끼우지 않으므로
   // 전투가 "다른 화면으로 넘어가는 일"이 아니라 "그 자리에서 시작되는 일"이 된다.
   const prep = await createPrep({
@@ -100,6 +118,7 @@ try {
     run,
     onFight: startFight,
     onWatch: watchFight,
+    onBoardChange: pushScout,
     // battle 은 prep 다음에 만들어진다. 화살표 안에서 읽으므로 그때는 이미 있다.
     onPickUnit: (x, y) => battle?.unitAt(x, y) ?? null,
   })

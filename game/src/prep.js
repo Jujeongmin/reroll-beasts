@@ -39,7 +39,7 @@ const STAR = ['', '★', '★★', '★★★']
 // 성급 색. scene3d 의 STAR_COLOR 와 같은 값이어야 배지와 패널이 안 어긋난다.
 const STAR_COLOR = ['#d99154', '#e6edf5', '#ffd166']
 
-export async function createPrep({ data, run, onFight, onWatch, onPickUnit }) {
+export async function createPrep({ data, run, onFight, onWatch, onPickUnit, onBoardChange }) {
   const el = {
     root: document.getElementById('prep'),
     stage: document.getElementById('stage'),
@@ -789,6 +789,12 @@ export async function createPrep({ data, run, onFight, onWatch, onPickUnit }) {
     // 가진(아직 안 낀) 아이템은 이제 DOM 줄이 아니라 대기석 옆 3D 선반이다.
     scene.setItemShelf(run.state.items)
     syncUnits()
+    // 구매·이동·판매·합성·장착이 전부 여기로 모인다 — 판이 바뀌는 지점마다
+    // 따로 부르면 언젠가 한 곳을 빠뜨린다.
+    //
+    // 전투 중에는 안 보낸다. 그때 서버가 쥔 보드는 이 판의 판정 근거라,
+    // 싸우는 동안 산 말로 덮으면 화면과 판정이 갈린다.
+    if (running) onBoardChange?.(toCombatEntries(run.state))
   }
 
   // ── 상점 조작 ───────────────────────────────────────────

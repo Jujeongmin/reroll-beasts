@@ -18,6 +18,10 @@ import { roundPairs, fightSeed, growBotSeats } from '@sim/lobbyRound.js'
 import { pveBoard } from '@sim/rounds.js'
 import { createRng } from '@sim/rng.js'
 
+// 정찰 송신 간격(ms). 초 4회면 SDK 의 10회/초 제한에 한참 못 미치고, 남이
+// 내 판을 보는 눈에는 즉시로 읽힌다. 더 촘촘히 보내도 사람은 구분 못 한다.
+const SCOUT_MS = 250
+
 /**
  * 서버 로비에 붙는다. 접속·입장까지 끝난 매치메이커를 돌려준다.
  *
@@ -125,14 +129,65 @@ export async function createServerMatchmaker({ data, server, roomId = null, time
   })
 
   /**
-   * 내 보드를 서버에 알린다.
+   * 정찰용 송신기. 배치 중에는 판이 드래그 한 번에 수십 번 바뀌는데,
+   * SDK 는 같은 함수를 초 10회 넘게 부르면 거절한다 — 쓰로틀이 필수다.
+   *
+   * SDK 쓰로틀은 leading-only(창의 첫 호출만 보내고 나머지는 버린다)라
+   * 그것만 두면 **드래그가 끝난 자리가 안 나간다**: 남의 화면엔 옮기다 만
+   * 판이 남는다. 창이 지난 뒤 마지막 값을 한 번 더 보내 따라잡게 한다.
+   *
+   * 같은 값은 안 보낸다 — refresh() 는 상점·정보창처럼 판과 무관한 일로도
+   * 불리고, 그때마다 서버가 룸 상태를 쓰고 방송하면 남의 대역만 축낸다.
+   */
+  function scoutSender(fn) {
+    let timer = null
+    let pending = null
+    let queued = null
+    let lastAt = 0
+    const send = (args) => {
+      lastAt = Date.now()
+      server.remoteFunction(fn, args, { throttle: SCOUT_MS, throttleKey: 'scout' })
+    }
+    return {
+      push(...args) {
+        const key = JSON.stringify(args)
+        if (key === queued) return
+        queued = key
+        pending = args
+        const waited = Date.now() - lastAt
+        // 예약이 걸려 있어도 지금 보내면 그게 곧 최신이다. 안 끄면 예약이
+        // 곧바로 뒤따라 같은 판을 한 번 더 보낸다.
+        clearTimeout(timer)
+        if (waited >= SCOUT_MS) return send(args)
+        // 창 안이라 지금 보내면 버려진다. 창이 열릴 때 **마지막 값**으로 간다 —
+        // 그사이 더 바뀌면 이 예약이 그 값으로 덮인다. 경계에 딱 맞추면 몇 ms
+        // 일러 또 버려지므로 여유를 둔다.
+        timer = setTimeout(() => pending && send(pending), SCOUT_MS - waited + 30)
+      },
+      /** 확정 송신이 앞지를 때 쓴다. 늦게 도착한 정찰이 최종 보드를 덮으면 안 된다. */
+      cancel() {
+        clearTimeout(timer)
+        pending = null
+        queued = null
+      },
+    }
+  }
+  const boardScout = scoutSender('updateBoard')
+  const levelScout = scoutSender('updateLevel')
+
+  /**
+   * 전투에 쓸 **최종** 보드를 알린다.
    *
    * 쓰로틀을 안 쓴다 — 쓰로틀은 창 안의 마지막 호출을 버릴 수 있는데, 전투
    * 직전의 최종 보드가 그 마지막 호출이다. 그게 빠지면 서버가 한 라운드 전
-   * 판으로 판정한다. 지금은 전투 시작 때 한 번만 부르므로 10회/초 제한과도
-   * 멀다. 2단계에서 배치 중 실시간 송신을 붙일 때만 쓰로틀 경로를 더한다.
+   * 판으로 판정한다. 라운드당 한 번이라 10회/초 제한과도 멀다(정찰 경로는
+   * 쓰로틀을 타므로 그 카운터를 안 건드린다).
+   *
+   * 예약된 정찰을 먼저 끈다. 안 끄면 이 호출 뒤에 낡은 판이 도착해 서버가
+   * 화면과 다른 판으로 판정한다.
    */
   function pushBoard(entries) {
+    boardScout.cancel()
     return server.remoteFunction('updateBoard', [entries]).catch(() => {})
   }
 
@@ -221,8 +276,18 @@ export async function createServerMatchmaker({ data, server, roomId = null, time
       server.remoteFunction('resolveRound', [], { needResponse: false })
     },
 
-    /** 배치가 바뀔 때 prep 이 부른다. 2단계에서 남들이 이걸 실시간으로 본다. */
+    /** 전투 직전 확정 송신. 서버 판정의 근거라 유실되면 안 된다. */
     pushBoard,
+
+    /** 배치 중 실시간 정찰. 남이 내 자리를 열어 두고 있으면 이 경로로 보인다. */
+    pushBoardLive(entries) {
+      boardScout.push(entries)
+    },
+
+    /** 레벨도 정찰 대상이다 — 상대 레벨이 다음 판 인원을 말한다. */
+    pushLevel(level) {
+      levelScout.push(level)
+    },
 
     /** 서버 시드. 상점 리롤 등 런 전체 무작위성의 뿌리로 쓴다. */
     seed: state.seed,
