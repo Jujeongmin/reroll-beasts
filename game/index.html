@@ -1137,15 +1137,15 @@
   #skins .foot .nm { font-size: 12px; font-weight: 800; color: #e9dcc2; }
   #skins .foot .why { flex: 1; min-width: 0; font-size: 10px; color: #a99a86; }
   #skins .foot .act {
-    padding: 4px 12px; line-height: 1;
-    border-style: solid; border-width: 6px; border-image-slice: 6;
-    border-image-repeat: repeat; border-image-source: url('/assets/ui/button.png');
-    background: #c58747; image-rendering: pixelated;
-    font-size: 11px; font-weight: 800; color: #3a2a12;
+    height: 28px; padding: 0 16px; line-height: 28px;
+    /* 홈 버튼·코치 버튼과 같은 나무 판. 누르는 것은 게임 전체에서 한 가지
+       모습이어야 한다 — 창마다 다른 버튼을 쓰면 무엇이 눌리는 것인지 매번
+       다시 배운다. 9-슬라이스가 아니라 통째로 늘린다(자른 자리가 실선). */
+    border: 0; background: url('/assets/ui/lobby_btn.png') center/100% 100% no-repeat;
+    image-rendering: pixelated;
+    font-size: 12px; font-weight: 800; color: #3b2a16; text-shadow: 0 1px 0 #ffffff88;
   }
-  #skins .foot .act:hover {
-    border-image-source: url('/assets/ui/button_light.png'); background: #e0a94c;
-  }
+  #skins .foot .act:active { background-image: url('/assets/ui/lobby_btn_down.png'); }
   #skins .foot .act:active { transform: translateY(1px); }
   #skins #skins-close { font-size: 11px; color: #cbb794; text-decoration: underline; }
 
@@ -1221,15 +1221,15 @@
   #namebox .why { min-height: 13px; font-size: 10px; color: #ff9a8a; }
   #namebox .foot { display: flex; align-items: center; gap: 8px; justify-content: flex-end; }
   #namebox .act {
-    padding: 4px 14px; line-height: 1;
-    border-style: solid; border-width: 6px; border-image-slice: 6;
-    border-image-repeat: repeat; border-image-source: url('/assets/ui/button.png');
-    background: #c58747; image-rendering: pixelated;
-    font-size: 11px; font-weight: 800; color: #3a2a12;
+    height: 28px; padding: 0 18px; line-height: 28px;
+    /* 홈 버튼·코치 버튼과 같은 나무 판. 누르는 것은 게임 전체에서 한 가지
+       모습이어야 한다 — 창마다 다른 버튼을 쓰면 무엇이 눌리는 것인지 매번
+       다시 배운다. 9-슬라이스가 아니라 통째로 늘린다(자른 자리가 실선). */
+    border: 0; background: url('/assets/ui/lobby_btn.png') center/100% 100% no-repeat;
+    image-rendering: pixelated;
+    font-size: 12px; font-weight: 800; color: #3b2a16; text-shadow: 0 1px 0 #ffffff88;
   }
-  #namebox .act:hover {
-    border-image-source: url('/assets/ui/button_light.png'); background: #e0a94c;
-  }
+  #namebox .act:active { background-image: url('/assets/ui/lobby_btn_down.png'); }
   #namebox #name-close { font-size: 11px; color: #cbb794; text-decoration: underline; }
 
   /* ── 젬 상점 ────────────────────────────────────────── */
