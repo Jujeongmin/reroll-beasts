@@ -64,16 +64,16 @@
       "name": "바이킹",
       "pack": "chars",
       "file": "Viking_Male.glb",
-      "unlock": "pass",
-      "passLevel": 3
+      "unlock": "gem",
+      "price": 120
     },
     {
       "id": "bee",
       "name": "꿀벌",
       "pack": "cute",
       "file": "Bee.glb",
-      "unlock": "pass",
-      "passLevel": 5
+      "unlock": "gem",
+      "price": 150
     },
     {
       "id": "ninja",
@@ -81,31 +81,31 @@
       "pack": "chars",
       "file": "Ninja_Male.glb",
       "unlock": "pass",
-      "passLevel": 8
+      "passLevel": 10
     },
     {
       "id": "panda",
       "name": "판다",
       "pack": "cute",
       "file": "Panda.glb",
-      "unlock": "pass",
-      "passLevel": 11
+      "unlock": "gem",
+      "price": 180
     },
     {
       "id": "bat",
       "name": "박쥐",
       "pack": "cute",
       "file": "Bat.glb",
-      "unlock": "pass",
-      "passLevel": 14
+      "unlock": "gem",
+      "price": 200
     },
     {
       "id": "witch",
       "name": "마녀",
       "pack": "chars",
       "file": "Witch.glb",
-      "unlock": "pass",
-      "passLevel": 18
+      "unlock": "gem",
+      "price": 260
     },
     {
       "id": "skull",
@@ -165,11 +165,74 @@
     }
   ],
   "shop": {
-    "note": "젬으로 미리 사는 곳. 패스 트랙 아바타만 판다 — 랭크 아바타는 실력 표식이라 팔면 뜻을 잃는다.",
-    "sellUnlock": "pass",
-    "gemPrice": {
-      "base": 40,
-      "perLevel": 10
+    "note": "젬으로 사는 것만 판다. 패스·랭크 보상을 팔면 그 트랙을 도는 이유가 사라진다.",
+    "sellUnlock": "gem"
+  },
+  "boards": [
+    {
+      "id": "stone",
+      "name": "돌마당",
+      "desc": "기본 무대",
+      "unlock": "free",
+      "colors": {
+        "floor": "#ffffff",
+        "base": "#4a4438",
+        "ground": "#74884c",
+        "ring": "#4de8d8"
+      }
+    },
+    {
+      "id": "ashen",
+      "name": "잿빛 폐허",
+      "desc": "타 버린 돌과 재",
+      "unlock": "gem",
+      "price": 180,
+      "colors": {
+        "floor": "#9c9088",
+        "base": "#33302e",
+        "ground": "#5d5750",
+        "ring": "#ff9a5a"
+      }
+    },
+    {
+      "id": "frost",
+      "name": "서리 들판",
+      "desc": "얼어붙은 판",
+      "unlock": "gem",
+      "price": 220,
+      "colors": {
+        "floor": "#cfe3ff",
+        "base": "#3a4658",
+        "ground": "#8fb2c9",
+        "ring": "#8fe6ff"
+      }
+    },
+    {
+      "id": "emberfall",
+      "name": "잿불 협곡",
+      "desc": "패스 15단계",
+      "unlock": "pass",
+      "passLevel": 15,
+      "colors": {
+        "floor": "#ffb98f",
+        "base": "#4a2a22",
+        "ground": "#7a4030",
+        "ring": "#ffd166"
+      }
+    },
+    {
+      "id": "champion",
+      "name": "챔피언 무대",
+      "desc": "플래티넘 달성",
+      "unlock": "rank",
+      "tier": "platinum",
+      "colors": {
+        "floor": "#ffe6b0",
+        "base": "#4a3a1c",
+        "ground": "#6b7a4c",
+        "ring": "#ffd166"
+      }
     }
-  }
+  ],
+  "boardDefault": "stone"
 }

@@ -1816,11 +1816,35 @@ export async function createScene({
     return pad ? { x: pad.position.x, y: benchTopY + 0.08, z: pad.position.z } : null
   }
 
+  /**
+   * 무대 스킨. 색만 갈아 끼운다.
+   *
+   * 새 모델·텍스처를 얹지 않는 이유: 판 모양이 바뀌면 그건 코스메틱이 아니라
+   * 다른 판이다(칸 위치가 같아 보여도 눈이 헷갈린다). 색은 밸런스에 안 닿는다.
+   *
+   * 바닥은 텍스처가 있는 재질이라 색을 **곱한다** — 흰색이면 원래 그림 그대로,
+   * 다른 색이면 그 색조로 물든다.
+   */
+  function setSkin(colors = {}) {
+    const set = (mat, hex) => {
+      if (mat && hex) mat.color.set(hex)
+    }
+    set(floorMat, colors.floor)
+    set(baseMat, colors.base)
+    set(groundMat, colors.ground)
+    // 내 칸 테두리. 판 색이 바뀌면 청록 하나로는 안 읽히는 무대가 생긴다.
+    if (colors.ring) {
+      ringIdle.color.set(colors.ring)
+      ringHot.color.set(colors.ring).offsetHSL(0, 0, 0.18)
+    }
+  }
+
   return {
     THREE,
     scene,
     camera,
     renderer,
+    setSkin,
     board,
     spacing,
     topY,

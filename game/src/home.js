@@ -4,7 +4,7 @@
 // 밀어 넣는다. 홈이 SDK 를 알면 홈을 확인하려면 네트워크가 필요해진다.
 
 import { homeView } from './home-state.js'
-import { avatarChoices, shopAvatars } from '@sim/cosmetics.js'
+import { avatarChoices, boardChoices } from '@sim/cosmetics.js'
 import { storeProducts } from '@sim/store.js'
 import { seasonAt, daysLeft } from '@sim/season.js'
 import { passProgress, passTrack, EMPTY_PASS } from '@sim/pass.js'
@@ -28,6 +28,8 @@ export function createHome({
   onPickedAvatar,
   onAvatarPortrait,
   onBuyAvatar,
+  onPickBoard,
+  onPickedBoard,
   onStoreItems,
   onBuyPack,
 }) {
@@ -49,10 +51,14 @@ export function createHome({
     skinsBtn: document.getElementById('btn-skins'),
     skins: document.getElementById('skins'),
     skinsGrid: document.getElementById('skins-grid'),
+    skinsTabs: document.getElementById('skins-tabs'),
+    skinsGems: document.getElementById('skins-gems'),
+    skinsPick: document.getElementById('skins-pick'),
+    skinsWhy: document.getElementById('skins-why'),
+    skinsAct: document.getElementById('skins-act'),
     skinsClose: document.getElementById('skins-close'),
     shopBtn: document.getElementById('btn-shop'),
     shop: document.getElementById('gemshop'),
-    shopGrid: document.getElementById('shop-grid'),
     shopGems: document.getElementById('shop-gems'),
     shopPacks: document.getElementById('shop-packs'),
     shopClose: document.getElementById('shop-close'),
@@ -132,24 +138,54 @@ export function createHome({
   el.shopBtn.addEventListener('click', () => openShop())
   el.shopClose.addEventListener('click', () => closeSheet(el.shop))
 
-  /**
-   * 아바타 목록. 잠긴 것도 **보여 준다** — 무엇이 기다리는지 알아야 그걸
-   * 얻을 이유가 생긴다. 다만 눌리지는 않는다.
-   */
-  async function openSkins() {
+  // ── 꾸미기(아바타 · 무대) ───────────────────────────────
+  //
+  // 고르는 곳과 사는 곳을 **한 창에** 둔다. 갈라 두면 "이걸 쓰고 싶다"와
+  // "이걸 산다" 사이에 화면을 한 번 옮겨야 하고, 잠긴 것을 눌렀을 때 어디로
+  // 가야 하는지도 따로 배워야 한다.
+  let skinTab = 'avatar'
+  let skinPick = null
+
+  function openSkins() {
     // 닫는 중에 다시 누를 수 있다. closing 이 남아 있으면 열자마자 사라진다.
     el.skins.classList.remove('closing')
     el.skins.hidden = false
-    const picked = onPickedAvatar()
-    const list = avatarChoices(data, ownedNow())
+    skinPick = null
+    drawSkins()
+  }
+
+  /** 지금 탭의 목록. 아바타든 무대든 같은 모양으로 그린다. */
+  function skinList() {
+    const owned = ownedNow()
+    return skinTab === 'avatar' ? avatarChoices(data, owned) : boardChoices(data, owned)
+  }
+
+  function currentId() {
+    return skinTab === 'avatar' ? onPickedAvatar() : onPickedBoard?.()
+  }
+
+  function drawSkins() {
+    const list = skinList()
+    const cur = currentId()
+    el.skinsGems.textContent = String(ownedNow().gems)
+    for (const t of el.skinsTabs.querySelectorAll('[data-tab]')) {
+      t.classList.toggle('on', t.dataset.tab === skinTab)
+    }
     el.skinsGrid.innerHTML = list
-      .map(
-        (c) =>
-          `<div class="card${c.unlocked ? '' : ' locked'}${c.id === picked ? ' on' : ''}" data-skin="${c.id}">` +
-          `<img alt="" data-file="${c.file}" />` +
+      .map((c) => {
+        // 무대는 초상을 찍을 수 없다 — 3D 판을 목록마다 그리는 값이 너무 크다.
+        // 실제로 바뀌는 색 셋(잔디·돌·테두리)을 그대로 보여 준다.
+        const art = c.file
+          ? `<img alt="" data-file="${c.file}" />`
+          : `<span class="swatch"><i class="g1" style="background:${c.colors?.ground}"></i>` +
+            `<i class="g2" style="background:${c.colors?.floor};color:${c.colors?.ring}"><i></i></i></span>`
+        return (
+          `<div class="card${c.unlocked ? '' : ' locked'}${c.id === cur ? ' on' : ''}` +
+          `${c.id === skinPick ? ' sel' : ''}" data-skin="${c.id}">${art}` +
           `<span class="nm">${c.name}</span>` +
-          `<span class="why">${c.reason ?? ''}</span></div>`,
-      )
+          `<span class="why">${c.unlocked ? '' : c.reason}</span></div>`
+        )
+      })
       .join('')
     // 초상은 3D 모델을 찍어 만든다 — 2D 아이콘을 따로 그리면 모델을 바꿀 때
     // 어긋난다. 목록을 먼저 띄우고 그림은 오는 대로 채운다.
@@ -160,15 +196,90 @@ export function createHome({
         })
         .catch(() => {})
     }
+    drawSkinFoot()
   }
 
+  /**
+   * 아래 줄. 고른 것 하나에 대해서만 말한다.
+   *
+   * 카드마다 사기 버튼을 달지 않는 이유: 목록이 버튼 밭이 되고, 고르려다
+   * 잘못 눌러 사는 일이 생긴다. 값을 쓰는 일은 한 번 더 눌러야 한다.
+   */
+  function drawSkinFoot() {
+    const c = skinList().find((x) => x.id === skinPick)
+    if (!c) {
+      el.skinsPick.textContent = '고를 것을 누른다'
+      el.skinsWhy.textContent = ''
+      el.skinsAct.hidden = true
+      return
+    }
+    el.skinsPick.textContent = c.name
+    if (c.unlocked) {
+      const cur = currentId()
+      el.skinsWhy.textContent = c.id === cur ? '지금 쓰는 중' : ''
+      el.skinsAct.hidden = c.id === cur
+      el.skinsAct.textContent = '이걸로 하기'
+      el.skinsAct.dataset.act = 'use'
+      return
+    }
+    if (c.canBuy) {
+      el.skinsWhy.textContent = ''
+      el.skinsAct.hidden = false
+      el.skinsAct.textContent = `${c.price} 젬으로 사기`
+      el.skinsAct.dataset.act = 'buy'
+      return
+    }
+    // 못 사는 이유를 그대로 적는다. 값을 숨기면 얼마를 모아야 하는지 모른다.
+    el.skinsWhy.textContent = c.price ? `${c.price} 젬 · ${c.why}` : c.reason
+    el.skinsAct.hidden = true
+  }
+
+  el.skinsTabs.addEventListener('click', (ev) => {
+    const t = ev.target.closest('[data-tab]')
+    if (!t || t.dataset.tab === skinTab) return
+    skinTab = t.dataset.tab
+    skinPick = null
+    drawSkins()
+  })
+
+  // 카드를 누르면 **고르기만** 한다. 열린 것을 두 번 누르면 곧장 쓴다 —
+  // 이미 가진 것을 아래 줄까지 가서 한 번 더 누르게 하면 번거롭다.
   el.skinsGrid.addEventListener('click', (ev) => {
     const card = ev.target.closest('[data-skin]')
-    if (!card || card.classList.contains('locked')) return
-    onPickAvatar(card.dataset.skin)
-    for (const c of el.skinsGrid.querySelectorAll('[data-skin]')) c.classList.remove('on')
-    card.classList.add('on')
+    if (!card) return
+    const id = card.dataset.skin
+    const again = skinPick === id
+    skinPick = id
+    const c = skinList().find((x) => x.id === id)
+    if (again && c?.unlocked) applySkin(id)
+    else drawSkins()
   })
+
+  el.skinsAct.addEventListener('click', async () => {
+    if (!skinPick || el.skinsAct.dataset.busy) return
+    if (el.skinsAct.dataset.act === 'use') return applySkin(skinPick)
+    el.skinsAct.dataset.busy = '1'
+    el.skinsAct.textContent = '사는 중…'
+    // 구매는 **서버가** 판정한다. 여기서 잔액을 깎고 그리면, 서버가 거절했을
+    // 때 화면만 산 것처럼 남는다. 서버가 준 새 전적으로 다시 그린다.
+    const res = await onBuyAvatar?.(skinPick)
+    delete el.skinsAct.dataset.busy
+    if (res?.profile) state = { ...state, profile: res.profile }
+    // 사자마자 입혀 준다 — 산 것을 다시 눌러 고르게 하면 "샀는데 안 바뀐다"로
+    // 읽힌다.
+    if (res?.ok) applySkin(skinPick)
+    else drawSkins()
+    render()
+  })
+
+  /** 고른 것을 실제로 입힌다. 저장은 main 이 한다(홈은 저장소를 모른다). */
+  function applySkin(id) {
+    if (skinTab === 'avatar') onPickAvatar(id)
+    else onPickBoard?.(id)
+    drawSkins()
+  }
+
+
 
   /**
    * 시즌 패스 트랙.
@@ -268,7 +379,7 @@ export function createHome({
   function openShop() {
     el.shop.classList.remove('closing')
     el.shop.hidden = false
-    drawShop()
+    el.shopGems.textContent = String(ownedNow().gems)
     drawPacks()
   }
 
@@ -309,44 +420,6 @@ export function createHome({
   el.shopPacks.addEventListener('click', (ev) => {
     const row = ev.target.closest('[data-pack]')
     if (row) onBuyPack?.(row.dataset.pack)
-  })
-
-  function drawShop() {
-    const owned = ownedNow()
-    el.shopGems.textContent = String(owned.gems)
-    el.shopGrid.innerHTML = shopAvatars(data, owned)
-      .map((s) => {
-        const cls = s.have ? ' have' : s.canBuy ? '' : ' off'
-        const btn = s.have
-          ? '<div class="buy">보유 중</div>'
-          : `<div class="buy" data-buy="${s.id}"><i class="g"></i>${s.price}</div>`
-        return (
-          `<div class="card${cls}"><img alt="" data-file="${s.file}" />` +
-          `<div class="nm">${s.name}</div>` +
-          `<div class="lvtag">패스 ${s.passLevel}단계</div>${btn}</div>`
-        )
-      })
-      .join('')
-    for (const img of el.shopGrid.querySelectorAll('img[data-file]')) {
-      onAvatarPortrait?.(img.dataset.file)
-        .then((url) => {
-          img.src = url
-        })
-        .catch(() => {})
-    }
-  }
-
-  // 구매는 **서버가** 판정한다. 여기서 잔액을 깎고 그리면, 서버가 거절했을 때
-  // 화면만 산 것처럼 남는다. 서버가 준 새 전적으로 다시 그린다.
-  el.shopGrid.addEventListener('click', async (ev) => {
-    const btn = ev.target.closest('[data-buy]')
-    if (!btn || btn.dataset.busy) return
-    btn.dataset.busy = '1'
-    const res = await onBuyAvatar?.(btn.dataset.buy)
-    if (res?.profile) state = { ...state, profile: res.profile }
-    delete btn.dataset.busy
-    drawShop()
-    render()
   })
 
   /** 순위표를 연다. 서버가 안 주면 그 사실을 그대로 적는다 — 빈 표를 띄우면

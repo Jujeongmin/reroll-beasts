@@ -12,7 +12,13 @@ import { startRun, refreshShop, grantItem } from '@sim/roster.js'
 import { roundIncome, addXp } from '@sim/economy.js'
 import { roundAt, totalRounds, defeatDamage, grantIndices, itemSeed } from '@sim/rounds.js'
 import { setupTutorial } from '@sim/tutorial.js'
-import { resolveAvatar, avatarFile, avatarAnims } from '@sim/cosmetics.js'
+import {
+  resolveAvatar,
+  avatarFile,
+  avatarAnims,
+  resolveBoard,
+  boardColors,
+} from '@sim/cosmetics.js'
 import { createHome } from './home.js'
 import { createStore } from './vxshop.js'
 import { createCoach, isTutorialDone, markTutorialDone } from './tutorial.js'
@@ -127,9 +133,16 @@ try {
    * 된다). 못 읽어도 게임은 굴러가야 하므로 조용히 기본값으로 간다.
    */
   const AVATAR_KEY = 'rr.avatar'
+  const BOARD_KEY = 'rr.board'
   function pickedAvatar() {
+    return readKey(AVATAR_KEY)
+  }
+  function pickedBoard() {
+    return readKey(BOARD_KEY)
+  }
+  function readKey(k) {
     try {
-      return localStorage.getItem(AVATAR_KEY)
+      return localStorage.getItem(k)
     } catch {
       return null
     }
@@ -160,6 +173,10 @@ try {
     profileGems = p?.gems ?? 0
     profileOwned = p?.owned ?? []
     home.setProfile(p)
+    // 무대 스킨은 **전적이 온 뒤에** 다시 입힌다. 부팅 때는 아직 무엇을
+    // 갖고 있는지 몰라 잠긴 무대가 기본으로 떨어진다 — 그 상태로 두면 산
+    // 무대가 판을 한 번 들어갔다 나와야 보인다.
+    prep.scene.setSkin(boardColors(resolveBoard(pickedBoard(), data, ownedNow()), data))
   }
 
   const stick = createJoystick({
@@ -325,6 +342,19 @@ try {
         // 못 적어도 이번 판에는 적용된다.
       }
       hero3d?.swap(avatarFile(id, data), avatarAnims(id, data)).catch(() => {})
+    },
+    onPickedBoard: () => resolveBoard(pickedBoard(), data, ownedNow()),
+    /**
+     * 무대를 골랐다. **곧장 판에 입힌다** — 다음 판까지 기다리게 하면 무엇을
+     * 골랐는지 확인할 방법이 없다. 무대는 이미 서 있으므로 색만 갈아 끼운다.
+     */
+    onPickBoard: (id) => {
+      try {
+        localStorage.setItem(BOARD_KEY, id)
+      } catch {
+        // 못 적어도 이번 판에는 적용된다.
+      }
+      prep.scene.setSkin(boardColors(id, data))
     },
     // 홈은 서버를 모른다. 순위표도 여기서 받아 넘긴다.
     onBoard: async () => {

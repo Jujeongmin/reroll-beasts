@@ -9,9 +9,12 @@ import {
   avatarChoices,
   avatarFile,
   avatarAnims,
-  avatarPrice,
-  canBuyAvatar,
-  shopAvatars,
+  priceOf,
+  canBuyCosmetic,
+  boardChoices,
+  resolveBoard,
+  boardColors,
+  cosmeticById,
 } from '../sim/cosmetics.js'
 
 let data
@@ -126,50 +129,78 @@ describe('avatarAnims', () => {
   })
 })
 
-describe('젬 상점', () => {
+describe('젬으로 사는 것', () => {
+  const gemAv = (d) => d.cosmetics.avatars.find((a) => a.unlock === 'gem')
   const passAv = (d) => d.cosmetics.avatars.find((a) => a.unlock === 'pass')
   const rankAv = (d) => d.cosmetics.avatars.find((a) => a.unlock === 'rank')
 
-  it('패스 아바타만 판다 — 랭크는 실력 표식이라 팔면 뜻을 잃는다', () => {
-    expect(avatarPrice(passAv(data), data)).toBeGreaterThan(0)
-    expect(avatarPrice(rankAv(data), data)).toBe(null)
-    expect(avatarPrice({ unlock: 'free' }, data)).toBe(null)
+  it('젬 전용만 판다 — 패스·랭크 보상을 팔면 그 트랙을 도는 이유가 사라진다', () => {
+    expect(priceOf(gemAv(data), data)).toBeGreaterThan(0)
+    expect(priceOf(passAv(data), data)).toBe(null)
+    expect(priceOf(rankAv(data), data)).toBe(null)
+    expect(canBuyCosmetic(passAv(data), { gems: 99999 }, data).ok).toBe(false)
+    expect(canBuyCosmetic(rankAv(data), { gems: 99999 }, data).ok).toBe(false)
   })
 
-  it('늦게 열리는 것일수록 비싸다', () => {
-    const list = data.cosmetics.avatars.filter((a) => a.unlock === 'pass')
-    const sorted = [...list].sort((a, b) => a.passLevel - b.passLevel)
-    for (let i = 1; i < sorted.length; i++) {
-      expect(avatarPrice(sorted[i], data)).toBeGreaterThan(avatarPrice(sorted[i - 1], data))
-    }
+  it('파는 것에는 모두 값이 붙어 있다 — 값 없는 상품은 공짜가 된다', () => {
+    const sellable = [...data.cosmetics.avatars, ...data.cosmetics.boards].filter(
+      (x) => x.unlock === data.cosmetics.shop.sellUnlock,
+    )
+    expect(sellable.length).toBeGreaterThan(0)
+    for (const x of sellable) expect(priceOf(x, data), x.id).toBeGreaterThan(0)
   })
 
   it('젬이 모자라면 못 산다', () => {
-    const a = passAv(data)
-    const price = avatarPrice(a, data)
-    expect(canBuyAvatar(a, { gems: price - 1 }, data).ok).toBe(false)
-    expect(canBuyAvatar(a, { gems: price }, data).ok).toBe(true)
+    const a = gemAv(data)
+    expect(canBuyCosmetic(a, { gems: a.price - 1 }, data).ok).toBe(false)
+    expect(canBuyCosmetic(a, { gems: a.price }, data).ok).toBe(true)
   })
 
-  it('이미 열린 것은 안 판다 — 젬만 사라진다', () => {
-    const a = passAv(data)
-    const rich = { gems: 99999, passLevel: 99 }
-    expect(canBuyAvatar(a, rich, data).ok).toBe(false)
-    expect(canBuyAvatar(a, { gems: 99999, avatars: [a.id] }, data).ok).toBe(false)
+  it('산 것은 바로 열린다', () => {
+    const a = gemAv(data)
+    expect(isUnlocked(a, { gems: 9999 })).toBe(false)
+    expect(isUnlocked(a, { avatars: [a.id] })).toBe(true)
+    expect(canBuyCosmetic(a, { gems: 9999, avatars: [a.id] }, data).ok).toBe(false)
   })
 
-  it('산 것은 단계에 못 가도 쓸 수 있다 — 그러라고 판 것이다', () => {
-    const a = passAv(data)
-    expect(isUnlocked(a, { passLevel: 1 })).toBe(false)
-    expect(isUnlocked(a, { passLevel: 1, avatars: [a.id] })).toBe(true)
-    expect(resolveAvatar(a.id, data, { passLevel: 1, avatars: [a.id] })).toBe(a.id)
+  it('패스 보상 아바타는 둘뿐이다 — 다 패스에 있으면 다른 해금 경로가 죽는다', () => {
+    expect(data.cosmetics.avatars.filter((a) => a.unlock === 'pass').length).toBe(2)
+  })
+})
+
+describe('무대 스킨', () => {
+  it('아바타와 같은 해금 규칙을 탄다', () => {
+    const list = boardChoices(data, {})
+    expect(list.length).toBe(data.cosmetics.boards.length)
+    // 기본 무대는 늘 열려 있다 — 안 그러면 첫 판에 설 자리가 없다
+    expect(list.find((b) => b.id === data.cosmetics.boardDefault).unlocked).toBe(true)
+    expect(list.some((b) => !b.unlocked)).toBe(true)
   })
 
-  it('목록은 가진 것도 남긴다 — 빠지면 목록이 판마다 달라진다', () => {
-    const poor = shopAvatars(data, {})
-    const rich = shopAvatars(data, { gems: 99999, passLevel: 99 })
-    expect(rich.length).toBe(poor.length)
-    expect(rich.every((x) => x.have)).toBe(true)
-    expect(poor.every((x) => !x.have)).toBe(true)
+  it('잠긴 것을 고른 채로 남아 있으면 기본값으로 돌린다', () => {
+    const locked = data.cosmetics.boards.find((b) => b.unlock !== 'free')
+    expect(resolveBoard(locked.id, data, {})).toBe(data.cosmetics.boardDefault)
+    expect(resolveBoard(locked.id, data, { avatars: [locked.id] })).toBe(locked.id)
+    expect(resolveBoard('없는무대', data)).toBe(data.cosmetics.boardDefault)
+  })
+
+  it('모든 무대가 무대에 입힐 색을 다 갖고 있다 — 빠지면 그 칸만 기본색이 남는다', () => {
+    for (const b of data.cosmetics.boards) {
+      const c = boardColors(b.id, data)
+      for (const k of ['floor', 'base', 'ground', 'ring']) {
+        expect(c[k], `${b.id}.${k}`).toMatch(/^#[0-9a-f]{6}$/i)
+      }
+    }
+  })
+
+  it('아바타와 무대 id 가 겹치지 않는다 — 겹치면 하나를 사고 둘이 열린다', () => {
+    const ids = [...data.cosmetics.avatars, ...data.cosmetics.boards].map((x) => x.id)
+    expect(new Set(ids).size).toBe(ids.length)
+  })
+
+  it('cosmeticById 는 둘 다에서 찾는다', () => {
+    expect(cosmeticById(data.cosmetics.avatars[0].id, data)).toBeTruthy()
+    expect(cosmeticById(data.cosmetics.boards[0].id, data)).toBeTruthy()
+    expect(cosmeticById('없음', data)).toBe(null)
   })
 })

@@ -1043,21 +1043,68 @@
     position: absolute; left: 7px; right: auto; top: auto;
     display: block; width: auto; height: auto; padding: 0;
     background: none; box-shadow: none; letter-spacing: 0;
-    line-height: 1.2; text-shadow: 0 1px 3px #000, 0 0 8px #000a;
+    line-height: 1.2;
+    /* 무대 견본은 밝은 색이 깔린다. 그림자 하나로는 흰 바탕에서 글자가 사라져
+       이름을 못 읽는다 — 검은 테를 둘러 어느 바탕에서나 읽히게 한다. */
+    text-shadow: 0 1px 3px #000, 1px 0 0 #000c, -1px 0 0 #000c, 0 1px 0 #000c, 0 -1px 0 #000c;
   }
   #skins .card .nm { bottom: 17px; font-size: 12px; font-weight: 800; }
   #skins .card .why { bottom: 4px; font-size: 10px; color: #f0c56a; }
   /* 잠긴 것은 눌러도 안 되지만 **보이기는 한다** — 무엇이 기다리는지 알아야
      패스를 살 이유가 생긴다. */
-  #skins .card.locked { cursor: default; }
-  #skins .card.locked img { filter: brightness(0.35) grayscale(1); }
+  /* 잠긴 것도 누를 수 있다 — 눌러야 값이 아래 줄에 뜬다. 다만 눌러도 안
+     입혀진다. 그림만 눌러 둔다: 무엇인지 알아볼 수는 있어야 살 마음이 든다. */
+  #skins .card.locked img,
+  #skins .card.locked .swatch { filter: brightness(0.5) saturate(0.7); }
+  /* 지금 고른 칸. 쓰는 중(.on)과 다르다 — 고른 것은 아래 줄이 말하고, 쓰는
+     것은 금테가 말한다. 둘을 같은 표시로 두면 "이미 쓰는 중"인지 모른다. */
+  #skins .card.sel { box-shadow: inset 0 0 0 2px #ffffffb0; }
+  #skins .card.on.sel { box-shadow: inset 0 0 0 2px #ffd166, 0 0 0 2px #ffffff59; }
   #skins .card.on {
     box-shadow: inset 0 0 0 2px #ffd166cc;
     background: linear-gradient(180deg, #55401f, #2a1d10);
   }
-  #skins #skins-close {
-    align-self: center; font-size: 11px; color: #cbb794; text-decoration: underline;
+  /* 탭. 창을 나누는 대신 목록만 갈아 끼운다. */
+  #skins .bhead { position: relative; align-items: center; }
+  #skins .tabs { display: flex; gap: 4px; margin-left: 4px; }
+  #skins .tab {
+    padding: 2px 9px; font-size: 11px; font-weight: 800; color: #a99a86;
+    background: #00000059; box-shadow: inset 0 0 0 1px #ffffff12;
   }
+  #skins .tab.on { color: #2a1d10; background: #ffd166; box-shadow: none; }
+  #skins .wallet {
+    position: absolute; right: 0; bottom: 1px; display: flex; align-items: center; gap: 3px;
+    font-size: 12px; font-weight: 800; color: #e6dcff;
+  }
+  #skins .wallet .g {
+    width: 15px; height: 15px; image-rendering: pixelated;
+    background: url('/assets/ui/gem.png') center/contain no-repeat;
+  }
+  /* 무대 견본. 3D 판을 여기서 그릴 수는 없으니 색 세 겹으로 보여 준다 —
+     바깥 잔디, 판 돌, 내 칸 테두리. 실제로 바뀌는 것이 이 셋이다. */
+  #skins .swatch { width: 100%; height: 100%; display: flex; flex-direction: column; }
+  #skins .swatch .g1 { flex: 1; }
+  #skins .swatch .g2 { flex: 2; position: relative; }
+  #skins .swatch .g2 i {
+    position: absolute; left: 50%; top: 50%; width: 26px; height: 26px;
+    transform: translate(-50%, -50%) rotate(45deg); box-shadow: inset 0 0 0 2px currentColor;
+  }
+  /* 고른 것 줄. 값과 살 수 있는지는 여기서만 말한다. */
+  #skins .foot { flex: none; display: flex; align-items: center; gap: 8px; }
+  #skins .foot .nm { font-size: 12px; font-weight: 800; color: #e9dcc2; }
+  #skins .foot .why { flex: 1; min-width: 0; font-size: 10px; color: #a99a86; }
+  #skins .foot .act {
+    padding: 4px 12px; line-height: 1;
+    border-style: solid; border-width: 6px; border-image-slice: 6;
+    border-image-repeat: repeat; border-image-source: url('/assets/ui/button.png');
+    background: #c58747; image-rendering: pixelated;
+    font-size: 11px; font-weight: 800; color: #3a2a12;
+  }
+  #skins .foot .act:hover {
+    border-image-source: url('/assets/ui/button_light.png'); background: #e0a94c;
+  }
+  #skins .foot .act:active { transform: translateY(1px); }
+  #skins #skins-close { font-size: 11px; color: #cbb794; text-decoration: underline; }
 
   /* 창 겉모습은 게임 안과 같은 나무 액자를 쓴다. 둥근 모서리에 남색 판은
      이 게임 어디에도 없는 재질이라, 그 창만 다른 프로그램에서 떠 온 것처럼
@@ -1124,45 +1171,6 @@
     width: 15px; height: 15px; image-rendering: pixelated;
     background: url('/assets/ui/gem.png') center/contain no-repeat;
   }
-  #gemshop .grid {
-    display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px; overflow-y: auto;
-    align-content: start;
-  }
-  #gemshop .card {
-    position: relative; height: 168px; border-radius: 4px; overflow: hidden;
-    display: flex; flex-direction: column;
-    background: linear-gradient(180deg, #3a2a1e, #1d1410);
-    box-shadow: inset 0 0 0 1px #00000059, inset 0 1px 0 #ffffff14;
-    color: #e9dcc2;
-  }
-  #gemshop .card img { flex: 1; min-height: 0; width: 100%; object-fit: contain; }
-  #gemshop .card .nm {
-    position: static; padding: 0 6px; font-size: 11px; font-weight: 800;
-    background: none; box-shadow: none; height: auto; line-height: 1.2;
-    text-shadow: 0 1px 3px #000;
-  }
-  #gemshop .card .lvtag { padding: 0 6px 2px; font-size: 9px; color: #a99a86; }
-  /* 값과 사는 버튼. 카드마다 같은 자리에 있어야 값을 견줄 수 있다. */
-  #gemshop .card .buy {
-    display: flex; align-items: center; justify-content: center; gap: 4px;
-    height: 24px; margin: 0 4px 4px; line-height: 1;
-    border-style: solid; border-width: 6px; border-image-slice: 6;
-    border-image-repeat: repeat; border-image-source: url('/assets/ui/button.png');
-    background: #c58747; image-rendering: pixelated;
-    font-size: 11px; font-weight: 800; color: #3a2a12;
-  }
-  #gemshop .card .buy .g {
-    width: 12px; height: 12px; background: url('/assets/ui/gem.png') center/contain no-repeat;
-  }
-  #gemshop .card .buy:hover { border-image-source: url('/assets/ui/button_light.png'); background: #e0a94c; }
-  #gemshop .card .buy:active { transform: translateY(1px); }
-  /* 못 사는 카드. 값은 그대로 보여 준다 — 얼마가 모자란지 알아야 모을 마음이
-     생긴다. 버튼만 죽인다. */
-  #gemshop .card.off .buy {
-    pointer-events: none; filter: grayscale(.8) brightness(.7); color: #2a2118;
-  }
-  #gemshop .card.have img { filter: none; }
-  #gemshop .card.off img { filter: brightness(.72) saturate(.85); }
   /* 젬 충전 줄. 아바타 목록과 같은 칸으로 그리면 "이것도 아바타"로 읽힌다 —
      가로 띠로 눕혀 다른 종류임을 모양으로 가른다. */
   #gemshop .packs { flex: none; display: flex; gap: 6px; }
@@ -1503,9 +1511,25 @@
          무관하다(밸런스에 안 닿는다). -->
     <div id="skins" hidden>
       <div class="sheet">
-        <div class="bhead"><b>아바타</b><span>무대에서 걸어다닐 모습이다. 전투에는 영향이 없다</span></div>
+        <div class="bhead">
+          <b>꾸미기</b>
+          <!-- 아바타와 무대를 한 창에 둔다. 고르는 일은 하나인데 창이 둘이면
+               무엇을 꾸밀 수 있는지 알려면 두 번 열어 봐야 한다. -->
+          <div class="tabs" id="skins-tabs">
+            <button class="tab on" data-tab="avatar">아바타</button>
+            <button class="tab" data-tab="board">무대</button>
+          </div>
+          <div class="wallet"><i class="g"></i><span id="skins-gems">0</span></div>
+        </div>
         <div class="grid" id="skins-grid"></div>
-        <button id="skins-close">닫기</button>
+        <!-- 고른 것의 이름·상태·할 일. 카드마다 버튼을 달면 목록이 버튼 밭이
+             되고, 잘못 눌러 사는 일이 생긴다 — 고른 뒤 여기서 한 번 더 누른다. -->
+        <div class="foot">
+          <span class="nm" id="skins-pick">고를 것을 누른다</span>
+          <span class="why" id="skins-why"></span>
+          <button class="act" id="skins-act" hidden></button>
+          <button id="skins-close">닫기</button>
+        </div>
       </div>
     </div>
     <!-- 젬 상점. 패스 트랙 아바타를 앞당겨 산다 — 랭크 아바타는 안 판다.
@@ -1513,10 +1537,9 @@
     <div id="gemshop" hidden>
       <div class="sheet">
         <div class="bhead">
-          <b>젬 상점</b><span>패스 아바타를 앞당겨 산다</span>
+          <b>젬 충전</b><span>꾸미기는 [아바타 고르기]에서 산다</span>
           <div class="wallet"><i class="g"></i><span id="shop-gems">0</span></div>
         </div>
-        <div class="grid" id="shop-grid"></div>
         <!-- 젬 충전. 값·결제창은 플랫폼(VXShop)이 쥐므로 여기서는 상품만
              나열하고 누르면 호스트 결제창을 연다. -->
         <div class="packs" id="shop-packs"></div>
