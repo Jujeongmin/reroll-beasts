@@ -14,6 +14,7 @@ export function homeView({ status, hasAuth, profile, queue, data }) {
     const sec = Math.floor((queue.waitedMs ?? 0) / 1000)
     return {
       menu: 'hidden',
+      tutorial: 'hidden',
       notice: null,
       profile: viewProfile(profile),
       queue: { text: `${label} 대기 ${queue.queued}/${data.lobby.size} · ${sec}초` },
@@ -21,11 +22,14 @@ export function homeView({ status, hasAuth, profile, queue, data }) {
   }
 
   if (status === 'connecting') {
-    return { menu: 'disabled', notice: '서버에 붙는 중…', profile: null, queue: null }
+    return { menu: 'disabled', tutorial: 'enabled', notice: '서버에 붙는 중…', profile: null, queue: null }
   }
+  // 튜토리얼은 서버가 없어도 돈다. 접속 실패에 같이 잠기면 처음 온 사람이
+  // 아무 데도 못 간다 — 배울 곳조차 없어진다.
   if (status === 'failed') {
     return {
       menu: 'disabled',
+      tutorial: 'enabled',
       notice: hasAuth
         ? '서버에 못 붙었다 — 다시 시도'
         : '로컬 실행 — 인증이 없어 서버에 못 붙는다',
@@ -33,7 +37,13 @@ export function homeView({ status, hasAuth, profile, queue, data }) {
       queue: null,
     }
   }
-  return { menu: 'enabled', notice: null, profile: viewProfile(profile), queue: null }
+  return {
+    menu: 'enabled',
+    tutorial: 'enabled',
+    notice: null,
+    profile: viewProfile(profile),
+    queue: null,
+  }
 }
 
 /** 기록이 없으면 null. 홈이 "첫 판을 기다린다" 를 대신 그린다. */

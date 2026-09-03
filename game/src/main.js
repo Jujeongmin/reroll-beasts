@@ -11,7 +11,10 @@ import { simulate } from '@sim/combat.js'
 import { startRun, refreshShop, grantItem } from '@sim/roster.js'
 import { roundIncome, addXp } from '@sim/economy.js'
 import { roundAt, totalRounds, defeatDamage, grantIndices, itemSeed } from '@sim/rounds.js'
+import { setupTutorial } from '@sim/tutorial.js'
 import { createHome } from './home.js'
+import { createCoach, isTutorialDone, markTutorialDone } from './tutorial.js'
+import { createTutorialMatchmaker } from './tutorialMatchmaker.js'
 import { createServerMatchmaker, connectServer, startQueue } from './serverMatchmaker.js'
 import { createPrep } from './prep.js'
 import { createBattle } from './battle.js'
@@ -104,7 +107,15 @@ try {
    * mm 은 홈에서 모드를 고른 뒤에야 정해지므로 호출 시점에 읽는다. 배치가
    * 열리기 전에는 없으니 옵셔널 체이닝을 유지한다.
    */
+  // 코치. 튜토리얼 중에만 있다. **prep 보다 먼저 선언한다** — createPrep 이
+  // 생성 중에 refresh() 를 한 번 부르고, 그 refresh 가 아래 pushScout 를
+  // 타므로 그때 이 변수가 이미 있어야 한다.
+  let coach = null
+
   function pushScout(entries) {
+    // 판이 바뀌면 단계가 넘어갔는지 코치가 다시 본다. refresh() 가 판이
+    // 바뀌는 모든 자리에서 불리므로 여기 하나면 빠뜨릴 곳이 없다.
+    coach?.sync()
     mm?.pushBoardLive?.(entries)
     if (run.state.level === pushedLevel) return
     pushedLevel = run.state.level
@@ -147,7 +158,7 @@ try {
 
   const home = createHome({
     data,
-    onPick: (mode) => startMatch(mode),
+    onPick: (mode) => (mode === 'tutorial' ? startTutorial() : startMatch(mode)),
     onCancelQueue: () => {
       queue?.cancel()
       queue = null
@@ -159,6 +170,37 @@ try {
   // 간판 캐릭터. 게임 판을 배경에 깔면 라운드 중에 홈으로 돌아온 것처럼
   // 읽히므로, 홈은 자기 그림을 쓴다. 3성 모델을 한 번 크게 찍는다.
   prep.heroPortrait('dragon').then(home.setHero).catch(() => {})
+
+  // 처음 온 사람은 바로 배우는 자리로 넣는다. 홈에서 고르라고 두면 대부분
+  // 안 누르고, 첫 매치에서 규칙을 모르는 채로 여덟 명과 붙는다.
+  if (!isTutorialDone()) startTutorial()
+
+  // ── 튜토리얼 ────────────────────────────────────────────
+  //
+  // 서버 없이 도는 **유일한** 경로다. 상대도 대본이 고정한다 — 무작위 봇을
+  // 세우면 어떤 사람은 첫 전투에서 지고, 그러면 "이렇게 하면 이긴다"를
+  // 가르칠 수가 없다.
+
+  function startTutorial() {
+    setupTutorial(run.state, data)
+    coach = createCoach({
+      run,
+      onFight: () => prep.fight(),
+      onSkip: () => endTutorial(),
+    })
+    enterGame(createTutorialMatchmaker({ data }))
+    // 시간에 쫓기면 배우다 말고 전투에 끌려 들어간다.
+    prep.pauseTimer(true)
+    coach.show()
+  }
+
+  /** 튜토리얼을 닫고 홈으로 돌린다. 한 번 끝냈으면 다시 자동으로 안 뜬다. */
+  function endTutorial() {
+    markTutorialDone()
+    coach?.hide()
+    coach = null
+    location.reload()
+  }
 
   /** 서버에 붙고 전적을 받아 온다. 실패는 홈의 실패 상태로 끝난다. */
   async function connect() {
@@ -247,6 +289,9 @@ try {
     run.fight = { result, onBack }
     run.watchId = 0
 
+    // 전투 중에는 코치를 내린다 — 시킬 게 없는데 "싸우자" 가 계속 떠 있으면
+    // 아직 안 누른 줄 안다. 결과가 나오면 finish() 가 다시 올린다.
+    coach?.hide()
     prep.hide()
     await battle.load(result, { onBack })
   }
@@ -303,6 +348,13 @@ try {
     s.xp = next.xp
 
     battle.hide()
+
+    // 튜토리얼은 한 판이다. 전투를 본 것으로 배울 건 다 배웠다 — 그 뒤로
+    // 계속 굴리면 상대가 허수아비 하나뿐인 게임이 이어진다.
+    if (coach) {
+      coach.finish(won)
+      return
+    }
 
     if (s.hp <= 0 || run.index >= totalRounds(data.rounds)) {
       alert(s.hp <= 0 ? `탈락 — 라운드 ${info.label}` : '런 완주')

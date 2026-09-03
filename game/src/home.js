@@ -44,7 +44,9 @@ export function createHome({ data, onPick, onCancelQueue, onRetry }) {
 
     el.menu.hidden = v.menu === 'hidden'
     for (const btn of el.menu.querySelectorAll('[data-mode]')) {
-      btn.disabled = v.menu !== 'enabled'
+      // 튜토리얼만 접속 상태와 무관하다 — 서버 없이 도는 유일한 경로다.
+      const own = btn.dataset.mode === 'tutorial' ? v.tutorial : v.menu
+      btn.disabled = own !== 'enabled'
     }
 
     el.queue.hidden = !v.queue

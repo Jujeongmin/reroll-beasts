@@ -61,3 +61,15 @@ describe('homeView', () => {
     expect(v.queue.text).toBe('랭크 대기 8/8 · 0초')
   })
 })
+
+describe('튜토리얼 버튼', () => {
+  it('서버에 못 붙어도 튜토리얼은 눌린다 — 배울 곳까지 잠기면 안 된다', () => {
+    expect(homeView({ ...base, status: 'failed', hasAuth: false }).tutorial).toBe('enabled')
+    expect(homeView({ ...base, status: 'connecting' }).tutorial).toBe('enabled')
+  })
+
+  it('대기 중에는 튜토리얼도 감춘다 — 큐를 두고 다른 데로 가면 안 된다', () => {
+    const v = homeView({ ...base, queue: { mode: 'normal', queued: 2, waitedMs: 0 } })
+    expect(v.tutorial).toBe('hidden')
+  })
+})

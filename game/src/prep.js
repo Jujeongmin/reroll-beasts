@@ -1001,8 +1001,12 @@ export async function createPrep({ data, run, onFight, onWatch, onPickUnit, onBo
     return placed
   }
 
+  // 튜토리얼은 시간에 쫓기면 안 된다. 코치가 시키는 걸 하는 동안 라운드가
+  // 저절로 시작되면 배우다 말고 전투에 끌려 들어간다.
+  let timerPaused = false
+
   function tickTimer(dt) {
-    if (!running) return
+    if (!running || timerPaused) return
     timeLeft = Math.max(0, timeLeft - dt)
     // 막대는 매 프레임 다시 그린다. 초가 바뀔 때만 그리면 1초씩 툭툭 끊긴다.
     paintTimer()
@@ -1321,6 +1325,21 @@ export async function createPrep({ data, run, onFight, onWatch, onPickUnit, onBo
     scene,
     clearUnits,
     heroPortrait,
+    /**
+     * 배치 시간을 세운다. 튜토리얼이 쓴다 — 멈춰 두면 타이머 숫자가 그대로
+     * 남아 "시간이 안 간다"가 화면에 보인다.
+     */
+    pauseTimer(on) {
+      timerPaused = on
+      el.timer.textContent = on ? '∞' : String(Math.ceil(timeLeft))
+    },
+    /** 지금 판으로 전투를 시작한다. 튜토리얼의 "싸우자" 버튼이 부른다. */
+    fight() {
+      if (boardCount(run.state) === 0) return false
+      running = false
+      onFight(toCombatEntries(run.state))
+      return true
+    },
     /** 배치 단계로 돌아온다. 화면 전환이 아니라 같은 무대의 상태 전환이다. */
     show() {
       running = true
