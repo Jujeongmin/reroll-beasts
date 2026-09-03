@@ -166,6 +166,11 @@ try {
   let profileGems = 0
   let profileOwned = []
 
+  /** 지금 내가 쓰는 무대. 못 가진 것을 골라 뒀으면 기본값으로 떨어진다. */
+  function myBoardId() {
+    return resolveBoard(pickedBoard(), data, ownedNow())
+  }
+
   /** 서버가 준 전적을 화면과 해금 판정 양쪽에 흘린다. */
   function applyProfile(p) {
     profileLp = p?.lp ?? 0
@@ -176,7 +181,7 @@ try {
     // 무대 스킨은 **전적이 온 뒤에** 다시 입힌다. 부팅 때는 아직 무엇을
     // 갖고 있는지 몰라 잠긴 무대가 기본으로 떨어진다 — 그 상태로 두면 산
     // 무대가 판을 한 번 들어갔다 나와야 보인다.
-    prep.scene.setSkin(boardColors(resolveBoard(pickedBoard(), data, ownedNow()), data))
+    prep.scene.setSkin(boardColors(myBoardId(), data))
   }
 
   // 무대 견본 캐시. id 하나에 그림 한 장.
@@ -266,6 +271,15 @@ try {
     onGroundMove: (ev) => stick?.move(ev),
     onGroundUp: (ev) => stick?.end(ev),
     onTickAvatar: (dt, peeked) => tickAvatar(dt, peeked),
+    /**
+     * 남의 판을 열었다/닫았다. 무대를 그 사람 것으로 갈아 끼운다 —
+     * TFT 의 아레나 스킨과 같은 규칙이다: 무대는 **주인 것**이 보인다.
+     * 그래야 남에게 보여 줄 수 있는 물건이 되고, 그게 이걸 파는 이유다.
+     */
+    onPeek: (seat) => {
+      const id = seat ? (seat.skin ?? data.cosmetics.boardDefault) : myBoardId()
+      prep.scene.setSkin(boardColors(id, data))
+    },
     // battle 은 prep 다음에 만들어진다. 화살표 안에서 읽으므로 그때는 이미 있다.
     onPickUnit: (x, y) => battle?.unitAt(x, y) ?? null,
   })
@@ -371,6 +385,8 @@ try {
         // 못 적어도 이번 판에는 적용된다.
       }
       prep.scene.setSkin(boardColors(id, data))
+      // 좌석에도 붙인다 — 남이 구경 왔을 때 보이는 값이다.
+      mm?.pushSkin?.(id)
     },
     // 홈은 서버를 모른다. 순위표도 여기서 받아 넘긴다.
     onBoard: async () => {
@@ -470,6 +486,10 @@ try {
     // 1라운드도 지급 라운드일 수 있다 — settle() 은 라운드 2부터 도니 여기서
     // 한 번은 짚어야 한다. 지금 일정은 1라운드가 아니라 no-op 이다.
     grantIfDue(run.index)
+    // 내 무대를 좌석에 붙인다. 판에 들어올 때마다 보내는 이유: 좌석은 방마다
+    // 새로 생기고 기본값으로 시작한다 — 안 보내면 남에게는 늘 기본 무대다.
+    prep.scene.setSkin(boardColors(myBoardId(), data))
+    mm?.pushSkin?.(myBoardId())
     prep.show()
     // 판이 선 뒤에 세운다 — 무대 범위(stageBounds)가 그때 정해진다.
     if (!avatar) {

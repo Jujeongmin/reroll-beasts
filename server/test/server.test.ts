@@ -378,3 +378,21 @@ describe('결제 훅', () => {
     expect(after.gems).toBe(before.gems);
   });
 });
+
+describe('무대 스킨 공유', () => {
+  test('안 가진 무대를 보내면 기본값으로 떨어진다 — 아무나 최고 무대를 깔면 안 된다', async (server) => {
+    server.connect({ account: 'skin1' });
+    await server.joinLobby();
+    const res = await server.updateSkin('champion');
+    expect(res.ok).toBe(true);
+    expect(res.skin).toBe('stone');
+    const s = await server.getLobby();
+    expect(s.seats[0].skin).toBe('stone');
+  });
+
+  test('좌석마다 무대가 붙어 있다 — 구경 갔을 때 그 사람 것이 보여야 한다', async (server) => {
+    server.connect({ account: 'skin2' });
+    const s = await server.joinLobby();
+    for (const seat of s.seats) expect(typeof seat.skin).toBe('string');
+  });
+});

@@ -155,6 +155,10 @@ export function createLobbyState({ seed, account, accounts, now, data }) {
       alive: true,
       streak: 0,
       lastWon: null,
+      // 무대 스킨. **좌석에 붙는다** — 남의 판을 구경 가면 그 사람 무대가
+      // 보여야 한다. 스킨을 각자 화면에만 두면 산 사람만 자기 판에서 보고,
+      // 그러면 남에게 보여 줄 수 없는 것을 판 셈이 된다.
+      skin: data.cosmetics.boardDefault,
     })
   }
   const state = {

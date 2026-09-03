@@ -116,6 +116,12 @@ export async function createServerMatchmaker({ data, server, roomId = null, time
     const seat = seats[m.id]
     if (seat && !seat.isPlayer) seat.board = m.board
   })
+  // 무대 스킨. 남이 무대를 바꾸면 그 좌석에 붙여 둔다 — 구경 갔을 때
+  // 그 사람 무대가 보여야 한다.
+  server.onRoomMessage(myRoom, 'SKIN_CHANGED', (m) => {
+    const seat = seats[m.id]
+    if (seat) seat.skin = m.skin
+  })
   server.onRoomMessage(myRoom, 'ROUND_RESOLVED', (m) => {
     // 서버 판정으로 미러를 다시 맞춘다. 결정론이 지켜졌으면 이미 같은 값이라
     // 아무것도 안 바뀐다 — 이 동기화는 어긋남을 잡는 안전망이다.
@@ -292,6 +298,16 @@ export async function createServerMatchmaker({ data, server, roomId = null, time
     /** 배치 중 실시간 정찰. 남이 내 자리를 열어 두고 있으면 이 경로로 보인다. */
     pushBoardLive(entries) {
       boardScout.push(entries)
+    },
+
+    /**
+     * 내 무대 스킨. 좌석에 붙여 남이 구경 왔을 때 보이게 한다.
+     *
+     * 쓰로틀을 안 태운다 — 무대는 판마다 한 번 바꿀까 말까 한 값이라
+     * 초당 여러 번 나갈 일이 없다.
+     */
+    pushSkin(boardId) {
+      return server.remoteFunction('updateSkin', [boardId]).catch(() => {})
     },
 
     /** 레벨도 정찰 대상이다 — 상대 레벨이 다음 판 인원을 말한다. */

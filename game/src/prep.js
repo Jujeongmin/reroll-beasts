@@ -50,6 +50,8 @@ export async function createPrep({
   onGroundMove,
   onGroundUp,
   onTickAvatar,
+  // 구경할 자리를 바꿨다. 무대 스킨을 그 사람 것으로 갈아 끼우는 데 쓴다.
+  onPeek,
 }) {
   const el = {
     root: document.getElementById('prep'),
@@ -273,6 +275,8 @@ export async function createPrep({
     peekViews = []
     peekId = null
     peekSeat = null
+    // 내 판으로 돌아왔다 — 무대도 내 것으로 되돌린다.
+    onPeek?.(null)
     renderLobby()
     renderTraits()
     syncUnits()
@@ -286,6 +290,9 @@ export async function createPrep({
     clearUnits()
     peekId = seat.id
     peekSeat = seat
+    // 구경 간 사람의 무대를 입힌다. 판 위 말만 바뀌고 무대가 내 것이면
+    // "누구 판을 보고 있나"가 화면에서 한 번 끊긴다.
+    onPeek?.(seat)
 
     // 누구 판인지는 우측 순위표에서 그 줄이 밝아지는 걸로 말한다 — 판 한가운데에
     // 띠를 띄우면 정작 봐야 할 말들을 그 띠가 가린다 (실제로 뒷줄이 가려졌다).
