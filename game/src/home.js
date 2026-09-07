@@ -410,25 +410,52 @@ export function createHome({
       : `${prog.level}단계 · 다음까지 ${prog.need - prog.into} · 젬 ${gems}`
 
     const track = passTrack(data, p)
-    el.passRows.innerHTML = track
-      .map((t) => {
-        // 한 단계가 아바타와 젬을 **같이** 줄 수 있다. 하나만 그리면 나머지가
-        // 화면에서 사라지는데, 지급은 그대로 되므로 화면이 거짓말이 된다.
-        const free = t.free.avatar
-          ? `<div class="rw av"><img alt="" data-file="${t.free.avatar.file}" title="${t.free.avatar.name}" />` +
-            (t.free.gems ? `<span class="badge gem">${t.free.gems}</span>` : '') +
-            '</div>'
-          : t.free.gems
-            ? `<span class="rw gem">${t.free.gems}</span>`
-            : '<span class="rw none"></span>'
-        const prem = t.premium.gems
-          ? `<span class="rw gem">${t.premium.gems}</span>`
+
+    /**
+     * 보상 한 칸. 종류마다 다르게 그린다.
+     *
+     * 한 단계가 물건과 젬을 **같이** 줄 수 있다. 하나만 그리면 나머지가 화면에서
+     * 사라지는데 지급은 그대로 되므로, 화면이 거짓말이 된다.
+     *
+     * 무대를 판 견본으로 안 찍는 이유: 꾸미기 창은 한 번에 다섯 장이고 캐시가
+     * 있지만 트랙은 스물다섯 칸이 한 번에 열린다 — 여는 순간 프레임이 끊긴다.
+     * 색 띠면 "무슨 색 판인가"는 전해진다.
+     *
+     * 이펙트를 안 움직이는 이유: 이펙트는 움직여야 뜻이 사는데 스물다섯 칸이
+     * 동시에 움직이면 어디를 봐야 할지 모른다. 색 점만 두고 자세한 것은
+     * 꾸미기 창에서 본다.
+     */
+    const cell = (slot) => {
+      const gem = slot.gems ? `<span class="badge gem">${slot.gems}</span>` : ''
+      const it = slot.item
+      if (!it) {
+        return slot.gems
+          ? `<span class="rw gem">${slot.gems}</span>`
           : '<span class="rw none"></span>'
+      }
+      if (it.kind === 'avatar') {
+        return `<div class="rw av"><img alt="" data-file="${it.file}" title="${it.name}" />${gem}</div>`
+      }
+      if (it.kind === 'board') {
+        const c = it.colors ?? {}
         return (
-          `<div class="step${t.reached ? ' got' : ''}">` +
-          `<div class="lv">${t.level}</div>${free}<div class="prem">${prem}</div></div>`
+          `<div class="rw sk" title="${it.name}">` +
+          `<i style="background:${c.floor ?? '#888'}"></i>` +
+          `<i style="background:${c.ground ?? '#666'}"></i>` +
+          `<i style="background:${c.base ?? '#333'}"></i>` +
+          `<i style="background:${c.ring ?? '#fff'}"></i>${gem}</div>`
         )
-      })
+      }
+      return `<div class="rw bm" title="${it.name}" style="--bc:${it.fx?.color ?? '#ffd166'}">${gem}</div>`
+    }
+
+    el.passRows.innerHTML = track
+      .map(
+        (t) =>
+          `<div class="step${t.reached ? ' got' : ''}">` +
+          `<div class="lv">${t.level}</div>${cell(t.free)}` +
+          `<div class="prem">${cell(t.premium)}</div></div>`,
+      )
       .join('')
     // 아바타 그림은 아바타 목록과 같은 방식으로 찍어 온다.
     for (const img of el.passRows.querySelectorAll('img[data-file]')) {
@@ -452,15 +479,27 @@ export function createHome({
    */
   let nextShown = null
   function showNextReward(level) {
-    const next = data.cosmetics.avatars
-      .filter((a) => a.unlock === 'pass' && a.passLevel > level)
+    // **아바타만 보면 안 된다.** 그 사이에 무대와 이펙트가 여럿 있는데 열 단계
+    // 뒤 아바타를 가리키면, 코앞의 보상이 화면에서 사라진다 — 다음 목표는
+    // 가까운 것이어야 한다.
+    const next = [...data.cosmetics.avatars, ...data.cosmetics.boards, ...data.cosmetics.booms]
+      .filter((x) => x.unlock === 'pass' && x.passLevel > level)
       .sort((a, b) => a.passLevel - b.passLevel)[0]
-    // 남은 아바타가 없으면 칸을 비운다. 빈 액자를 남기면 "받을 게 있는데
-    // 그림을 못 불러왔다"로 읽힌다.
+    // 남은 보상이 없으면 칸을 비운다. 빈 액자를 남기면 "받을 게 있는데 그림을
+    // 못 불러왔다"로 읽힌다.
     el.passNext.parentElement.hidden = !next
-    if (!next || next.file === nextShown) return
-    nextShown = next.file
+    if (!next) return
     el.passNextLv.textContent = `${next.passLevel}단계`
+    // 아바타가 아니면 찍을 그림이 없다 — 그 물건의 색 한 칸으로 대신한다.
+    if (!next.file) {
+      nextShown = null
+      el.passNext.removeAttribute('src')
+      el.passNext.style.background = next.colors?.floor ?? next.fx?.color ?? '#ffd166'
+      return
+    }
+    el.passNext.style.background = ''
+    if (next.file === nextShown) return
+    nextShown = next.file
     onAvatarPortrait?.(next.file)
       .then((url) => {
         el.passNext.src = url

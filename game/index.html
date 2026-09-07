@@ -1503,6 +1503,24 @@
   #passtrack .step {
     flex: none; width: 62px; display: flex; flex-direction: column; align-items: center; gap: 4px;
   }
+  /* 무대 보상. 색 네 개를 가로 띠로 — 판 견본을 스물다섯 장 찍으면 여는
+     순간 프레임이 끊긴다. */
+  /* 높이를 따로 안 준다 — .rw 와 같은 높이여야 아래 프리미엄 줄이 칸마다
+     들쭉날쭉하지 않는다. align-items 도 다시 편다: .rw 가 center 라 그대로
+     두면 띠 네 개의 높이가 0 이 되어 색이 아예 안 보인다. */
+  #passtrack .rw.sk {
+    position: relative; overflow: hidden; align-items: stretch; padding: 0;
+    box-shadow: inset 0 0 0 1px #00000066;
+  }
+  #passtrack .rw.sk i { flex: 1; }
+  /* 이펙트 보상. 그 색의 원 하나 — 스물다섯 칸이 동시에 움직이면 어디를
+     봐야 할지 모른다. */
+  #passtrack .rw.bm { position: relative; }
+  #passtrack .rw.bm::before {
+    content: ''; width: 26px; height: 26px; border-radius: 50%;
+    background: radial-gradient(circle at 50% 45%, #ffffffcc 0%, var(--bc) 45%, #00000000 72%);
+    box-shadow: 0 0 8px var(--bc);
+  }
   #passtrack .lv {
     width: 100%; text-align: center; font-size: 10px; font-weight: 800; color: #8f8069;
     background: #00000059; border-radius: 3px; padding: 1px 0;
