@@ -634,9 +634,9 @@ export function createHome({
   /**
    * 젬 충전 줄.
    *
-   * 값은 **플랫폼이 준 것**을 쓴다. store.json 의 usd 는 참고값이고, 대시보드에서
-   * 값을 고치면 그쪽이 맞다 — 우리 파일에 적힌 값을 그리면 결제창과 다른 값이
-   * 화면에 뜬다. 플랫폼을 못 붙었으면 그 사실을 적는다.
+   * 값은 **플랫폼이 준 것**만 쓴다. 우리 파일에는 값이 없다 — 대시보드가 VX 로
+   * 쥔다. 여기 적어 두면 결제창과 다른 수가 화면에 뜬다. 플랫폼을 못 붙었으면
+   * 값 자리에 그 사실을 적는다.
    */
   async function drawPacks() {
     el.shopPacks.innerHTML = `<div class="none">${t('shop.loading')}</div>`
@@ -650,12 +650,11 @@ export function createHome({
      * Verse8 에서만 열린다" 한 줄만 남아서, 무엇을 파는 가게인지조차 알 수
      * 없었다 — 값을 볼 수 없는 것과 물건을 볼 수 없는 것은 다른 일이다.
      *
-     * 값은 **플랫폼이 준 것**을 쓴다. store.json 의 usd 는 참고값이고 대시보드가
-     * 값을 쥐므로, 우리 파일 값을 진짜처럼 그리면 결제창과 다른 숫자가 뜬다.
-     * 못 받았으면 값 자리에 "$0.99 쯤" 이라고 적어 참고값임을 밝힌다.
+     * 값은 **플랫폼이 준 것**만 쓴다(VX). 우리 파일에는 값이 없다. 못 받았으면
+     * 값 자리에 "결제창에서" 라고 적는다 — 없는 수를 지어내지 않는다.
      */
     const row = (p, item) => {
-      const price = item ? `<div class="p">${item.price}</div>` : `<div class="p off">${t('shop.about', { usd: p.usd })}</div>`
+      const price = item ? `<div class="p">${item.price}</div>` : `<div class="p off">${t('shop.priceLater')}</div>`
       // 이름이 이미 "젬 1,000" 이라 젬 수를 또 적으면 같은 말이 두 번이다.
       // 설명만 적되, 패스는 무엇인지 한 마디를 앞에 붙인다.
       const what = p.premium ? t('shop.passWhat') : ''

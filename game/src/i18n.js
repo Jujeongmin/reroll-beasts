@@ -189,7 +189,7 @@ export const STRINGS = {
     'shop.title': '젬 충전',
     'shop.note': '꾸미기는 [꾸미기]에서 산다',
     'shop.offline': '결제는 Verse8 에서 실행할 때만 열린다 — 값은 참고값이다',
-    'shop.about': '약 ${usd}',
+    'shop.priceLater': '결제창에서',
 
     // ── 미션 ──
     'mission.title': '오늘의 미션',
@@ -403,7 +403,7 @@ export const STRINGS = {
     'shop.title': 'Get Gems',
     'shop.note': 'Cosmetics are bought in [Cosmetics]',
     'shop.offline': 'Purchases only work inside Verse8 — prices shown are estimates',
-    'shop.about': 'about ${usd}',
+    'shop.priceLater': 'See checkout',
 
     'mission.title': "Today's Missions",
     'mission.claim': 'Claim',

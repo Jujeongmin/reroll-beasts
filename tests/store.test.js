@@ -48,12 +48,10 @@ describe('상품 표', () => {
     }
   })
 
-  it('많이 살수록 젬 단가가 싸진다 — 비싼 쪽이 손해면 큰 묶음을 살 이유가 없다', () => {
-    const packs = storeProducts(data)
-      .filter((p) => p.gems)
-      .sort((a, b) => a.usd - b.usd)
-    for (let i = 1; i < packs.length; i++) {
-      expect(packs[i].gems / packs[i].usd).toBeGreaterThan(packs[i - 1].gems / packs[i - 1].usd)
+  it('값은 데이터에 없다 — 대시보드가 VX 로 쥔다. 여기 적으면 결제창과 다른 수가 화면에 뜬다', () => {
+    for (const p of storeProducts(data)) {
+      expect(p.usd, p.id).toBeUndefined()
+      expect(p.price, p.id).toBeUndefined()
     }
   })
 

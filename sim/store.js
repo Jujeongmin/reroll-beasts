@@ -39,7 +39,6 @@ export function storeProducts(data) {
     desc: p.desc ?? '',
     gems: p.gems ?? 0,
     premium: !!p.premium,
-    usd: p.usd,
     bonus: p.bonus ?? null,
     // 그림 파일 이름은 표가 쥔다. id 로 조립하면 id 를 고치는 순간 조용히
     // 깨진 그림이 뜬다 — pass_premium_s1 의 그림이 store_pass_premium.png 다.
