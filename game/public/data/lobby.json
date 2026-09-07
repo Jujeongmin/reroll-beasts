@@ -67,7 +67,7 @@
     }
   ],
   "matching": {
-    "normalWaitMs": 15000,
+    "normalWaitMs": 30000,
     "pollMs": 2000
   }
 }

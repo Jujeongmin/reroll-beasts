@@ -163,7 +163,7 @@ describe('매칭 큐', () => {
     const r1 = await server.joinQueue('normal');
     expect(r1.status).toBe('waiting');
 
-    // 대기 시각을 과거로 밀어 시간 초과를 만든다 — 진짜 15초를 기다리는
+    // 대기 시각을 과거로 밀어 시간 초과를 만든다 — 진짜 30초를 기다리는
     // 테스트는 검사가 아니라 형벌이다.
     const items = await $global.getCollectionItems('mmqueue-normal');
     const me = items.find((x) => x.account === 'n-alone');
