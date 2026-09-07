@@ -16,6 +16,7 @@ const FILES = [
   'season',
   'pass',
   'store',
+  'missions',
 ]
 
 const isNode =

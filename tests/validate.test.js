@@ -75,3 +75,33 @@ describe('validate', () => {
     expect(validate(bad).some((m) => m.includes('실재하지 않는다'))).toBe(true)
   })
 })
+
+describe('미션 표', () => {
+  it('id 가 겹치지 않는다', () => {
+    const ids = data.missions.missions.map((m) => m.id)
+    expect(new Set(ids).size).toBe(ids.length)
+  })
+
+  // 모르는 kind 는 조용히 0 점이 된다 — 화면에는 뜨는데 영원히 안 차는
+  // 미션이 그것이다. 그래서 표를 고치는 그 자리에서 걸려야 한다.
+  it('망가진 미션 줄을 잡는다', () => {
+    const bad = clone(data)
+    bad.missions.missions = [
+      { id: 'a', kind: '없는종류', target: 1, xp: 10, text: 'x' },
+      { id: 'b', kind: 'games', target: 0, xp: 10, text: 'x' },
+      { id: 'c', kind: 'games', target: 1, xp: 0, text: 'x' },
+      { id: 'c', kind: 'games', target: 1, xp: 10, text: 'x' },
+    ]
+    const errs = validate(bad)
+    expect(errs.some((e) => e.includes('없는종류'))).toBe(true)
+    expect(errs.some((e) => e.includes('target'))).toBe(true)
+    expect(errs.some((e) => e.includes('xp'))).toBe(true)
+    expect(errs.some((e) => e.includes('겹친다'))).toBe(true)
+  })
+
+  it('하루에 뽑을 수가 표보다 많으면 잡는다 — 같은 미션이 두 번 뽑힌다', () => {
+    const bad = clone(data)
+    bad.missions.perDay = 99
+    expect(validate(bad).some((e) => e.includes('perDay'))).toBe(true)
+  })
+})

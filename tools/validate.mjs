@@ -245,6 +245,33 @@ export function validate(data) {
     }
   }
 
+  // 23. 미션 표. 모르는 kind 는 **조용히 0 점**이 된다 — 화면에는 뜨는데
+  // 영원히 안 차는 미션이 그것이다. 표를 고치는 그 자리에서 걸려야 한다.
+  const MISSION_KINDS = new Set([
+    'games',
+    'rankedGames',
+    'top4',
+    'firstPlace',
+    'threeStar',
+    'traitStep',
+    'itemsWorn',
+    'boardFull',
+    'roundWins',
+  ])
+  const missionIds = new Set()
+  for (const m of data.missions?.missions ?? []) {
+    if (missionIds.has(m.id)) errors.push(`미션 id 가 겹친다: ${m.id}`)
+    missionIds.add(m.id)
+    if (!MISSION_KINDS.has(m.kind)) errors.push(`미션 ${m.id} 의 종류 "${m.kind}" 를 모른다`)
+    if (!Number.isInteger(m.target) || m.target < 1)
+      errors.push(`미션 ${m.id} 의 target 이 1 이상 정수가 아니다`)
+    if (!(m.xp > 0)) errors.push(`미션 ${m.id} 의 xp 가 양수가 아니다`)
+    if (!m.text) errors.push(`미션 ${m.id} 에 화면 문구가 없다`)
+  }
+  // 하루에 뽑을 수가 표에 있는 수보다 많으면 같은 미션이 두 번 뽑힌다.
+  if ((data.missions?.perDay ?? 0) > (data.missions?.missions?.length ?? 0))
+    errors.push('perDay 가 미션 종류 수보다 많다')
+
   return errors
 }
 

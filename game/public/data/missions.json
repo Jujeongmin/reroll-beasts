@@ -1,0 +1,14 @@
+{
+  "perDay": 3,
+  "missions": [
+    { "id": "play_2", "kind": "games", "target": 2, "xp": 30, "text": "판 2번 끝내기" },
+    { "id": "ranked_1", "kind": "rankedGames", "target": 1, "xp": 30, "text": "랭크 판 1번" },
+    { "id": "top4", "kind": "top4", "target": 1, "xp": 35, "text": "4위 안에 들기" },
+    { "id": "win_1", "kind": "firstPlace", "target": 1, "xp": 50, "text": "1위 하기" },
+    { "id": "three_star", "kind": "threeStar", "target": 1, "xp": 40, "text": "3성 유닛 만들기" },
+    { "id": "trait_3", "kind": "traitStep", "target": 3, "xp": 35, "text": "시너지 하나를 3단계까지 올리기" },
+    { "id": "items_3", "kind": "itemsWorn", "target": 3, "xp": 30, "text": "아이템 3개 장착하기" },
+    { "id": "board_full", "kind": "boardFull", "target": 1, "xp": 25, "text": "레벨만큼 판을 꽉 채우기" },
+    { "id": "round_wins", "kind": "roundWins", "target": 3, "xp": 35, "text": "한 판에서 라운드 3승" }
+  ]
+}
