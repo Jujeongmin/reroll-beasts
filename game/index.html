@@ -1616,13 +1616,29 @@
   }
   #passtrack .badge.gem::before { width: 9px; height: 9px; margin-right: 2px; }
   #passtrack .rw.none { opacity: .25; }
-  /* 프리미엄 줄. 아직 못 사므로 눌러도 아무 일이 없다 — 색으로 그렇게 읽히게
-     둔다. 숨기면 무엇을 놓치는지 몰라 나중에 살 이유도 안 생긴다. */
-  #passtrack .prem { width: 100%; }
-  #passtrack .prem .rw {
-    height: 30px; filter: grayscale(.7) brightness(.8);
-    box-shadow: inset 0 0 0 1px #ffd16640;
+
+  /* ── 잠긴 칸 ────────────────────────────────────────
+     트랙은 **한 줄**이다. 두 줄로 나눠 그리던 때는 무료 줄만 보고 "받을 게
+     이것뿐"으로 읽혔다 — 한 줄에 자물쇠를 세우면 무엇을 놓치는지가 같은
+     자리에서 보인다.
+     보상은 **가린 채로 보여 준다**. 아예 감추면 살 이유가 안 생기고, 그대로
+     두면 잠긴 줄 모른다 — 흐리게 + 자물쇠가 그 사이다. */
+  #passtrack .step { position: relative; }
+  #passtrack .step.shut .rw { filter: grayscale(.75) brightness(.62); }
+  #passtrack .step.shut .lv { color: #7b6c58; }
+  /* 자물쇠는 **모서리**에 둔다. 가운데에 두면 그 칸의 보상을 가려서, 무엇이
+     잠겼는지가 안 보인다 — 잠긴 것을 보여 주려고 그린 표시가 보상을 지우면
+     앞뒤가 바뀐다. */
+  #passtrack .step .lock {
+    position: absolute; right: 3px; top: 21px;
+    width: 16px; height: 16px; pointer-events: none;
+    background: url('/assets/ui/lock_closed.png') center/contain no-repeat;
+    image-rendering: pixelated;
+    filter: drop-shadow(0 1px 2px #000) drop-shadow(0 0 5px #000);
   }
+  /* 무료 칸. 자물쇠가 기본이라, 안 잠긴 칸이 오히려 표시가 필요하다 —
+     테두리 한 줄이면 "여긴 그냥 받는다"가 훑어보는 눈에 걸린다. */
+  #passtrack .step.open .rw { box-shadow: inset 0 0 0 1px #ffd16688; }
   #passtrack .premnote {
     display: flex; align-items: center; gap: 5px; font-size: 10px; color: #a99a86;
   }
@@ -1916,11 +1932,10 @@
       <div class="sheet">
         <div class="bhead"><b>시즌 패스</b><span id="pass-head"></span></div>
         <div class="track" id="pass-rows"></div>
-        <!-- 프리미엄 줄은 보이되 아직 못 산다. 결제는 다음 조각에서 붙는다 —
-             동작 없는 구매 버튼을 여는 것보다 없는 편이 정직하다. -->
+        <!-- 자물쇠 칸이 무엇인지 한 줄로 적는다. 그림만 두면 "왜 잠겼나"를
+             누르는 것 말고는 알 길이 없다. -->
         <div class="premnote">
-          <img src="/assets/ui/lock_closed.png" alt="" />아래 줄은 프리미엄 보상이다 · 구매는
-          준비 중
+          <img src="/assets/ui/lock_closed.png" alt="" /><span id="pass-note"></span>
         </div>
         <button id="pass-close">닫기</button>
       </div>

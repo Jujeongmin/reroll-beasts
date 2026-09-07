@@ -13,16 +13,19 @@
     26
   ],
   "casualScale": 0.5,
+  "freeLevels": [
+    1,
+    4,
+    7,
+    10,
+    13,
+    15,
+    18,
+    20,
+    22
+  ],
   "gems": {
-    "free": {
-      "everyLevels": 1,
-      "amount": 10,
-      "bonusEvery": 5,
-      "bonusAmount": 15
-    },
-    "premium": {
-      "everyLevels": 1,
-      "amount": 40
-    }
+    "amount": 40,
+    "freeAmount": 60
   }
 }

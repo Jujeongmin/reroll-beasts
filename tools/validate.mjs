@@ -292,24 +292,35 @@ export function validate(data) {
       ) {
         errors.push(`${what} ${item.id} 의 패스 단계가 1..${maxPassLevel} 밖이다`)
       }
-      const track = item.passTrack ?? 'free'
-      if (track !== 'free' && track !== 'premium') {
-        errors.push(`${what} ${item.id} 의 패스 트랙 "${item.passTrack}" 를 모른다`)
-      }
       // 한 칸에 둘이 걸리면 화면이 하나만 그리고 나머지는 조용히 사라진다.
-      const key = `${track}:${item.passLevel}`
-      if (passSeen.has(key)) {
+      // 트랙이 한 줄이라 단계 하나에 물건도 하나다.
+      if (passSeen.has(item.passLevel)) {
         errors.push(
-          `패스 보상이 겹친다: ${track} ${item.passLevel}단계에 ${passSeen.get(key)} 와 ${item.id}`,
+          `패스 보상이 겹친다: ${item.passLevel}단계에 ${passSeen.get(item.passLevel)} 와 ${item.id}`,
         )
       }
-      passSeen.set(key, item.id)
+      passSeen.set(item.passLevel, item.id)
       // 아바타 보상은 그림이 있어야 한다. 없으면 트랙에 빈 액자가 뜬다.
       if (item.file && !existsSync(`${AVATAR_DIR}${item.file}`)) {
         errors.push(`${what} ${item.id} 의 파일이 없다 (${item.file})`)
       }
     }
   }
+
+  // 25. 무료 칸 목록. 트랙이 한 줄이 되면서 **여기가 유일한 단일소스**다 —
+  // 범위 밖 단계를 적으면 그 칸은 영영 안 열리고, 화면에는 자물쇠만 남는다.
+  const freeLevels = data.pass?.freeLevels ?? []
+  const freeSeen = new Set()
+  for (const lv of freeLevels) {
+    if (!Number.isInteger(lv) || lv < 1 || lv > maxPassLevel) {
+      errors.push(`무료 칸 ${lv} 가 1..${maxPassLevel} 밖이다`)
+    }
+    if (freeSeen.has(lv)) errors.push(`무료 칸 ${lv} 가 두 번 적혀 있다`)
+    freeSeen.add(lv)
+  }
+  // 무료 칸이 하나도 없으면 트랙은 광고판이 되고, 전부 무료면 팔 것이 없다.
+  if (freeLevels.length === 0) errors.push('무료 칸이 하나도 없다')
+  if (freeLevels.length >= maxPassLevel) errors.push('무료 칸이 트랙 전체다 — 팔 것이 없다')
 
   return errors
 }

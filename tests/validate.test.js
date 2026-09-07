@@ -113,19 +113,33 @@ describe('패스 보상', () => {
     expect(validate(bad).some((m) => m.includes('단계'))).toBe(true)
   })
 
-  it('모르는 트랙 이름을 잡는다 — 오타 하나로 보상이 조용히 사라진다', () => {
+  // 무료 칸 목록이 트랙의 유일한 단일소스다. 범위 밖 단계를 적으면 그 칸은
+  // 영영 안 열리고 화면에는 자물쇠만 남는다.
+  it('범위 밖 무료 칸을 잡는다', () => {
     const bad = clone(data)
-    bad.cosmetics.boards.push({
-      id: 'x', name: 'x', unlock: 'pass', passLevel: 2, passTrack: 'premiun', colors: {},
-    })
-    expect(validate(bad).some((m) => m.includes('트랙'))).toBe(true)
+    bad.pass.freeLevels = [1, 99]
+    expect(validate(bad).some((m) => m.includes('무료 칸'))).toBe(true)
+  })
+
+  it('무료 칸이 겹치면 잡는다', () => {
+    const bad = clone(data)
+    bad.pass.freeLevels = [1, 1, 4]
+    expect(validate(bad).some((m) => m.includes('두 번'))).toBe(true)
+  })
+
+  it('무료 칸이 없거나 전부이면 잡는다 — 광고판이거나 팔 것이 없다', () => {
+    const none = clone(data)
+    none.pass.freeLevels = []
+    expect(validate(none).some((m) => m.includes('하나도 없다'))).toBe(true)
+
+    const all = clone(data)
+    all.pass.freeLevels = [...Array(all.pass.maxLevel)].map((_, i) => i + 1)
+    expect(validate(all).some((m) => m.includes('팔 것이 없다'))).toBe(true)
   })
 
   it('한 칸에 큰 보상이 둘이면 잡는다 — 화면이 하나만 그린다', () => {
     const bad = clone(data)
-    bad.cosmetics.boards.push({
-      id: 'x', name: 'x', unlock: 'pass', passLevel: 10, passTrack: 'free', colors: {},
-    })
+    bad.cosmetics.boards.push({ id: 'x', name: 'x', unlock: 'pass', passLevel: 10, colors: {} })
     expect(validate(bad).some((m) => m.includes('겹친다'))).toBe(true)
   })
 

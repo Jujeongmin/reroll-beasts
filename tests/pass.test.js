@@ -13,6 +13,8 @@ import {
   addPassXp,
   advancePass,
   passTrack,
+  itemAt,
+  isFreeLevel,
 } from '../sim/pass.js'
 
 let data
@@ -74,19 +76,42 @@ describe('passProgress', () => {
 })
 
 describe('gemsAt / gemsBetween', () => {
-  // 무료도 이제 **매 단계** 준다(빈칸을 없애려고). 대신 다섯 칸마다 조금 더
-  // 얹는다 — 다음 다섯 번째 칸이 곧 다음 목표가 된다.
-  it('무료는 매 단계 주고, 다섯 칸마다 더 준다', () => {
-    const rule = data.pass.gems.free
-    expect(gemsAt(1, 'free', data)).toBe(rule.amount)
-    expect(gemsAt(4, 'free', data)).toBe(rule.amount)
-    expect(gemsAt(5, 'free', data)).toBe(rule.amount + rule.bonusAmount)
+  // 트랙이 한 줄이 되면서 칸마다 보상이 하나다 — 물건이 걸린 칸은 젬이 없다.
+  it('물건이 걸린 칸은 젬을 안 준다', () => {
+    const level = data.cosmetics.boards.find((b) => b.unlock === 'pass').passLevel
+    expect(gemsAt(level, data)).toBe(0)
+  })
+
+  // 무료 칸이 아홉뿐이라 프리미엄 칸과 같은 값이면 한 시즌을 다 돌아도
+  // 젬 상점에서 살 수 있는 것이 없다.
+  it('무료 칸이 잠긴 칸보다 많이 준다', () => {
+    const free = data.pass.freeLevels.find((lv) => !itemAt(lv, data))
+    const locked = [...Array(data.pass.maxLevel)]
+      .map((_, i) => i + 1)
+      .find((lv) => !data.pass.freeLevels.includes(lv) && !itemAt(lv, data))
+    expect(gemsAt(free, data)).toBe(data.pass.gems.freeAmount)
+    expect(gemsAt(locked, data)).toBe(data.pass.gems.amount)
+    expect(gemsAt(free, data)).toBeGreaterThan(gemsAt(locked, data))
+  })
+
+  it('트랙 밖 단계는 0 이다', () => {
+    expect(gemsAt(0, data)).toBe(0)
+    expect(gemsAt(data.pass.maxLevel + 1, data)).toBe(0)
   })
 
   it('이미 지난 단계는 다시 안 준다', () => {
-    const every = data.pass.gems.free.everyLevels
+    const lv = data.pass.freeLevels[1]
     // from 이 곧 지급 단계여도 그건 저번에 받은 것이다
-    expect(gemsBetween(every, every, false, data)).toBe(0)
+    expect(gemsBetween(lv, lv, false, data)).toBe(0)
+  })
+
+  // 자물쇠를 그려 놓고 젬만 주면 그 자물쇠가 거짓말이 된다.
+  it('안 샀으면 잠긴 칸의 젬은 안 들어온다', () => {
+    const locked = [...Array(data.pass.maxLevel)]
+      .map((_, i) => i + 1)
+      .find((lv) => !data.pass.freeLevels.includes(lv) && !itemAt(lv, data))
+    expect(gemsBetween(locked - 1, locked, false, data)).toBe(0)
+    expect(gemsBetween(locked - 1, locked, true, data)).toBe(gemsAt(locked, data))
   })
 
   it('프리미엄이면 무료 몫도 같이 받는다 — 더 적게 받는 일은 없어야 한다', () => {
@@ -113,10 +138,10 @@ describe('advancePass', () => {
 
   it('단계를 넘을 때만 젬이 붙는다', () => {
     const per = data.pass.xpPerLevel
-    const every = data.pass.gems.free.everyLevels
-    // 지급 단계 직전까지 채워 두고 한 판 더
-    const before = { xp: per * (every - 1) - 1, level: every - 1, premium: false }
-    expect(advancePass(before, 1, data).earned).toBe(data.pass.gems.free.amount)
+    // 젬이 걸린 무료 칸 직전까지 채워 두고 한 판 더
+    const lv = data.pass.freeLevels.find((x) => x > 1 && !itemAt(x, data))
+    const before = { xp: per * (lv - 1) - 1, level: lv - 1, premium: false }
+    expect(advancePass(before, 1, data).earned).toBe(gemsAt(lv, data))
     // 지급 단계가 없는 구간이면 0
     const flat = { xp: 0, level: 1, premium: false }
     expect(advancePass(flat, 8, data).earned).toBe(0)
@@ -151,9 +176,7 @@ describe('passTrack', () => {
       ...data.cosmetics.booms,
     ].filter((x) => x.unlock === 'pass')
     for (const x of all) {
-      const row = t[x.passLevel - 1]
-      const slot = (x.passTrack ?? 'free') === 'premium' ? row.premium : row.free
-      expect(slot.item?.id, `${x.id}`).toBe(x.id)
+      expect(t[x.passLevel - 1].item?.id, `${x.id}`).toBe(x.id)
     }
   })
 
@@ -204,39 +227,43 @@ describe('addPassXp — 경험치를 직접 더한다', () => {
 describe('트랙을 채운다', () => {
   const track = () => passTrack(data, { xp: 0, level: 1, premium: false })
 
-  it('빈 줄이 없다 — 젬이든 물건이든 매 단계 뭔가 있다', () => {
+  it('한 줄이고 칸마다 보상이 하나다', () => {
     for (const t of track()) {
-      const something = t.free.gems > 0 || t.free.item || t.premium.gems > 0 || t.premium.item
+      const something = t.gems > 0 || t.item
       expect(something, `${t.level}단계가 비었다`).toBeTruthy()
+      // 물건과 젬을 같이 주지 않는다 — 칸 하나에 보상 하나다.
+      expect(!(t.item && t.gems > 0), `${t.level}단계에 둘 다 있다`).toBe(true)
     }
   })
 
-  it('무료 젬 총합이 325 다', () => {
-    expect(track().reduce((n, t) => n + t.free.gems, 0)).toBe(325)
+  it('무료 칸이 아홉이고 나머지는 잠겨 있다', () => {
+    const free = track().filter((t) => t.free)
+    expect(free.map((t) => t.level)).toEqual(data.pass.freeLevels)
+    expect(track().length - free.length).toBe(data.pass.maxLevel - free.length)
   })
 
-  it('프리미엄 젬 총합이 1000 이다', () => {
-    expect(track().reduce((n, t) => n + t.premium.gems, 0)).toBe(1000)
+  it('무료 칸에도 물건이 여럿 있다 — 안 사면 볼 것이 없으면 트랙이 광고가 된다', () => {
+    expect(track().filter((t) => t.free && t.item).length).toBeGreaterThanOrEqual(5)
   })
 
-  it('무대·이펙트 보상도 트랙에 뜬다 — 아바타만 그리면 나머지가 사라진다', () => {
-    const kinds = new Set()
-    for (const t of track()) {
-      if (t.free.item) kinds.add(t.free.item.kind)
-      if (t.premium.item) kinds.add(t.premium.item.kind)
-    }
+  it('잠긴 칸에도 물건이 있다 — 살 이유가 물건이어야 한다', () => {
+    expect(track().filter((t) => !t.free && t.item).length).toBeGreaterThanOrEqual(3)
+  })
+
+  it('세 종류가 다 트랙에 뜬다 — 아바타만 있으면 한 줄짜리로 읽힌다', () => {
+    const kinds = new Set(track().filter((t) => t.item).map((t) => t.item.kind))
     expect([...kinds].sort()).toEqual(['avatar', 'board', 'boom'])
   })
 
-  it('프리미엄 전용은 프리미엄 줄에 뜬다', () => {
+  it('잠긴 칸의 물건도 그대로 보여 준다', () => {
     const t = track().find((x) => x.level === 9)
-    expect(t.premium.item?.id).toBe('voidstone')
-    expect(t.free.item).toBe(null)
+    expect(t.item?.id).toBe('voidstone')
+    expect(t.free).toBe(false)
   })
 
   it('무대 보상은 색을, 이펙트 보상은 fx 를 들고 온다 — 화면이 그걸로 그린다', () => {
-    expect(track().find((x) => x.level === 4).free.item.colors).toBeTruthy()
-    expect(track().find((x) => x.level === 7).free.item.fx).toBeTruthy()
+    expect(track().find((x) => x.level === 4).item.colors).toBeTruthy()
+    expect(track().find((x) => x.level === 7).item.fx).toBeTruthy()
   })
 
   it('내 단계까지는 지난 칸으로 표시된다', () => {

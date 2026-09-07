@@ -58,19 +58,28 @@ export function passProgress(xp, data) {
 }
 
 /**
- * 그 단계에서 주는 젬. 해당 없으면 0.
+ * 이 단계가 **누구나 받는 칸**인가.
  *
- * 보너스를 따로 두는 이유: 무료 트랙은 **매 단계 뭔가**가 있어야 빈칸이 안
- * 생기는데, 매 단계를 크게 주면 젬을 파는 이유가 사라진다. 작게 매번 주고
- * 다섯 칸마다 조금 얹는다 — 다음 다섯 번째 칸이 곧 다음 목표가 된다.
+ * 트랙은 한 줄이다. 칸마다 보상이 하나이고 기본은 프리미엄을 사야 열린다 —
+ * 무료 칸은 그중 몇 개다. 목록을 pass.json 한 곳에 두는 이유: 코스메틱 줄에도
+ * 무료 표시를 적으면 두 표가 어긋나는 순간 "화면엔 자물쇠인데 서버는 열어
+ * 주는" 칸이 생긴다.
  */
-export function gemsAt(level, track, data) {
-  const rule = data.pass.gems[track]
-  if (!rule || level < 1) return 0
-  const every = rule.everyLevels ?? 1
-  const base = level % every === 0 ? (rule.amount ?? 0) : 0
-  const bonus = rule.bonusEvery && level % rule.bonusEvery === 0 ? (rule.bonusAmount ?? 0) : 0
-  return base + bonus
+export function isFreeLevel(level, data) {
+  return (data.pass.freeLevels ?? []).includes(level)
+}
+
+/**
+ * 그 단계에서 주는 젬. 물건이 걸린 칸은 0 이다 — 한 칸에 보상 하나다.
+ *
+ * 무료 칸을 더 주는 이유: 무료 칸이 아홉뿐이라 프리미엄 칸과 같은 값이면
+ * 한 시즌을 다 돌아도 젬 상점에서 살 수 있는 것이 없다.
+ */
+export function gemsAt(level, data) {
+  const rule = data.pass.gems
+  if (!rule || level < 1 || level > data.pass.maxLevel) return 0
+  if (itemAt(level, data)) return 0
+  return isFreeLevel(level, data) ? (rule.freeAmount ?? rule.amount ?? 0) : (rule.amount ?? 0)
 }
 
 /**
@@ -82,8 +91,10 @@ export function gemsAt(level, track, data) {
 export function gemsBetween(from, to, premium, data) {
   let sum = 0
   for (let lv = from + 1; lv <= to; lv++) {
-    sum += gemsAt(lv, 'free', data)
-    if (premium) sum += gemsAt(lv, 'premium', data)
+    // 프리미엄을 안 샀으면 잠긴 칸의 젬은 안 들어온다 — 화면이 자물쇠를 그려
+    // 놓고 젬만 주면 그 자물쇠가 거짓말이 된다.
+    if (!premium && !isFreeLevel(lv, data)) continue
+    sum += gemsAt(lv, data)
   }
   return sum
 }
@@ -124,22 +135,20 @@ export function addPassXp(prev, gain, data) {
 }
 
 /**
- * 그 단계·그 트랙에 걸린 큰 보상. 없으면 null.
+ * 그 단계에 걸린 물건. 없으면 null.
  *
  * 아바타·무대·이펙트를 **한 번에** 훑는다. 종류마다 목록이 갈려 있지만 트랙에
  * 서는 자리는 하나다 — 종류별로 따로 그리면 한 칸에 둘이 겹친 것을 화면이
  * 못 본다(그 겹침은 불변식이 막는다).
  */
-function itemAt(level, track, data) {
+export function itemAt(level, data) {
   const lists = [
     ['avatar', data.cosmetics.avatars],
     ['board', data.cosmetics.boards],
     ['boom', data.cosmetics.booms],
   ]
   for (const [kind, list] of lists) {
-    const found = list.find(
-      (x) => x.unlock === 'pass' && x.passLevel === level && (x.passTrack ?? 'free') === track,
-    )
+    const found = list.find((x) => x.unlock === 'pass' && x.passLevel === level)
     if (found) {
       return {
         kind,
@@ -157,9 +166,11 @@ function itemAt(level, track, data) {
 /**
  * 트랙 한 줄씩. 화면이 그대로 그린다.
  *
- * 잠긴 단계도 **전부** 준다 — 무엇이 기다리는지 보여야 계속할 이유가 생긴다.
- * 프리미엄 줄도 안 산 사람에게 보여 준다. 무엇을 놓치는지 안 보이면 살 이유가
- * 생기지 않는다.
+ * **한 줄이다.** 칸마다 보상이 하나이고, free 가 거짓인 칸은 프리미엄을 사야
+ * 열린다. 두 줄로 나눠 그리던 때는 무료 줄만 보고 "받을 게 이것뿐"으로 읽혔다 —
+ * 한 줄에 자물쇠를 세우면 무엇을 놓치는지가 같은 자리에서 보인다.
+ *
+ * 잠긴 단계도 **전부** 준다. 무엇이 기다리는지 보여야 살 이유가 생긴다.
  */
 export function passTrack(data, pass = EMPTY_PASS) {
   const cur = passLevelOf(pass.xp ?? 0, data)
@@ -168,8 +179,9 @@ export function passTrack(data, pass = EMPTY_PASS) {
     out.push({
       level,
       reached: level <= cur,
-      free: { gems: gemsAt(level, 'free', data), item: itemAt(level, 'free', data) },
-      premium: { gems: gemsAt(level, 'premium', data), item: itemAt(level, 'premium', data) },
+      free: isFreeLevel(level, data),
+      gems: gemsAt(level, data),
+      item: itemAt(level, data),
     })
   }
   return out

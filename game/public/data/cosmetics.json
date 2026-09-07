@@ -81,8 +81,7 @@
       "pack": "chars",
       "file": "Ninja_Male.glb",
       "unlock": "pass",
-      "passLevel": 10,
-      "passTrack": "free"
+      "passLevel": 10
     },
     {
       "id": "panda",
@@ -114,8 +113,7 @@
       "pack": "cute",
       "file": "Skull.glb",
       "unlock": "pass",
-      "passLevel": 22,
-      "passTrack": "free"
+      "passLevel": 22
     },
     {
       "id": "cyclops",
@@ -171,8 +169,7 @@
       "pack": "chars",
       "file": "Pirate_Female.glb",
       "unlock": "pass",
-      "passLevel": 20,
-      "passTrack": "free"
+      "passLevel": 20
     },
     {
       "id": "zombie",
@@ -180,8 +177,7 @@
       "pack": "chars",
       "file": "Zombie_Male.glb",
       "unlock": "pass",
-      "passLevel": 25,
-      "passTrack": "premium"
+      "passLevel": 25
     }
   ],
   "shop": {
@@ -238,8 +234,7 @@
         "base": "#3a1a12",
         "ground": "#5e2418",
         "ring": "#ff8a2a"
-      },
-      "passTrack": "free"
+      }
     },
     {
       "id": "champion",
@@ -260,7 +255,6 @@
       "desc": "해 뜨기 직전의 돌",
       "unlock": "pass",
       "passLevel": 4,
-      "passTrack": "free",
       "colors": {
         "floor": "#c9b6d8",
         "base": "#3a3350",
@@ -274,7 +268,6 @@
       "desc": "빛이 닿지 않는 돌",
       "unlock": "pass",
       "passLevel": 9,
-      "passTrack": "premium",
       "colors": {
         "floor": "#6b5f8c",
         "base": "#241b38",
@@ -288,7 +281,6 @@
       "desc": "밟으면 꽃가루가 인다",
       "unlock": "pass",
       "passLevel": 16,
-      "passTrack": "free",
       "colors": {
         "floor": "#e7b8c8",
         "base": "#4a3b3f",
@@ -352,8 +344,7 @@
         "burst": "glow",
         "spark": "trail",
         "shots": 7
-      },
-      "passTrack": "free"
+      }
     },
     {
       "id": "crownfall",
@@ -375,7 +366,6 @@
       "desc": "진 판이 잎에 묻힌다",
       "unlock": "pass",
       "passLevel": 7,
-      "passTrack": "free",
       "fx": {
         "color": "#9fe870",
         "ring": "ring",
@@ -390,7 +380,6 @@
       "desc": "진 판이 어둠에 삼켜진다",
       "unlock": "pass",
       "passLevel": 14,
-      "passTrack": "premium",
       "fx": {
         "color": "#b07bff",
         "ring": "ring_thick",
@@ -405,7 +394,6 @@
       "desc": "진 판 위로 해가 뜬다",
       "unlock": "pass",
       "passLevel": 21,
-      "passTrack": "premium",
       "fx": {
         "color": "#ffb04a",
         "ring": "ring_thick",

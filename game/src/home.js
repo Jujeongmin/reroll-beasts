@@ -98,6 +98,7 @@ export function createHome({
     passSheet: document.getElementById('passtrack'),
     passRows: document.getElementById('pass-rows'),
     passHead: document.getElementById('pass-head'),
+    passNote: document.getElementById('pass-note'),
     passClose: document.getElementById('pass-close'),
   }
 
@@ -472,13 +473,23 @@ export function createHome({
       return `<div class="rw bm" title="${it.name}">${fxArt(it.fx)}${gem}</div>`
     }
 
+    // 프리미엄을 샀으면 자물쇠를 안 그린다 — 이미 열린 칸에 자물쇠가 남아
+    // 있으면 산 것이 화면에 안 남는다.
+    const bought = !!p.premium
+    const freeCount = track.filter((t) => t.free).length
+    el.passNote.textContent = bought
+      ? '프리미엄 패스를 갖고 있다 — 모든 칸이 열린다'
+      : `자물쇠 칸은 프리미엄 패스를 사야 열린다 · ${freeCount}칸은 그냥 받는다`
     el.passRows.innerHTML = track
-      .map(
-        (t) =>
-          `<div class="step${t.reached ? ' got' : ''}">` +
-          `<div class="lv">${t.level}</div>${cell(t.free)}` +
-          `<div class="prem">${cell(t.premium)}</div></div>`,
-      )
+      .map((t) => {
+        const shut = !t.free && !bought
+        return (
+          `<div class="step${t.reached ? ' got' : ''}${shut ? ' shut' : ''}${t.free ? ' open' : ''}">` +
+          `<div class="lv">${t.level}</div>${cell(t)}` +
+          (shut ? '<i class="lock" title="프리미엄 패스를 사야 열린다"></i>' : '') +
+          '</div>'
+        )
+      })
       .join('')
     // 무대는 진짜 판을 찍어 덮는다. 오기 전까지는 아래 색 띠가 자리를 지킨다.
     for (const img of el.passRows.querySelectorAll('img[data-board]')) {

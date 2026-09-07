@@ -32,10 +32,19 @@ describe('isUnlocked', () => {
   })
 
   it('패스는 단계가 차야 열린다', () => {
-    const item = { unlock: 'pass', passLevel: 5 }
-    expect(isUnlocked(item, { passLevel: 4 })).toBe(false)
-    expect(isUnlocked(item, { passLevel: 5 })).toBe(true)
-    expect(isUnlocked(item, {})).toBe(false)
+    // 무료 칸 하나를 골라 쓴다 — 잠긴 칸은 단계가 차도 안 열린다(아래 묶음).
+    const lv = data.pass.freeLevels[2]
+    const item = { unlock: 'pass', passLevel: lv }
+    expect(isUnlocked(item, { passLevel: lv - 1 }, data)).toBe(false)
+    expect(isUnlocked(item, { passLevel: lv }, data)).toBe(true)
+    expect(isUnlocked(item, {}, data)).toBe(false)
+  })
+
+  // data 를 못 받으면 무료 칸 목록을 모른다. 그때는 잠근 채로 둔다 —
+  // 이 저장소의 다른 잠금과 같은 쪽으로 기운다: 모르면 열지 않는다.
+  it('무료 칸 목록을 모르면 안 연다', () => {
+    const lv = data.pass.freeLevels[2]
+    expect(isUnlocked({ unlock: 'pass', passLevel: lv }, { passLevel: 25 })).toBe(false)
   })
 
   it('랭크는 티어가 닿아야 열린다', () => {
@@ -256,39 +265,42 @@ describe('승리 이펙트', () => {
   })
 })
 
-describe('프리미엄 전용 패스 보상', () => {
-  const prem = { id: 'x', unlock: 'pass', passLevel: 9, passTrack: 'premium' }
-  const free = { id: 'y', unlock: 'pass', passLevel: 9, passTrack: 'free' }
-  const old = { id: 'z', unlock: 'pass', passLevel: 9 }
+describe('잠긴 칸 — 프리미엄을 사야 열린다', () => {
+  // 트랙은 한 줄이고 기본이 잠김이다. 무료 칸(pass.json 의 freeLevels)만
+  // 단계로 열린다.
+  const lockedLv = () => {
+    const max = data.pass.maxLevel
+    for (let lv = 1; lv <= max; lv++) if (!data.pass.freeLevels.includes(lv)) return lv
+    return 2
+  }
+  const locked = () => ({ id: 'x', unlock: 'pass', passLevel: lockedLv() })
+  const free = () => ({ id: 'y', unlock: 'pass', passLevel: data.pass.freeLevels[1] })
 
-  // 단계만 보고 열면 안 산 사람도 프리미엄 보상을 다 갖는다 — 그러면 살
-  // 이유가 사라진다.
+  // 단계만 보고 열면 안 산 사람도 다 갖는다 — 그러면 살 이유가 사라진다.
   it('단계에 닿아도 안 샀으면 안 열린다', () => {
-    expect(isUnlocked(prem, { passLevel: 25, premium: false })).toBe(false)
-    expect(isUnlocked(prem, { passLevel: 25 })).toBe(false)
+    expect(isUnlocked(locked(), { passLevel: 25, premium: false }, data)).toBe(false)
+    expect(isUnlocked(locked(), { passLevel: 25 }, data)).toBe(false)
   })
 
   it('샀고 단계도 닿았으면 열린다', () => {
-    expect(isUnlocked(prem, { passLevel: 9, premium: true })).toBe(true)
+    expect(isUnlocked(locked(), { passLevel: lockedLv(), premium: true }, data)).toBe(true)
   })
 
   it('샀어도 단계가 모자라면 안 열린다 — 사면 다 주는 것이 아니다', () => {
-    expect(isUnlocked(prem, { passLevel: 8, premium: true })).toBe(false)
+    expect(isUnlocked(locked(), { passLevel: lockedLv() - 1, premium: true }, data)).toBe(false)
   })
 
-  it('무료 트랙은 사든 안 사든 단계만 본다', () => {
-    expect(isUnlocked(free, { passLevel: 9 })).toBe(true)
-    // passTrack 이 없는 줄은 무료로 친다 — 기존 보상을 안 고쳐도 살아 있다.
-    expect(isUnlocked(old, { passLevel: 9 })).toBe(true)
+  it('무료 칸은 사든 안 사든 단계만 본다', () => {
+    expect(isUnlocked(free(), { passLevel: data.pass.freeLevels[1] }, data)).toBe(true)
   })
 
   it('젬으로 산 것은 그대로 열린다 — 산 것이 제일 먼저다', () => {
-    expect(isUnlocked(prem, { passLevel: 1, avatars: ['x'] })).toBe(true)
+    expect(isUnlocked(locked(), { passLevel: 1, avatars: ['x'] }, data)).toBe(true)
   })
 
-  it('왜 잠겼는지 프리미엄이라고 말한다', () => {
-    expect(lockReason(prem)).toContain('프리미엄')
-    expect(lockReason(free)).not.toContain('프리미엄')
+  it('왜 잠겼는지 단계로 말한다', () => {
+    expect(lockReason(locked())).toContain('시즌 패스')
+    expect(lockReason(locked())).toContain(String(lockedLv()))
   })
 })
 
@@ -298,12 +310,13 @@ describe('시즌 패스 보상 표', () => {
       (x) => x.unlock === 'pass',
     )
 
-  it('무료·프리미엄 양쪽에 큰 보상이 있다', () => {
+  it('무료 칸과 잠긴 칸 양쪽에 물건이 있다', () => {
     const items = passItems()
-    const free = items.filter((x) => (x.passTrack ?? 'free') === 'free')
-    const prem = items.filter((x) => x.passTrack === 'premium')
-    expect(free.length).toBeGreaterThanOrEqual(8)
-    expect(prem.length).toBeGreaterThanOrEqual(4)
+    const free = items.filter((x) => data.pass.freeLevels.includes(x.passLevel))
+    const locked = items.filter((x) => !data.pass.freeLevels.includes(x.passLevel))
+    // 무료가 비면 트랙이 광고가 되고, 잠긴 쪽이 비면 살 이유가 없다.
+    expect(free.length).toBeGreaterThanOrEqual(5)
+    expect(locked.length).toBeGreaterThanOrEqual(3)
   })
 
   it('마지막 단계에 보상이 있다 — 끝까지 도는 사람이 가장 많이 보는 칸이다', () => {

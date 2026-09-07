@@ -8,6 +8,7 @@
 // 그걸 갖고 있나"를 검산한다. 화면에서만 잠가 두면 잠금은 장식이다.
 
 import { tierOf, TIERS } from './rank.js'
+import { isFreeLevel } from './pass.js'
 
 /**
  * 그 아바타를 지금 쓸 수 있나.
@@ -15,7 +16,7 @@ import { tierOf, TIERS } from './rank.js'
  * @param {object} item     cosmetics.json 의 avatars 한 줄
  * @param {object} owned    { passLevel, lp } — 없으면 아무것도 안 가진 것으로 친다
  */
-export function isUnlocked(item, owned = {}) {
+export function isUnlocked(item, owned = {}, data = null) {
   // 산 것이 제일 먼저다. 젬으로 미리 산 아바타는 아직 그 단계에 못 갔어도
   // 쓸 수 있어야 한다 — 그러라고 판 것이다.
   if (owned.avatars?.includes(item.id)) return true
@@ -24,10 +25,14 @@ export function isUnlocked(item, owned = {}) {
   if (item.unlock === 'gem') return false
   if (item.unlock === 'pass') {
     const reached = (owned.passLevel ?? 0) >= (item.passLevel ?? 0)
-    // 프리미엄 트랙은 **단계만으로 안 열린다.** 안 그러면 안 산 사람도 다 갖고,
-    // 그러면 프리미엄을 살 이유가 남지 않는다. passTrack 이 없는 줄은 무료로
-    // 친다 — 기존 보상 네 줄을 안 고쳐도 지금처럼 동작한다.
-    return reached && (item.passTrack !== 'premium' || !!owned.premium)
+    // 트랙은 한 줄이고 **기본이 잠김**이다. 무료 칸(pass.json 의 freeLevels)만
+    // 단계로 열리고 나머지는 프리미엄을 사야 한다 — 단계만 보면 안 산 사람도
+    // 다 갖고, 그러면 살 이유가 남지 않는다.
+    //
+    // data 를 못 받았으면 잠근 채로 둔다. 이 저장소의 다른 잠금과 같은 쪽으로
+    // 기운다: 모르면 열지 않는다.
+    const free = data ? isFreeLevel(item.passLevel, data) : false
+    return reached && (free || !!owned.premium)
   }
   if (item.unlock === 'rank') {
     const need = TIERS.findIndex((t) => t.id === item.tier)
@@ -43,10 +48,7 @@ export function isUnlocked(item, owned = {}) {
 /** 왜 잠겼는지 한 줄. 화면이 그대로 쓴다. */
 export function lockReason(item) {
   if (item.unlock === 'gem') return `${item.price ?? 0} 젬`
-  if (item.unlock === 'pass') {
-    const where = item.passTrack === 'premium' ? '프리미엄 ' : ''
-    return `시즌 패스 ${where}${item.passLevel ?? 0}단계`
-  }
+  if (item.unlock === 'pass') return `시즌 패스 ${item.passLevel ?? 0}단계`
   if (item.unlock === 'rank') {
     const t = TIERS.find((x) => x.id === item.tier)
     return t ? `${t.name} 달성` : '조건 미정'
@@ -63,7 +65,7 @@ export function lockReason(item) {
 export function resolveAvatar(picked, data, owned = {}) {
   const list = data.cosmetics.avatars
   const found = list.find((a) => a.id === picked)
-  if (found && isUnlocked(found, owned)) return found.id
+  if (found && isUnlocked(found, owned, data)) return found.id
   return data.cosmetics.avatarDefault
 }
 
@@ -76,7 +78,7 @@ export function resolveAvatar(picked, data, owned = {}) {
  */
 function choicesOf(list, data, owned) {
   return list.map((a) => {
-    const unlocked = isUnlocked(a, owned)
+    const unlocked = isUnlocked(a, owned, data)
     const price = priceOf(a, data)
     const buy = canBuyCosmetic(a, owned, data)
     return {
@@ -119,7 +121,7 @@ function boomOf(id, data) {
 /** 고른 이펙트가 유효한지 확인해서 실제로 쓸 id 를 돌려준다. */
 export function resolveBoom(picked, data, owned = {}) {
   const found = data.cosmetics.booms.find((b) => b.id === picked)
-  if (found && isUnlocked(found, owned)) return found.id
+  if (found && isUnlocked(found, owned, data)) return found.id
   return data.cosmetics.boomDefault
 }
 
@@ -141,7 +143,7 @@ function boardOf(id, data) {
 /** 고른 보드가 유효한지 확인해서 실제로 쓸 id 를 돌려준다. */
 export function resolveBoard(picked, data, owned = {}) {
   const found = data.cosmetics.boards.find((b) => b.id === picked)
-  if (found && isUnlocked(found, owned)) return found.id
+  if (found && isUnlocked(found, owned, data)) return found.id
   return data.cosmetics.boardDefault
 }
 
@@ -189,7 +191,7 @@ export function canBuyCosmetic(item, owned = {}, data) {
   if (price == null) return { ok: false, why: '파는 물건이 아니다' }
   if (owned.avatars?.includes(item.id)) return { ok: false, why: '이미 갖고 있다' }
   // 단계로 이미 열린 것을 다시 팔면 젬만 사라진다.
-  if (isUnlocked(item, owned)) return { ok: false, why: '이미 열렸다' }
+  if (isUnlocked(item, owned, data)) return { ok: false, why: '이미 열렸다' }
   if ((owned.gems ?? 0) < price) return { ok: false, why: '젬이 모자라다' }
   return { ok: true, price }
 }
