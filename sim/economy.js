@@ -1,7 +1,7 @@
 // 골드·레벨·판매가. 전부 데이터가 정하고 여기는 규칙만 쓴다.
 // 순수 함수다 — 서버가 같은 코드로 클라이언트의 소비 내역을 검산한다.
 
-import { unitById } from './data.js'
+import { unitById } from './units.js'
 import { copiesForStar } from './pool.js'
 
 /** 보유 골드 이자. 10당 1, 상한 있음. */

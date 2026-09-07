@@ -4,7 +4,7 @@
 
 import { buildBoard } from './hex.js'
 import { createRng } from './rng.js'
-import { unitById } from './data.js'
+import { unitById } from './units.js'
 import { activeTraits } from './traits.js'
 import { resolveStats, applyTraitEffects, traitSpecials } from './stats.js'
 import { applyItems, itemSpecials, mergeSpecials } from './items.js'

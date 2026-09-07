@@ -9,7 +9,7 @@
 // 저장하는 것은 진행도와 수령 여부뿐이다.
 
 import { createRng } from './rng.js'
-import { unitById } from './data.js'
+import { unitById } from './units.js'
 import { activeTraits } from './traits.js'
 
 /**

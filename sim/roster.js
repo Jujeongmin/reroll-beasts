@@ -7,7 +7,7 @@
 // toFieldTile 이 진영을 보고 한다. 여기서 전장 좌표를 쓰면 A/B 진영마다
 // 다른 배열이 되어 스냅샷을 반대편에서 못 읽는다.
 
-import { unitById } from './data.js'
+import { unitById } from './units.js'
 import { createPool, rollShop, discardShop, returnToPool, unitCost } from './pool.js'
 import { addXp, sellValue, refundCopies, xpToNext } from './economy.js'
 

@@ -4,7 +4,7 @@
 // 순수 함수다. Math.random 을 쓰지 않고 rng 를 받는다 —
 // 서버가 같은 시드로 같은 상점을 재현할 수 있어야 한다.
 
-import { unitById } from './data.js'
+import { unitById } from './units.js'
 
 /** 성급 하나를 만드는 데 든 원본 카드 수. 팔면 이만큼 풀로 돌아간다. */
 export function copiesForStar(star, shopCfg) {

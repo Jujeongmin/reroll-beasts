@@ -52,6 +52,6 @@ export async function loadData() {
   return out
 }
 
-export function unitById(unitsData, id) {
-  return unitsData.units.find((u) => u.id === id)
-}
+// unitById 는 units.js 에 있다. 화면이 여기서 들여오던 것을 그대로 두려고 다시
+// 내보낸다 — 규칙(sim)은 units.js 를 직접 문다(서버 번들이 이 파일을 안 물게).
+export { unitById } from './units.js'
