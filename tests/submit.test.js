@@ -66,3 +66,25 @@ describe('sanitizeBoard', () => {
     expect(board).toEqual([one({ items: ['steel_sword'] })])
   })
 })
+
+describe('sanitizeBoard — 망가진 상한', () => {
+  // cap 이 NaN 이면 `out.length >= NaN` 이 늘 거짓이라 인원 제한이 통째로
+  // 사라진다. 레벨은 클라가 보내는 값이고, 숫자가 아닌 것을 보내면 서버의
+  // Math.floor 가 NaN 을 만든다 — 그 길로 28명이 판에 선다.
+  const one = (tile) => ({ unitId: 'green_blob', star: 1, tile, items: [] })
+  const many = () => Array.from({ length: 20 }, (_, i) => one(i))
+
+  it('cap 이 NaN 이면 아무도 못 세운다', () => {
+    expect(sanitizeBoard(many(), data, { cap: NaN })).toEqual([])
+  })
+
+  it('cap 이 숫자가 아니어도 아무도 못 세운다', () => {
+    expect(sanitizeBoard(many(), data, { cap: '9' })).toEqual([])
+    expect(sanitizeBoard(many(), data, { cap: null })).toEqual([])
+    expect(sanitizeBoard(many(), data, { cap: Infinity })).toEqual([])
+  })
+
+  it('cap 을 아예 안 주면 아무도 못 세운다 — 모르는 상한은 0 이다', () => {
+    expect(sanitizeBoard(many(), data)).toEqual([])
+  })
+})

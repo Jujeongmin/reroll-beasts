@@ -555,3 +555,65 @@ describe('한 판도 안 한 계정의 결제', () => {
     expect(p.pass.premium).toBe(true);
   });
 });
+
+// ── 2차 점검 ────────────────────────────────────────────
+
+describe('망가진 레벨 값', () => {
+  test('숫자가 아니면 거절한다 — NaN 이 배치 인원 상한이 되면 제한이 사라진다', async (server) => {
+    server.connect({ account: 'nan1' });
+    await server.joinLobby();
+    const r = await server.updateLevel('아홉');
+    expect(r.ok).toBe(false);
+    const s = await server.getLobby();
+    expect(Number.isFinite(s.seats[0].level)).toBe(true);
+  });
+
+  test('레벨이 망가진 좌석에도 인원 상한이 산다', async (server) => {
+    server.connect({ account: 'nan2' });
+    await server.joinLobby();
+    await server.updateLevel('아홉');
+    await server.updateBoard(
+      [0, 1, 2, 3, 4, 5].map((tile) => ({ unitId: 'green_blob', star: 1, tile, items: [] })),
+    );
+    const s = await server.getLobby();
+    // 시작 레벨까지만 선다. 28명이 서면 제한이 사라진 것이다.
+    expect(s.seats[0].board.length).toBeLessThanOrEqual(s.seats[0].level);
+  });
+});
+
+describe('같은 결제를 두 번 지급하지 않는다 (부분 실패)', () => {
+  test('지급 기록이 프로필에도 남는다', async (server) => {
+    const account = 'idem1';
+    server.connect({ account });
+    await server.$onItemPurchased({
+      account,
+      purchaseId: 9301,
+      productId: 'gems_small',
+      quantity: 1,
+    });
+    const p = await server.getProfile();
+    expect(p.paid).toContain('9301');
+    expect(p.gems).toBe(300);
+  });
+});
+
+describe('같은 판을 두 번 세지 않는다', () => {
+  test('판이 끝난 뒤 마감을 또 불러도 전적이 그대로다', async (server) => {
+    server.connect({ account: 'idem2' });
+    await server.joinLobby();
+    for (let i = 0; i < 30; i++) {
+      const s = await server.resolveRound();
+      if (!s || s.phase === 'done') break;
+    }
+    const before = await server.getProfile();
+    expect(before.games).toBe(1);
+    expect(before.lastMatch).toBeTruthy();
+
+    // 마감을 다시 부른다. 방 상태 쓰기가 잘렸을 때 클라가 하는 그대로다.
+    for (let i = 0; i < 3; i++) await server.resolveRound();
+    const after = await server.getProfile();
+    expect(after.games).toBe(before.games);
+    expect(after.lp).toBe(before.lp);
+    expect(after.gems).toBe(before.gems);
+  });
+});

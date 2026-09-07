@@ -20,7 +20,7 @@
  * 클라가 찾아올 때 판정한다. 동시 호출은 $lock 으로 한 번만 처리된다.
  */
 import { createLobbyState, resolveRound, assignRanks } from '../../sim/lobbyRound.js'
-import { applyMatchResult } from '../../sim/profile.js'
+import { applyMatchResult, countedMatch } from '../../sim/profile.js'
 import { sortLeaderboard, rankOf } from '../../sim/rank.js'
 import { sanitizeBoard } from '../../sim/submit.js'
 import {
@@ -30,7 +30,7 @@ import {
   resolveAvatar,
   resolveBoom,
 } from '../../sim/cosmetics.js'
-import { purchaseGrant, applyGrant } from '../../sim/store.js'
+import { purchaseGrant, applyGrant, paidAlready } from '../../sim/store.js'
 import { checkName, displayName } from '../../sim/name.js'
 import { simulate } from '../../sim/combat.js'
 import { totalRounds } from '../../sim/rounds.js'
@@ -224,7 +224,11 @@ export class Server {
       // 게다가 결제 id 는 위에서 이미 처리 기록에 남아 재시도까지 중복으로
       // 걸렀다 — 다시 받을 길이 없었다는 뜻이다. 계정은 여기서 서면 된다.
       const prev: any = await $global.getUserState(account)
-      const next = applyGrant(prev?.profile ?? null, grant)
+      // 컬렉션 기록만으로는 안 막힌다. 지급(프로필 쓰기)과 기록(컬렉션 쓰기)은
+      // 서로 다른 문서라, 지급 뒤 기록이 실패하면 재시도가 "처음 보는 결제" 로
+      // 읽어 또 준다. 그래서 프로필에도 남기고 여기서 먼저 본다.
+      const already = paidAlready(prev?.profile, seenId)
+      const next = already ? null : applyGrant(prev?.profile ?? null, grant, { purchaseId: seenId })
       if (next) await $global.updateUserState(account, { profile: next })
       await $global.addCollectionItem('purchases', {
         purchaseId: seenId,
@@ -235,10 +239,10 @@ export class Server {
         premium: grant.premium,
         // 우리 표에 없는 상품만 보류로 남는다. 그 사실을 적어 둬야 나중에
         // 표를 고치고 손으로 채워 줄 수 있다.
-        applied: !!next,
+        applied: !!next || already,
         at: Date.now(),
       })
-      return { ok: true, applied: !!next }
+      return { ok: true, applied: !!next || already, dup: already }
     })
   }
 
@@ -481,7 +485,12 @@ export class Server {
       if (!state) return { ok: false }
       const seat = state.seats.find((s: any) => s.account === $sender.account)
       if (!seat) return { ok: false }
-      seat.level = Math.max(1, Math.min(9, Math.floor(level)))
+      // 클라가 보내는 값이라 숫자가 아닐 수 있다. Math.floor('x') 는 NaN 이고,
+      // NaN 은 min/max 를 그대로 통과해 좌석 레벨이 된다 — 그 레벨이 배치
+      // 인원 상한으로 쓰이면 제한이 사라진다.
+      const want = Number(level)
+      if (!Number.isFinite(want)) return { ok: false }
+      seat.level = Math.max(1, Math.min(9, Math.floor(want)))
       // 레벨이 내려가면 판에 선 인원이 상한을 넘을 수 있다. 넘친 만큼 뒤에서
       // 자른다 — 안 자르면 레벨 1 로 여덟을 세우는 길이 남는다.
       seat.board = sanitizeBoard(seat.board, DATA, { cap: seat.level })
@@ -565,6 +574,10 @@ export class Server {
       const { changed, fights } = resolveRound(state, Date.now(), DATA, { early: humans <= 1 })
       if (!changed) return state
 
+      // 이 판의 이름. **방 이름만으로는 모자란다** — 1인 방(solo-계정)은 같은
+      // 이름을 계속 쓰므로, 방 이름만 적어 두면 다음 판이 통째로 "이미 센 판"
+      // 으로 걸린다. 시드는 판을 만들 때 한 번 정해져 그 판 내내 같다.
+      const matchId = `${roomId}#${state.seed}`
       // 순위는 서버가 박는다. 클라가 "나 1등"이라고 올리면 그대로 믿게 된다.
       const ranked = assignRanks(state, { final: state.phase === 'done' })
       // LP 는 **랭크 방에서만** 움직인다. 봇이 섞이는 일반 판이 랭크 점수를
@@ -577,10 +590,17 @@ export class Server {
         // 서로 기다리며 물리지 않는다.
         const profile = await $lock(`user:${r.account}`, async () => {
           const prev: any = await $global.getUserState(r.account)
+          // 이 판을 이미 셌으면 그대로 둔다. 프로필을 쓰고 방 상태를 쓰는
+          // 사이가 잘리면 방은 지난 라운드로 남고, 클라가 마감을 다시 부른다 —
+          // 그때 같은 판이 또 정산되면 판수·LP·젬이 두 번 오른다.
+          if (countedMatch(prev?.profile, matchId)) return prev.profile
           // 전적·LP·패스·젬을 한 함수가 낸다. 전에는 여기서 전적 칸만 든
           // 객체를 프로필로 저장해 **이름·산 아바타·고른 겉모습이 판마다
           // 지워졌다.** 돈 주고 산 것이 사라지는 자리였다.
-          const next = applyMatchResult(prev?.profile ?? null, r.rank, DATA, { ranked: scored })
+          const next = applyMatchResult(prev?.profile ?? null, r.rank, DATA, {
+            ranked: scored,
+            matchId,
+          })
           await $global.updateUserState(r.account, { profile: next })
           return next
         })

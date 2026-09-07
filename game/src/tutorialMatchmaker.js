@@ -53,7 +53,8 @@ export function createTutorialMatchmaker({ data }) {
     roundSeed: () => 1234,
 
     round() {
-      return { pairs: [[0, 1]], opponentId: 1, ghostId: null }
+      // 좌석 0 이 나다 — 서버 규칙(낮은 번호가 A)과 같은 답이다.
+      return { pairs: [[0, 1]], opponentId: 1, ghostId: null, iAmA: true }
     },
 
     opponentBoard: () => FOE_BOARD,

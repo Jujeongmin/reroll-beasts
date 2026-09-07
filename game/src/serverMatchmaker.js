@@ -236,7 +236,12 @@ export async function createServerMatchmaker({ data, server, roomId = null, time
       pairs = roundPairs(state)
       const pair = pairs.find((p) => p.includes(mySeat.id))
       opponentId = pair ? (pair[0] === mySeat.id ? pair[1] : pair[0]) : null
-      return { pairs, opponentId, ghostId: null }
+      // **서버는 좌석 번호가 낮은 쪽을 A 로 놓고 돌린다**(sim/lobbyRound.js 의
+      // resolveRound). 클라가 늘 자기를 A 로 두면 같은 시드라도 다른 전투가
+      // 된다 — 전투는 A/B 대칭이 아니라서(같은 판끼리 붙이면 늘 B 가 이긴다)
+      // 승패가 갈리거나, 갈리지 않더라도 생존자 수가 달라져 피해량이 어긋난다.
+      const iAmA = opponentId === null || mySeat.id < opponentId
+      return { pairs, opponentId, ghostId: null, iAmA }
     },
 
     opponentBoard(n) {

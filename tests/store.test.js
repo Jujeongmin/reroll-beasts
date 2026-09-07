@@ -2,7 +2,7 @@
 // 여기서 못박는다.
 import { describe, it, expect, beforeAll } from 'vitest'
 import { loadData } from '../sim/data.js'
-import { productOf, purchaseGrant, storeProducts, applyGrant } from '../sim/store.js'
+import { productOf, purchaseGrant, storeProducts, applyGrant, paidAlready } from '../sim/store.js'
 
 let data
 beforeAll(async () => {
@@ -99,5 +99,31 @@ describe('applyGrant — 결제를 프로필에 얹는다', () => {
   it('모르는 상품이면 아무것도 안 바꾼다 — 표를 고친 뒤 손으로 채워 준다', () => {
     const before = { gems: 10 }
     expect(applyGrant(before, { gems: 0, premium: false, known: false })).toBe(null)
+  })
+})
+
+describe('같은 결제를 두 번 지급하지 않는다', () => {
+  // 지급(프로필 쓰기)과 처리 기록(컬렉션 쓰기)은 서로 다른 문서다. 지급이
+  // 끝나고 기록이 실패하면, 재시도가 "처음 보는 결제" 로 읽어 또 준다.
+  // 그래서 **지급과 같은 쓰기에** 결제 id 를 남긴다.
+  it('지급하면 결제 id 가 프로필에 남는다', () => {
+    const next = applyGrant(null, { gems: 300, premium: false, known: true }, { purchaseId: 'p1' })
+    expect(paidAlready(next, 'p1')).toBe(true)
+  })
+
+  it('이미 준 결제는 다시 안 준다', () => {
+    const one = applyGrant(null, { gems: 300, premium: false, known: true }, { purchaseId: 'p1' })
+    expect(paidAlready(one, 'p2')).toBe(false)
+    expect(paidAlready(null, 'p1')).toBe(false)
+  })
+
+  it('기록은 최근 것만 남긴다 — 계정 문서가 영수증 더미가 되면 안 된다', () => {
+    let p = null
+    for (let i = 0; i < 30; i++) {
+      p = applyGrant(p, { gems: 1, premium: false, known: true }, { purchaseId: `p${i}` })
+    }
+    expect(p.paid.length).toBeLessThanOrEqual(20)
+    expect(paidAlready(p, 'p29')).toBe(true)
+    expect(paidAlready(p, 'p0')).toBe(false)
   })
 })

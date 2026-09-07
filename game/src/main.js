@@ -105,8 +105,10 @@ try {
 
   /** 이번 라운드 대진을 짜고 화면이 읽는 자리에 적어 둔다. */
   function drawRound() {
-    const { opponentId } = mm.round(run.index)
+    const { opponentId, iAmA } = mm.round(run.index)
     run.opponentId = opponentId
+    // 이번 판에서 내가 A 진영인가. 서버와 같은 순서로 돌리기 위한 값이다.
+    run.iAmA = iAmA !== false
   }
 
   // 마지막으로 서버에 알린 레벨. 레벨은 라운드에 한두 번 바뀌는데 판이
@@ -229,10 +231,12 @@ try {
     const b = prep.scene.stageBounds()
     const cx = (b.minX + b.maxX) / 2
     const d = b.maxZ - b.minZ
-    return {
-      mine: { x: cx, z: b.maxZ - d * 0.1 },
-      theirs: { x: cx, z: b.minZ + d * 0.1 },
-    }
+    const near = { x: cx, z: b.maxZ - d * 0.1 }
+    const far = { x: cx, z: b.minZ + d * 0.1 }
+    // 내가 B 진영이면 카메라가 반대편에 앉는다(setSideFlip) — 그때는 -z 가
+    // 화면 아래다. 내 아바타는 언제나 **화면 아래**에 서야 한다.
+    const flipped = run.fight ? run.fight.iAmA === false : run.iAmA === false
+    return flipped ? { mine: far, theirs: near } : { mine: near, theirs: far }
   }
 
   /**
@@ -277,12 +281,12 @@ try {
    * 순서가 중요하다 — 던지는 게 먼저 보이고 그다음에 터져야 '누가 이겨서
    * 저게 떨어졌다'로 읽힌다. 반대면 이펙트가 먼저 터지고 뒤늦게 뭔가 날아온다.
    */
-  function duelStrike(winner, fx) {
+  function duelStrike(iWon, fx) {
     const spot = duelSpots()
-    const from = winner === 'A' ? spot.mine : spot.theirs
-    const to = winner === 'A' ? spot.theirs : spot.mine
-    const win = winner === 'A' ? avatar : foe
-    const lose = winner === 'A' ? foe : avatar
+    const from = iWon ? spot.mine : spot.theirs
+    const to = iWon ? spot.theirs : spot.mine
+    const win = iWon ? avatar : foe
+    const lose = iWon ? foe : avatar
     const y = prep.scene.topY + 0.55
     const V = prep.scene.THREE.Vector3
     win?.act('cheer')
@@ -300,21 +304,27 @@ try {
   /**
    * 전투가 끝났다. **이긴 쪽 이펙트를 진 쪽 판에** 떨어뜨린다.
    *
-   * @param {string} winner  'A' | 'B' | 'draw' — A 가 화면 아래쪽(내 쪽)이다
+   * 진영('A'/'B')이 아니라 **누가 이겼나**로 판단한다. 내가 B 진영일 수
+   * 있어서다(서버는 좌석 번호가 낮은 쪽을 A 로 놓는다) — 'A = 나' 로 두면
+   * 내가 진 판에서 내 이펙트가 터진다.
+   *
+   * @param {string} winner  'A' | 'B' | 'draw'
    * @param {object} o
-   * @param {string} o.aBoom  A 진영 사람의 이펙트 id
-   * @param {string} o.bBoom  B 진영 사람의 이펙트 id
+   * @param {boolean} o.iAmA   이 전투에서 내가 A 진영인가
+   * @param {string} o.myBoom  내 이펙트 id
+   * @param {string} o.foeBoom 상대 이펙트 id
    */
-  function playWinFx(winner, { aBoom, bBoom, damage = 0 }) {
+  function playWinFx(winner, { iAmA = true, myBoom, foeBoom, damage = 0 }) {
     // 무승부면 아무것도 안 터진다 — 이긴 사람이 없다.
     if (winner !== 'A' && winner !== 'B') return
-    const fx = boomFx((winner === 'A' ? aBoom : bBoom) ?? data.cosmetics.boomDefault, data)
+    const iWon = winner === (iAmA ? 'A' : 'B')
+    const fx = boomFx((iWon ? myBoom : foeBoom) ?? data.cosmetics.boomDefault, data)
     // 아바타가 먼저 던지고, 맞은 뒤에 판이 터진다.
-    const hitMs = duelStrike(winner, fx)
+    const hitMs = duelStrike(iWon, fx)
     // **맞은 아바타 자리**에서 터진다. 판 한복판이면 누가 맞았는지가 아니라
     // 판이 반짝한 것으로 보인다.
     const spot = duelSpots()
-    const at = winner === 'A' ? spot.theirs : spot.mine
+    const at = iWon ? spot.theirs : spot.mine
     setTimeout(() => {
       prep.scene.playBoom(fx, { at })
       floatDamage(at, damage)
@@ -739,9 +749,19 @@ try {
     // 여기만 쓰로틀을 안 탄다(serverMatchmaker.pushBoard 참고).
     mm.pushBoard(entries)
 
+    // **서버와 같은 진영 순서로 돌린다.** 좌석 번호가 낮은 쪽이 A 다. 내가
+    // 늘 A 라고 두면 같은 시드로도 다른 전투가 나온다 — 전투가 A/B 대칭이
+    // 아니기 때문이다(같은 판끼리 붙이면 늘 B 가 이긴다). 그러면 화면이 낸
+    // 승패·피해가 서버 판정과 어긋나고, 다음 방송이 올 때 체력이 튄다.
+    const iAmA = run.iAmA !== false
     let result
     try {
-      result = simulate({ boardA: entries, boardB: enemy, seed: battleSeed, data })
+      result = simulate({
+        boardA: iAmA ? entries : enemy,
+        boardB: iAmA ? enemy : entries,
+        seed: battleSeed,
+        data,
+      })
     } catch (err) {
       console.error(err)
       return
@@ -754,7 +774,12 @@ try {
 
     const onBack = () => settle(result, info)
     // 지금 무대에 올린 전투. 관전에서 돌아올 자리이자 정산의 근거다.
-    run.fight = { result, onBack }
+    // iAmA 를 같이 들고 있어야 정산과 연출이 "어느 쪽이 나인가"를 안다.
+    run.fight = { result, onBack, iAmA }
+    // 내가 B 면 무대를 반대편에서 본다. 로그의 자리는 진영이 정하는데, 판의
+    // 벌집은 180° 회전에 딱 맞아떨어지지 않아 로그를 뒤집을 수 없다 — 카메라를
+    // 옮겨 앉는 것이 유일하게 정확한 방법이다.
+    prep.scene.setSideFlip(!iAmA)
     // 내 판을 보고 있다는 표시. **0 이 아니라 내 좌석 번호다** — 매치 방에서
     // 내 자리는 계정 순서로 정해지고 0 이 아닐 수 있다.
     run.watchId = mySeatId()
@@ -777,8 +802,9 @@ try {
       // 떨어져야 한다.
       onEnd: (winner) =>
         playWinFx(winner, {
-          aBoom: myBoomId(),
-          bBoom: run.lobby.find((x) => x.id === run.opponentId)?.boom,
+          iAmA,
+          myBoom: myBoomId(),
+          foeBoom: run.lobby.find((x) => x.id === run.opponentId)?.boom,
           // 진 쪽이 받을 피해. 정산이 쓰는 그 값이다 — 화면에 다른 숫자가
           // 뜨면 체력이 왜 그만큼 줄었는지 안 맞는다.
           damage: defeatDamage(
@@ -801,6 +827,9 @@ try {
     const f = mine ? null : (run.otherFights ?? []).find((x) => x.a === seatId || x.b === seatId)
     if (!mine && !f) return
     run.watchId = seatId
+    // 무대를 어느 쪽에서 볼지 다시 정한다. 남의 판은 A(=좌석 번호가 낮은 쪽)를
+    // 아래에 두고 보고, 내 판으로 돌아오면 내 진영에 맞춰 앉는다.
+    prep.scene.setSideFlip(mine ? run.fight.iAmA === false : false)
     prep.refresh()
     // 한 라운드의 전투는 동시에 벌어진다 — 보던 시점 그대로 남의 판을 본다.
     // 0 부터 다시 틀면 내 판으로 돌아왔을 때 이미 본 전투를 또 보게 된다.
@@ -821,9 +850,12 @@ try {
       // 남의 전투를 보는 중이면 그 판의 두 사람 이펙트를 쓴다.
       onEnd: (winner) => {
         const r = mine ? run.fight.result : f.result
+        // 남의 판을 볼 때는 A 자리(f.a)를 "나"로 놓고 그린다 — 화면 아래에
+        // 선 사람이 이겼는지가 이 연출이 말하는 전부다.
         playWinFx(winner, {
-          aBoom: mine ? myBoomId() : boomOfSeat(f.a),
-          bBoom: mine ? boomOfSeat(run.opponentId) : boomOfSeat(f.b),
+          iAmA: mine ? run.fight.iAmA !== false : true,
+          myBoom: mine ? myBoomId() : boomOfSeat(f.a),
+          foeBoom: mine ? boomOfSeat(run.opponentId) : boomOfSeat(f.b),
           damage: defeatDamage(
             winner === 'A' ? r.survivorsA : r.survivorsB,
             roundAt(run.index, data.rounds).damage,
@@ -835,22 +867,35 @@ try {
 
   function settle(result, info) {
     clearDuel()
+    // 무대를 원래 자리로 돌린다 — 배치 화면은 언제나 내 판이 아래다.
+    prep.scene.setSideFlip(false)
     const s = run.state
-    const won = result.winner === 'A'
+    // **내가 A 라는 보장이 없다.** 서버가 좌석 번호가 낮은 쪽을 A 로 놓으므로,
+    // 이겼는지도 생존자가 누구 것인지도 진영을 보고 읽어야 한다.
+    const iAmA = run.fight ? run.fight.iAmA !== false : true
+    const won = result.winner === (iAmA ? 'A' : 'B')
+    const mySurvivors = iAmA ? result.survivorsA : result.survivorsB
+    const foeSurvivors = iAmA ? result.survivorsB : result.survivorsA
 
     // 연속 횟수는 승패 방향과 무관하게 센다 — 연승도 연패도 같은 표를 쓴다.
     s.streak = won === run.lastWon ? s.streak + 1 : 1
     run.lastWon = won
 
-    if (!won) s.hp = Math.max(0, s.hp - defeatDamage(result.survivorsB, info.damage))
-    run.lobby[0].hp = s.hp
-    // 순위표가 내 연승도 같은 규칙으로 표시해야 한다.
-    run.lobby[0].streak = s.streak
-    run.lobby[0].lastWon = run.lastWon
+    if (!won) s.hp = Math.max(0, s.hp - defeatDamage(foeSurvivors, info.damage))
+    // **0번 좌석이 아니라 내 좌석이다.** 매치 방에서 내 자리는 계정 순서로
+    // 정해지므로 0 이 아닐 수 있다 — 0 에 적으면 남의 체력·연승을 내 것으로
+    // 덮어써서, 순위표가 엉뚱한 사람을 죽인다.
+    const me = run.lobby.find((x) => x.isPlayer)
+    if (me) {
+      me.hp = s.hp
+      // 순위표가 내 연승도 같은 규칙으로 표시해야 한다.
+      me.streak = s.streak
+      me.lastWon = run.lastWon
+    }
 
     // 내가 이겼으면 상대도 잃는다. 순위표가 내 전투와 같은 규칙을 따라야 한다.
     const foe = mm.opponentSeat()
-    if (won && foe) foe.hp = Math.max(0, foe.hp - defeatDamage(result.survivorsA, info.damage))
+    if (won && foe) foe.hp = Math.max(0, foe.hp - defeatDamage(mySurvivors, info.damage))
     // 전투를 시작할 때 이미 돌려 둔 결과를 여기서 반영한다
     mm.applyFights(run.otherFights ?? [], { stageDamage: info.damage })
 

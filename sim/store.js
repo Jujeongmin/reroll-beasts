@@ -7,6 +7,9 @@
 // 순수 함수인 이유: 지급 규칙이 서버 훅 안에 박히면 테스트가 결제를 흉내
 // 내야만 확인할 수 있다. 표는 표대로 검산하고, 훅은 이 표를 부르기만 한다.
 
+/** 프로필에 남기는 최근 결제 id 개수. 재시도는 곧바로 오므로 이만큼이면 넉넉하다. */
+const PAID_KEEP = 20
+
 /** productId → 상품 줄. 모르는 id 면 null. */
 export function productOf(id, data) {
   return data.store.products.find((p) => p.id === id) ?? null
@@ -51,7 +54,7 @@ export function storeProducts(data) {
  *
  * 모르는 칸은 그대로 넘긴다 — 이름·보유·전적이 결제 한 번에 지워지면 안 된다.
  */
-export function applyGrant(profile, grant) {
+export function applyGrant(profile, grant, { purchaseId = null } = {}) {
   if (!grant?.known) return null
   const base = profile ?? {}
   const pass = base.pass ?? { xp: 0, level: 1, premium: false }
@@ -60,5 +63,15 @@ export function applyGrant(profile, grant) {
     gems: (base.gems ?? 0) + (grant.gems ?? 0),
     // 프리미엄은 한 번 켜지면 안 꺼진다. 젬 팩을 뒤에 사도 유지돼야 한다.
     pass: { ...pass, premium: !!grant.premium || !!pass.premium },
+    // 준 결제의 id 를 **지급과 같은 쓰기에** 남긴다. 처리 기록(컬렉션)은
+    // 다른 문서라, 지급이 끝나고 기록이 실패하면 재시도가 "처음 보는 결제" 로
+    // 읽어 또 준다. 최근 것만 남긴다 — 계정 문서가 영수증 더미가 되면 안 된다.
+    ...(purchaseId ? { paid: [String(purchaseId), ...(base.paid ?? [])].slice(0, PAID_KEEP) } : {}),
   }
+}
+
+/** 이미 준 결제인가. */
+export function paidAlready(profile, purchaseId) {
+  if (!purchaseId) return false
+  return (profile?.paid ?? []).includes(String(purchaseId))
 }

@@ -46,11 +46,16 @@ export function mergeProfile(prev, rank) {
  * 모르는 칸은 건드리지 않고 넘긴다(`...base`) — 나중에 칸이 하나 늘 때
  * 이 함수를 안 고쳐도 살아남는다.
  */
-export function applyMatchResult(prev, rank, data, { ranked = true } = {}) {
+export function applyMatchResult(prev, rank, data, { ranked = true, matchId = null } = {}) {
   const base = prev ?? {}
   const pass = advancePass(base.pass ?? null, rank, data, { ranked })
   return {
     ...base,
+    // 이 판을 셌다는 표시. **지급과 같은 쓰기에 남는다** — 프로필을 쓰고
+    // 방 상태를 쓰는 사이가 잘리면 클라가 마감을 다시 부르고, 그때 같은 판이
+    // 또 정산된다(판수·LP·젬이 두 번 오른다). 락은 동시 실행만 막지 잘린
+    // 쓰기는 못 되돌린다.
+    ...(matchId ? { lastMatch: matchId } : {}),
     ...mergeProfile(base, rank),
     // LP 는 랭크 방에서만 움직인다. 봇이 섞이는 일반 판이 점수를 좌우하면
     // 티어가 실력을 안 가리킨다.
@@ -59,4 +64,9 @@ export function applyMatchResult(prev, rank, data, { ranked = true } = {}) {
     // 패스는 증분만 준다. 잔액을 패스가 계산하면 패스와 지갑이 한 덩어리가 된다.
     gems: (base.gems ?? 0) + pass.earned,
   }
+}
+
+/** 이 판을 이미 셌나. 부르는 쪽이 다시 세기 전에 묻는다. */
+export function countedMatch(profile, matchId) {
+  return !!matchId && profile?.lastMatch === matchId
 }

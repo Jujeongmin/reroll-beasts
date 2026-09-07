@@ -1,7 +1,7 @@
 // 전적은 한 번 틀리면 되돌릴 근거가 없다 — 원본 기록을 안 남기고 누적만 하기
 // 때문이다. 그래서 누적 규칙을 순수 함수로 떼어 여기서 못박는다.
 import { describe, it, expect } from 'vitest'
-import { mergeProfile, applyMatchResult } from '../sim/profile.js'
+import { mergeProfile, applyMatchResult, countedMatch } from '../sim/profile.js'
 import { lpForRank } from '../sim/rank.js'
 import { loadData } from '../sim/data.js'
 
@@ -126,5 +126,26 @@ describe('applyMatchResult — 판 하나가 프로필에 남기는 것 전부',
     const p = owner()
     applyMatchResult(p, 1, data)
     expect(p).toEqual(owner())
+  })
+})
+
+describe('같은 판을 두 번 세지 않는다', () => {
+  // 서버는 프로필을 먼저 쓰고 방 상태를 나중에 쓴다. 뒤엣것이 실패하면 방은
+  // 지난 라운드로 남고, 클라가 다시 마감을 부르면 **같은 판이 또 정산된다** —
+  // 판수·LP·젬이 두 번 오른다. 락은 동시 실행만 막지 잘린 쓰기는 못 되돌린다.
+  it('matchId 를 프로필에 남긴다', () => {
+    const next = applyMatchResult(null, 1, data, { matchId: 'room-7' })
+    expect(next.lastMatch).toBe('room-7')
+  })
+
+  it('같은 matchId 는 이미 센 판이다', () => {
+    const first = applyMatchResult(null, 1, data, { matchId: 'room-7' })
+    expect(countedMatch(first, 'room-7')).toBe(true)
+    expect(countedMatch(first, 'room-8')).toBe(false)
+    expect(countedMatch(null, 'room-7')).toBe(false)
+  })
+
+  it('matchId 를 안 주면 표시도 안 남긴다 — 1인 방은 되돌릴 것이 없다', () => {
+    expect(applyMatchResult(null, 1, data).lastMatch).toBeUndefined()
   })
 })

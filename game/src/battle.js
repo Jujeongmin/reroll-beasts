@@ -230,32 +230,18 @@ export async function createBattle({ data, scene }) {
       case 'skill_aoe': {
         playCast(st, v, e)
         if (st && v && st.alive) fireBolt(e.casterId, e.targetIds?.[0])
-        // 애니메이션은 **피해가 반영되기 전** 살아있었는지로 결정한다 — 판정
-        // 순서를 그대로 따라야 죽는 순간 맞는 동작이 다시 재생되지 않는다.
-        const hits = e.type === 'skill_aoe' ? (e.hits ?? []).map((h) => h.id) : (e.targetIds ?? [])
-        for (const id of hits) {
-          const ts = unitState.get(id)
-          const tv = views.get(id)
-          if (!ts || !ts.alive) continue
-          if (tv && ts.anim !== 'death') {
-            ts.anim = 'hit'
-            ts.animUntil = e.tick + 10
-            tv.play(tv.anims.hit, { loop: false, fade: 0.05 })
-          }
-        }
+        // **맞는 동작은 안 튼다.** 근접전은 두 말이 서로 계속 때리는 그림이라,
+        // 맞을 때마다 hit 클립이 끼면 방금 시작한 attack 을 매번 덮어쓴다 —
+        // 결과가 "둘 다 움찔거리기만 하고 아무도 안 때리는" 화면이다.
+        // 때리는 쪽 동작이 보이는 편이 무슨 일이 벌어지는지를 훨씬 잘 말한다
+        // (TFT 도 피격 반응이 없다). 맞았다는 사실은 피해 숫자와 체력 막대,
+        // 타격 이펙트가 이미 말한다.
         applyReplayEvent(unitState, e)
         break
       }
 
-      // 버프는 attack/skill_single 과 달리 대상 쪽에 재생할 클립이 없다 —
-      // 26종 유닛의 모델을 다 뒤져도 캐스트·버프 클립은 없고 attack·death·hit·
-      // idle·run 뿐이다. hit 을 대신 쓰면 "맞았다"는 그림이 되어 아군 버프를
-      // 받은 말이 얻어맞은 것처럼 움찔거린다.
-      //
-      // 캐스터도 targetIds(=grants)에 자기 자신을 넣는 자가 버프(pink_blob 등)
-      // 가 있어서, 위 공용 hit 루프를 그대로 타면 방금 튼 attack 클립을 같은
-      // 이벤트 안에서 hit 이 곧바로 덮어써 캐스트 동작이 화면에 아예 안 뜬다 —
-      // 그래서 캐스터 처리만 하고 대상 쪽 클립은 건드리지 않는다.
+      // 버프는 대상 쪽에 재생할 클립이 없다 — 26종 모델을 다 뒤져도 캐스트·
+      // 버프 클립은 없고 attack·death·hit·idle·run 뿐이다. 캐스터 동작만 튼다.
       case 'skill_buff': {
         // fireBolt 를 부르지 않는다 — 지금은 원거리 말에 버프 스킬이 없어
         // 우연히 안 터지지만, 데이터가 바뀌면 아군에게 투사체를 쏘게 되므로
@@ -273,20 +259,10 @@ export async function createBattle({ data, scene }) {
         break
 
       // 죽으면서 터지는 폭발 · 스킬이 옆으로 튄 피해. 캐스터는 이미 죽은
-      // 채(death_blast)거나 화면 밖 원인(splash)이라 캐스터 쪽 애니메이션은
-      // 없다 — 맞은 쪽에만 hit 반응을 준다.
+      // 채(death_blast)거나 화면 밖 원인(splash)이라 캐스터 쪽 동작이 없고,
+      // 맞는 동작도 안 튼다(위 attack 케이스와 같은 이유).
       case 'death_blast':
       case 'skill_splash': {
-        for (const h of e.hits ?? []) {
-          const ts = unitState.get(h.id)
-          const tv = views.get(h.id)
-          if (!ts || !ts.alive) continue
-          if (tv && ts.anim !== 'death') {
-            ts.anim = 'hit'
-            ts.animUntil = e.tick + 10
-            tv.play(tv.anims.hit, { loop: false, fade: 0.05 })
-          }
-        }
         applyReplayEvent(unitState, e)
         break
       }

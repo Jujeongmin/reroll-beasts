@@ -1211,13 +1211,33 @@ export async function createScene({
   // 이 안에만 담아야 UI 뒤로 말이 숨지 않는다.
   let usableY = 1
 
+  /**
+   * 반대편에 앉아서 본다.
+   *
+   * 서버는 좌석 번호가 낮은 쪽을 A 로 놓고 전투를 돌린다. 내가 B 면 내 말이
+   * 판의 **먼 쪽 절반**에 선다 — 그대로 두면 내 말이 화면 위에 있다.
+   *
+   * 로그를 뒤집는 방법은 못 쓴다. 이 판의 벌집은 행마다 반 칸씩 어긋나 있어
+   * 180° 회전에 딱 맞아떨어지지 않는다(그래서 toFieldTile 도 좌표를 옮기는
+   * 대신 진영마다 다른 행을 쓴다). 카메라를 옮겨 앉는 것이 유일하게 정확하다 —
+   * 무대를 통째로 도는 것이라 어떤 자리도 틀어지지 않는다.
+   */
+  let sideFlip = false
+  function setSideFlip(on) {
+    if (sideFlip === !!on) return
+    sideFlip = !!on
+    resize()
+  }
+
   function fitCamera() {
     const { corners, box } = frameCorners()
     const focusX = (box.minX + box.maxX) / 2
     const focusZ = (box.minZ + box.maxZ) / 2
+    // 반대편에 앉으면 카메라가 판 건너로 넘어간다. 바라보는 점은 그대로다.
+    const side = sideFlip ? -1 : 1
     let dist = Math.hypot(box.maxX - box.minX, box.maxZ - box.minZ)
     for (let i = 0; i < 8; i++) {
-      camera.position.set(focusX, Math.sin(pitch) * dist, focusZ + Math.cos(pitch) * dist)
+      camera.position.set(focusX, Math.sin(pitch) * dist, focusZ + side * Math.cos(pitch) * dist)
       camera.lookAt(focusX, 0, focusZ)
       camera.updateMatrixWorld()
 
@@ -2089,6 +2109,7 @@ export async function createScene({
     spawnFx,
     updateFx,
     clearFx,
+    setSideFlip,
     markMove,
     setGoal,
     updateMarks,

@@ -39,7 +39,11 @@ export function sanitizeBoard(board, data, { cap = 0 } = {}) {
   const maxStar = data.combat.starMultiplier.length
   const tiles = halfTiles(data)
   const slots = data.items.slotsPerUnit
-  const limit = Math.max(0, Math.floor(cap))
+  // 유한한 정수만 상한으로 친다. NaN 이 들어오면 `out.length >= NaN` 이 늘
+  // 거짓이라 **인원 제한이 통째로 사라진다** — 클라가 레벨로 숫자가 아닌 것을
+  // 보내면 서버의 Math.floor 가 그 NaN 을 만든다. 모르는 상한은 0 이다:
+  // 아무도 못 세우는 편이, 아무나 다 세우는 것보다 눈에 빨리 띈다.
+  const limit = Number.isFinite(cap) ? Math.max(0, Math.floor(cap)) : 0
 
   const used = new Set()
   const out = []
