@@ -955,7 +955,7 @@
   #home.guiding .lobby-panel { z-index: 9; }
   /* 튜토리얼만 남기고 전부 죽인다 — 보이되 안 눌린다. */
   #home.guiding .btn-home:not(.is-new),
-  #home.guiding .btn-sub { opacity: .3; pointer-events: none; }
+  #home.guiding .subrow { opacity: .3; pointer-events: none; }
   #home.guiding .record,
   #home.guiding .pass,
   #home.guiding .conn { opacity: .35; pointer-events: none; }
@@ -1039,14 +1039,27 @@
   }
   #home .record .rankbtn[hidden] { display: none; }
 
-  /* 매치 버튼보다 한 급 낮은 것. 같은 나무 액자를 주면 "이것도 게임 시작"
-     으로 읽힌다 — 여긴 꾸미는 자리다. */
+  /* 매치 버튼보다 한 급 낮은 것. 밑줄 친 글자였는데, 그러면 눌리는 것인지
+     설명인지 구분이 안 됐다 — 버튼으로 세우되 **매치 버튼과 다른 재질**을
+     준다. 매치는 나무·금빛(lobby_btn), 이쪽은 강철·차가운 회색(panel_steel).
+     같은 나무를 주면 "이것도 게임 시작"으로 읽힌다.
+     세 개를 가로로 늘어놓는 이유: 세로로 쌓으면 매치 버튼 묶음과 한 덩어리로
+     보여서, 여섯 개 중 무엇이 게임 시작인지 눈이 한 번 더 세야 한다. */
+  #home .subrow { display: flex; gap: 4px; margin-top: 6px; }
   #home .btn-sub {
-    margin-top: 2px; padding: 5px 0; font-size: 11px; color: #cbb794;
-    text-decoration: underline; text-align: left;
+    /* 줄바꿈을 막는다. 세 글자가 두 줄로 접히면 버튼 높이가 저 혼자 늘어
+       나머지 둘과 어긋난다. */
+    flex: 1; min-width: 0; height: 26px; padding: 0 2px; white-space: nowrap;
+    font-size: 11px; font-weight: 800; letter-spacing: 0;
+    color: #d7e2ea; text-shadow: 0 1px 2px #0009; text-align: center;
+    border-style: solid; border-width: 6px; border-image-slice: 6;
+    border-image-repeat: repeat; border-image-source: url('/assets/ui/panel_steel.png');
+    background: #5b6875;
+    image-rendering: pixelated; cursor: pointer;
+    transition: filter .12s, transform .12s;
   }
-  #home .btn-sub { transition: color .12s, transform .12s; }
-  #home .btn-sub:hover { color: #ffe1a0; transform: translateX(2px); }
+  #home .btn-sub:hover { filter: brightness(1.15); transform: translateY(-1px); }
+  #home .btn-sub:active { transform: translateY(1px); filter: brightness(.95); }
 
   /* ── 꾸미기(아바타 · 무대 · 승리 이펙트) ─────────────── */
   #skins {
@@ -1930,9 +1943,13 @@
           <button class="x" id="hint-close" title="닫기">✕</button>
         </div>
       </div>
-      <button class="btn-sub" id="btn-skins">꾸미기</button>
-      <button class="btn-sub" id="btn-shop">젬 상점</button>
-      <button class="btn-sub" id="btn-settings">설정</button>
+      <!-- 매치 버튼과 다른 재질(강철)이다. 같은 나무를 주면 이것도 게임
+           시작으로 읽힌다. -->
+      <div class="subrow">
+        <button class="btn-sub" id="btn-skins">꾸미기</button>
+        <button class="btn-sub" id="btn-shop">상점</button>
+        <button class="btn-sub" id="btn-settings">설정</button>
+      </div>
       <div class="queue" id="queue-status" hidden>
         <span id="queue-text"></span>
         <button id="queue-cancel">취소</button>
