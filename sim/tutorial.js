@@ -43,25 +43,34 @@ export function setupTutorial(state, data) {
 export const TUTORIAL_STEPS = [
   {
     id: 'buy',
-    text: '상점에서 같은 말을 하나 사 보자. 셋이 모이면 저절로 합쳐진다.',
+    text: {
+      ko: '상점에서 같은 말을 하나 사 보자. 셋이 모이면 저절로 합쳐진다.',
+      en: 'Buy the same unit from the shop. Three of them merge on their own.',
+    },
     target: '#shop',
     done: (state) => allUnits(state).some((u) => u.star >= 2),
   },
   {
     id: 'place',
-    text: '합쳐진 말을 판 위로 끌어다 놓자. 판에 올린 말만 싸운다.',
+    text: {
+      ko: '합쳐진 말을 판 위로 끌어다 놓자. 판에 올린 말만 싸운다.',
+      en: 'Drag the merged unit onto the board. Only units on the board fight.',
+    },
     target: '#stage',
     done: (state) => boardCount(state) >= 1,
   },
   {
     id: 'xp',
-    text: '경험치를 사면 레벨이 오르고, 판에 놓을 수 있는 수가 는다.',
+    text: {
+      ko: '경험치를 사면 레벨이 오르고, 판에 놓을 수 있는 수가 는다.',
+      en: 'Buying XP raises your level, and you can place more units.',
+    },
     target: '#buyxp',
     done: (state, { startLevel }) => state.level > startLevel,
   },
   {
     id: 'fight',
-    text: '준비됐다. 싸워 보자.',
+    text: { ko: '준비됐다. 싸워 보자.', en: "You're set. Time to fight." },
     target: null,
     done: null,
   },

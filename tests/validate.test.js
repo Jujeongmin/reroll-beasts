@@ -166,3 +166,18 @@ describe('승리 이펙트 형태', () => {
     expect(styles.size).toBeGreaterThanOrEqual(3)
   })
 })
+
+describe('두 언어', () => {
+  // 한쪽만 있으면 그 언어에서 빈칸이 뜨거나 다른 언어가 섞여 나온다.
+  it('한쪽 언어만 있는 이름을 잡는다', () => {
+    const bad = clone(data)
+    bad.items.items[0].name = { ko: '강철검' }
+    expect(validate(bad).some((m) => m.includes('영어'))).toBe(true)
+  })
+
+  it('한쪽 언어만 있는 미션 문구를 잡는다', () => {
+    const bad = clone(data)
+    bad.missions.missions[0].text = { en: 'Play 2' }
+    expect(validate(bad).some((m) => m.includes('영어'))).toBe(true)
+  })
+})

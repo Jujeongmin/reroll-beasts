@@ -3,16 +3,28 @@
   "products": [
     {
       "id": "gems_small",
-      "name": "젬 300",
-      "desc": "아바타 하나 값이 넉넉하다",
+      "name": {
+        "ko": "젬 300",
+        "en": "300 Gems"
+      },
+      "desc": {
+        "ko": "아바타 하나 값이 넉넉하다",
+        "en": "Enough for an avatar"
+      },
       "gems": 300,
       "usd": 0.99,
       "icon": "store_gems_small.webp"
     },
     {
       "id": "gems_medium",
-      "name": "젬 1,000",
-      "desc": "10% 더 준다",
+      "name": {
+        "ko": "젬 1,000",
+        "en": "1,000 Gems"
+      },
+      "desc": {
+        "ko": "10% 더 준다",
+        "en": "10% extra"
+      },
       "gems": 1000,
       "usd": 2.99,
       "bonus": "+10%",
@@ -20,8 +32,14 @@
     },
     {
       "id": "gems_large",
-      "name": "젬 2,600",
-      "desc": "23% 더 준다",
+      "name": {
+        "ko": "젬 2,600",
+        "en": "2,600 Gems"
+      },
+      "desc": {
+        "ko": "23% 더 준다",
+        "en": "23% extra"
+      },
       "gems": 2600,
       "usd": 6.99,
       "bonus": "+23%",
@@ -29,8 +47,14 @@
     },
     {
       "id": "pass_premium_s1",
-      "name": "시즌 1 프리미엄 패스",
-      "desc": "단계마다 젬 40. 끝까지 올리면 1,000 젬",
+      "name": {
+        "ko": "시즌 1 프리미엄 패스",
+        "en": "Season 1 Premium Pass"
+      },
+      "desc": {
+        "ko": "단계마다 젬 40. 끝까지 올리면 1,000 젬",
+        "en": "40 gems per tier · 1,000 gems if you finish"
+      },
       "premium": true,
       "usd": 4.99,
       "icon": "store_pass_premium.webp"

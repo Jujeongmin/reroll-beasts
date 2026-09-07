@@ -148,7 +148,9 @@ export function createLobbyState({ seed, account, accounts, now, data }) {
     seats.push({
       id: i,
       // 사람은 계정 꼬리로 구분한다 — 익명 계정이라 달리 부를 이름이 없다.
-      name: who ? `유저${String(who).slice(-4)}` : (names[i] ?? `봇${i}`),
+      // 봇 이름은 데이터가 든 { ko, en } 객체 그대로 둔다 — 화면이 textOf 로
+      // 푼다. 여기서 한쪽 언어로 굳히면 언어를 바꿔도 좌석 이름만 안 바뀐다.
+      name: who ? { ko: `유저${String(who).slice(-4)}`, en: `Player ${String(who).slice(-4)}` } : (names[i] ?? { ko: `봇${i}`, en: `Bot ${i}` }),
       account: who,
       isBot: !who,
       hp: data.economy.startHp,

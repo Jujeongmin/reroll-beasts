@@ -160,7 +160,13 @@ export function growBots(lobby, roundIndex, rng, data, { playerId = 0 } = {}) {
   }
 }
 
-/** 체력 내림차순, 같으면 이름 순. 탈락자는 뒤로. */
+/**
+ * 체력 내림차순, 같으면 **좌석 번호 순**. 탈락자는 뒤로.
+ *
+ * 이름으로 안 가르는 이유: 이름은 이제 두 언어를 든 값이라(sim 은 어느 언어로
+ * 볼지 모른다) 여기서 문자열로 비교할 수 없다. 좌석 번호는 언어와 무관하고,
+ * 같은 체력이면 어차피 순서에 뜻이 없다 — 흔들리지만 않으면 된다.
+ */
 export function standings(lobby) {
-  return [...lobby].sort((x, y) => y.hp - x.hp || x.name.localeCompare(y.name))
+  return [...lobby].sort((x, y) => y.hp - x.hp || x.id - y.id)
 }

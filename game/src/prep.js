@@ -503,12 +503,12 @@ export async function createPrep({
         d.style.setProperty('--hp', String(ratio))
         d.style.setProperty('--hc', hpColor(ratio))
         d.innerHTML =
-          `<span class="n">${seat.name}</span>` +
+          `<span class="n">${textOf(seat.name)}</span>` +
           `<span class="h">${seat.hp}</span>` +
           `<span class="av"><b>${seat.name.slice(0, 1)}</b></span>`
         const run3 = seat.lastWon === true && (seat.streak ?? 0) >= 3
         d.title =
-          t('seat.tip', { name: seat.name, hp: seat.hp }) +
+          t('seat.tip', { name: textOf(seat.name), hp: seat.hp }) +
           (run3 ? t('seat.streak', { n: seat.streak }) : '') +
           (seat.hp <= 0 ? t('seat.out') : '')
         d.addEventListener('click', () => {
@@ -624,7 +624,7 @@ export async function createPrep({
 
   function traitLabel(id) {
     const t = [...data.traits.origins, ...data.traits.classes].find((x) => x.id === id)
-    return t ? t.name.ko : id
+    return t ? textOf(t.name) : id
   }
 
   /**
@@ -736,7 +736,7 @@ export async function createPrep({
         // 티어색을 변수로 넘긴다 — 테두리·이름띠·후광이 한 값을 같이 쓴다
         d.style.setProperty('--tc', tierBar(u.tier))
         d.innerHTML =
-          `<span class="art"><img alt="${u.name.ko}" /></span>` +
+          `<span class="art"><img alt="${textOf(u.name)}" /></span>` +
           (pv.up > 0
             ? `<span class="own up">${STAR[pv.up]}</span>`
             : pv.count > 0
@@ -745,7 +745,7 @@ export async function createPrep({
           '<span class="tr">' +
           `<i style="--ic:${traitIcon(u.origin)}">${traitLabel(u.origin)}</i>` +
           `<i style="--ic:${traitIcon(u.class)}">${traitLabel(u.class)}</i></span>` +
-          `<span class="nm"><b>${u.name.ko}</b><span class="pr">${u.tier}</span></span>`
+          `<span class="nm"><b>${textOf(u.name)}</b><span class="pr">${u.tier}</span></span>`
         thumbFor(unitId, 1).then((url) => {
           const img = d.querySelector('img')
           if (img) img.src = url
@@ -813,7 +813,7 @@ export async function createPrep({
     el.info.innerHTML =
       '<div class="hd">' +
       `<img class="itemart" src="/assets/ui/item_${itemId}.png" alt="" />` +
-      `<div class="t"><div class="nm">${it.name.ko}</div>` +
+      `<div class="t"><div class="nm">${textOf(it.name)}</div>` +
       `<div class="sub">${t('info.items')}</div></div>` +
       '</div>' +
       `<div class="items"><span><em>${itemEffectText(it)}</em></span></div>` +
@@ -833,7 +833,7 @@ export async function createPrep({
     el.info.innerHTML =
       '<div class="hd">' +
       '<img alt="" />' +
-      `<div class="t"><div class="nm">${i.unit.name.ko}</div>` +
+      `<div class="t"><div class="nm">${textOf(i.unit.name)}</div>` +
       `<div class="sub">${traitLabel(i.unit.origin)} · ${traitLabel(i.unit.class)}</div></div>` +
       `<div class="st">${STAR[star]}</div>` +
       '</div>' +
@@ -857,7 +857,7 @@ export async function createPrep({
               // 표(위 grid)를 보고서야 뭐가 바뀌었는지 역산해야 한다.
               return (
                 `<span><img src="/assets/ui/item_${id}.png" alt="" />` +
-                `<b>${it.name.ko}</b><em>${itemEffectText(it)}</em></span>`
+                `<b>${textOf(it.name)}</b><em>${itemEffectText(it)}</em></span>`
               )
             })
             .join('') +

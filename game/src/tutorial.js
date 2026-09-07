@@ -4,7 +4,7 @@
 // 결과를 말풍선과 불빛으로 바꿀 뿐이다. 판정을 화면에 두면 테스트가 못 덮는다.
 
 import { TUTORIAL_STEPS, tutorialStep } from '@sim/tutorial.js'
-import { t } from './i18n.js'
+import { t, textOf } from './i18n.js'
 
 /** 완료 표시. 지운 사람은 다시 본다 — 그게 맞다. */
 const DONE_KEY = 'rr.tutorial.done'
@@ -107,7 +107,7 @@ export function createCoach({ run, onFight, onSkip }) {
       if (i === index) return
       index = i
       const step = TUTORIAL_STEPS[i]
-      el.text.textContent = step.text
+      el.text.textContent = textOf(step.text)
       el.fight.hidden = step.id !== 'fight'
       light(step.target)
     },

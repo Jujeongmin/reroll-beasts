@@ -1,14 +1,38 @@
 {
   "size": 8,
   "names": [
-    "나",
-    "바위손",
-    "잿불",
-    "물비늘",
-    "덩굴손",
-    "쇠발톱",
-    "달그림자",
-    "모래턱"
+    {
+      "ko": "나",
+      "en": "You"
+    },
+    {
+      "ko": "바위손",
+      "en": "Stonehand"
+    },
+    {
+      "ko": "잿불",
+      "en": "Ashfall"
+    },
+    {
+      "ko": "물비늘",
+      "en": "Waterscale"
+    },
+    {
+      "ko": "덩굴손",
+      "en": "Vinegrip"
+    },
+    {
+      "ko": "쇠발톱",
+      "en": "Ironclaw"
+    },
+    {
+      "ko": "달그림자",
+      "en": "Moonshade"
+    },
+    {
+      "ko": "모래턱",
+      "en": "Sandjaw"
+    }
   ],
   "growth": [
     {

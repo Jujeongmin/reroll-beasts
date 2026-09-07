@@ -295,7 +295,7 @@ export function createHome({
             `<div class="card${c.unlocked ? '' : ' locked'}${c.id === cur ? ' on' : ''}` +
             `${c.id === skinPick ? ' sel' : ''}" data-skin="${c.id}">` +
             `<span class="boomart">${fxArt(c.fx)}</span>` +
-            `<span class="nm">${c.name}</span>` +
+            `<span class="nm">${textOf(c.name)}</span>` +
             `<span class="why">${c.unlocked ? '' : c.reason}</span></div>`
           )
         }
@@ -307,7 +307,7 @@ export function createHome({
         return (
           `<div class="card${c.unlocked ? '' : ' locked'}${c.id === cur ? ' on' : ''}` +
           `${c.id === skinPick ? ' sel' : ''}" data-skin="${c.id}">${art}` +
-          `<span class="nm">${c.name}</span>` +
+          `<span class="nm">${textOf(c.name)}</span>` +
           `<span class="why">${c.unlocked ? '' : c.reason}</span></div>`
         )
       })
@@ -459,7 +459,7 @@ export function createHome({
           : '<span class="rw none"></span>'
       }
       if (it.kind === 'avatar') {
-        return `<div class="rw av"><img alt="" data-file="${it.file}" title="${it.name}" />${gem}</div>`
+        return `<div class="rw av"><img alt="" data-file="${it.file}" title="${textOf(it.name)}" />${gem}</div>`
       }
       if (it.kind === 'board') {
         // **진짜 판을 찍어** 보여 준다 — 색 띠만으로는 그 무대가 어떻게 보이는지
@@ -467,7 +467,7 @@ export function createHome({
         // 방식이다). 찍은 것은 main 이 캐시하므로 같은 무대를 다시 안 그린다.
         const c = it.colors ?? {}
         return (
-          `<div class="rw sk" title="${it.name}">` +
+          `<div class="rw sk" title="${textOf(it.name)}">` +
           `<i style="background:${c.floor ?? '#888'}"></i>` +
           `<i style="background:${c.ground ?? '#666'}"></i>` +
           `<i style="background:${c.base ?? '#333'}"></i>` +
@@ -475,7 +475,7 @@ export function createHome({
           `<img class="shot" alt="" data-board="${it.id}" />${gem}</div>`
         )
       }
-      return `<div class="rw bm" title="${it.name}">${fxArt(it.fx)}${gem}</div>`
+      return `<div class="rw bm" title="${textOf(it.name)}">${fxArt(it.fx)}${gem}</div>`
     }
 
     // 프리미엄을 샀으면 자물쇠를 안 그린다 — 이미 열린 칸에 자물쇠가 남아
@@ -635,7 +635,7 @@ export function createHome({
       return (
         `<div class="pack${item ? '' : ' off'}" data-pack="${item ? p.id : ''}">` +
         `<img alt="" src="/assets/store/${p.icon ?? `store_${p.id}.png`}" />` +
-        `<div class="t"><div class="n">${item?.name || p.name}</div>` +
+        `<div class="t"><div class="n">${item?.name || textOf(p.name)}</div>` +
         `<div class="d">${what}${p.desc}</div>` +
         `${p.bonus ? `<div class="b">${p.bonus}</div>` : ''}</div>` +
         price +
@@ -774,7 +774,7 @@ export function createHome({
     // 보이면 눌러 볼 이유가 없다.
     const s = seasonAt(Date.now(), data)
     const left = daysLeft(Date.now(), data)
-    el.passSub.textContent = s ? t('pass.leftDays', { name: s.name, days: left }) : t('pass.soon')
+    el.passSub.textContent = s ? t('pass.leftDays', { name: textOf(s.name), days: left }) : t('pass.soon')
     const prog = passProgress(state.profile?.pass?.xp ?? 0, data)
     el.passLv.textContent = t('pass.level', { n: prog.level })
     el.passBar.style.width = `${Math.round(prog.ratio * 100)}%`

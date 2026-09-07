@@ -26,42 +26,60 @@
   "avatars": [
     {
       "id": "knight",
-      "name": "기사",
+      "name": {
+        "ko": "기사",
+        "en": "Knight"
+      },
       "pack": "chars",
       "file": "Knight_Male.glb",
       "unlock": "free"
     },
     {
       "id": "elf",
-      "name": "엘프",
+      "name": {
+        "ko": "엘프",
+        "en": "Elf"
+      },
       "pack": "chars",
       "file": "Elf.glb",
       "unlock": "free"
     },
     {
       "id": "wizard",
-      "name": "마법사",
+      "name": {
+        "ko": "마법사",
+        "en": "Wizard"
+      },
       "pack": "chars",
       "file": "Wizard.glb",
       "unlock": "free"
     },
     {
       "id": "ghost",
-      "name": "유령",
+      "name": {
+        "ko": "유령",
+        "en": "Ghost"
+      },
       "pack": "cute",
       "file": "Ghost.glb",
       "unlock": "free"
     },
     {
       "id": "penguin",
-      "name": "펭귄",
+      "name": {
+        "ko": "펭귄",
+        "en": "Penguin"
+      },
       "pack": "cute",
       "file": "Penguin.glb",
       "unlock": "free"
     },
     {
       "id": "viking",
-      "name": "바이킹",
+      "name": {
+        "ko": "바이킹",
+        "en": "Viking"
+      },
       "pack": "chars",
       "file": "Viking_Male.glb",
       "unlock": "gem",
@@ -69,7 +87,10 @@
     },
     {
       "id": "bee",
-      "name": "꿀벌",
+      "name": {
+        "ko": "꿀벌",
+        "en": "Bee"
+      },
       "pack": "cute",
       "file": "Bee.glb",
       "unlock": "gem",
@@ -77,7 +98,10 @@
     },
     {
       "id": "ninja",
-      "name": "닌자",
+      "name": {
+        "ko": "닌자",
+        "en": "Ninja"
+      },
       "pack": "chars",
       "file": "Ninja_Male.glb",
       "unlock": "pass",
@@ -85,7 +109,10 @@
     },
     {
       "id": "panda",
-      "name": "판다",
+      "name": {
+        "ko": "판다",
+        "en": "Panda"
+      },
       "pack": "cute",
       "file": "Panda.glb",
       "unlock": "gem",
@@ -93,7 +120,10 @@
     },
     {
       "id": "bat",
-      "name": "박쥐",
+      "name": {
+        "ko": "박쥐",
+        "en": "Bat"
+      },
       "pack": "cute",
       "file": "Bat.glb",
       "unlock": "gem",
@@ -101,7 +131,10 @@
     },
     {
       "id": "witch",
-      "name": "마녀",
+      "name": {
+        "ko": "마녀",
+        "en": "Witch"
+      },
       "pack": "chars",
       "file": "Witch.glb",
       "unlock": "gem",
@@ -109,7 +142,10 @@
     },
     {
       "id": "skull",
-      "name": "해골",
+      "name": {
+        "ko": "해골",
+        "en": "Skull"
+      },
       "pack": "cute",
       "file": "Skull.glb",
       "unlock": "pass",
@@ -117,7 +153,10 @@
     },
     {
       "id": "cyclops",
-      "name": "키클롭스",
+      "name": {
+        "ko": "키클롭스",
+        "en": "Cyclops"
+      },
       "pack": "cute",
       "file": "Cyclops.glb",
       "unlock": "rank",
@@ -125,7 +164,10 @@
     },
     {
       "id": "goblin",
-      "name": "고블린",
+      "name": {
+        "ko": "고블린",
+        "en": "Goblin"
+      },
       "pack": "chars",
       "file": "Goblin_Male.glb",
       "unlock": "rank",
@@ -133,7 +175,10 @@
     },
     {
       "id": "demon",
-      "name": "마귀",
+      "name": {
+        "ko": "마귀",
+        "en": "Demon"
+      },
       "pack": "cute",
       "file": "Demon.glb",
       "unlock": "rank",
@@ -141,7 +186,10 @@
     },
     {
       "id": "yeti",
-      "name": "예티",
+      "name": {
+        "ko": "예티",
+        "en": "Yeti"
+      },
       "pack": "cute",
       "file": "Yeti.glb",
       "unlock": "rank",
@@ -149,7 +197,10 @@
     },
     {
       "id": "cthulhu",
-      "name": "크툴루",
+      "name": {
+        "ko": "크툴루",
+        "en": "Cthulhu"
+      },
       "pack": "cute",
       "file": "Cthulhu.glb",
       "unlock": "rank",
@@ -157,7 +208,10 @@
     },
     {
       "id": "golden_knight",
-      "name": "황금 기사",
+      "name": {
+        "ko": "황금 기사",
+        "en": "Golden Knight"
+      },
       "pack": "chars",
       "file": "Knight_Golden_Female.glb",
       "unlock": "rank",
@@ -165,7 +219,10 @@
     },
     {
       "id": "pirate",
-      "name": "해적",
+      "name": {
+        "ko": "해적",
+        "en": "Pirate"
+      },
       "pack": "chars",
       "file": "Pirate_Female.glb",
       "unlock": "pass",
@@ -173,7 +230,10 @@
     },
     {
       "id": "zombie",
-      "name": "좀비",
+      "name": {
+        "ko": "좀비",
+        "en": "Zombie"
+      },
       "pack": "chars",
       "file": "Zombie_Male.glb",
       "unlock": "pass",
@@ -187,8 +247,14 @@
   "boards": [
     {
       "id": "stone",
-      "name": "돌마당",
-      "desc": "기본 무대",
+      "name": {
+        "ko": "돌마당",
+        "en": "Stone Yard"
+      },
+      "desc": {
+        "ko": "기본 무대",
+        "en": "Where every run starts"
+      },
       "unlock": "free",
       "colors": {
         "floor": "#ffffff",
@@ -199,8 +265,14 @@
     },
     {
       "id": "ashen",
-      "name": "잿빛 폐허",
-      "desc": "타 버린 돌과 재",
+      "name": {
+        "ko": "잿빛 폐허",
+        "en": "Ashen Ruins"
+      },
+      "desc": {
+        "ko": "타 버린 돌과 재",
+        "en": "Burnt stone and ash"
+      },
       "unlock": "gem",
       "price": 180,
       "colors": {
@@ -212,8 +284,14 @@
     },
     {
       "id": "frost",
-      "name": "서리 들판",
-      "desc": "얼어붙은 판",
+      "name": {
+        "ko": "서리 들판",
+        "en": "Frostreach"
+      },
+      "desc": {
+        "ko": "얼어붙은 판",
+        "en": "Ice that never melts"
+      },
       "unlock": "gem",
       "price": 220,
       "colors": {
@@ -225,8 +303,14 @@
     },
     {
       "id": "emberfall",
-      "name": "잿불 협곡",
-      "desc": "패스 15단계",
+      "name": {
+        "ko": "잿불 협곡",
+        "en": "Ember Canyon"
+      },
+      "desc": {
+        "ko": "패스 15단계",
+        "en": "Embers drifting up from below"
+      },
       "unlock": "pass",
       "passLevel": 15,
       "colors": {
@@ -238,8 +322,14 @@
     },
     {
       "id": "champion",
-      "name": "챔피언 무대",
-      "desc": "플래티넘 달성",
+      "name": {
+        "ko": "챔피언 무대",
+        "en": "Champion's Arena"
+      },
+      "desc": {
+        "ko": "플래티넘 달성",
+        "en": "Only the top tier stands here"
+      },
       "unlock": "rank",
       "tier": "platinum",
       "colors": {
@@ -251,8 +341,14 @@
     },
     {
       "id": "dawnvale",
-      "name": "새벽 골짜기",
-      "desc": "해 뜨기 직전의 돌",
+      "name": {
+        "ko": "새벽 골짜기",
+        "en": "Dawnvale"
+      },
+      "desc": {
+        "ko": "해 뜨기 직전의 돌",
+        "en": "Stone just before sunrise"
+      },
       "unlock": "pass",
       "passLevel": 4,
       "colors": {
@@ -264,8 +360,14 @@
     },
     {
       "id": "voidstone",
-      "name": "공허석",
-      "desc": "빛이 닿지 않는 돌",
+      "name": {
+        "ko": "공허석",
+        "en": "Voidstone"
+      },
+      "desc": {
+        "ko": "빛이 닿지 않는 돌",
+        "en": "Light does not reach it"
+      },
       "unlock": "pass",
       "passLevel": 9,
       "colors": {
@@ -277,8 +379,14 @@
     },
     {
       "id": "bloomfield",
-      "name": "꽃밭",
-      "desc": "밟으면 꽃가루가 인다",
+      "name": {
+        "ko": "꽃밭",
+        "en": "Bloomfield"
+      },
+      "desc": {
+        "ko": "밟으면 꽃가루가 인다",
+        "en": "Pollen rises where you step"
+      },
       "unlock": "pass",
       "passLevel": 16,
       "colors": {
@@ -293,8 +401,14 @@
   "booms": [
     {
       "id": "flare",
-      "name": "섬광",
-      "desc": "기본 승리 이펙트",
+      "name": {
+        "ko": "섬광",
+        "en": "Flare"
+      },
+      "desc": {
+        "ko": "기본 승리 이펙트",
+        "en": "A burst on the losing board"
+      },
       "unlock": "free",
       "fx": {
         "color": "#ffd166",
@@ -307,8 +421,14 @@
     },
     {
       "id": "frostfall",
-      "name": "서리 낙하",
-      "desc": "진 판이 얼어붙는다",
+      "name": {
+        "ko": "서리 낙하",
+        "en": "Frostfall"
+      },
+      "desc": {
+        "ko": "진 판이 얼어붙는다",
+        "en": "The losing board freezes over"
+      },
       "unlock": "gem",
       "price": 160,
       "fx": {
@@ -322,8 +442,14 @@
     },
     {
       "id": "emberstorm",
-      "name": "잿불 폭풍",
-      "desc": "불티가 쏟아진다",
+      "name": {
+        "ko": "잿불 폭풍",
+        "en": "Emberstorm"
+      },
+      "desc": {
+        "ko": "불티가 쏟아진다",
+        "en": "Embers sweep across the loser"
+      },
       "unlock": "gem",
       "price": 200,
       "fx": {
@@ -337,8 +463,14 @@
     },
     {
       "id": "starfall",
-      "name": "별똥별",
-      "desc": "패스 18단계",
+      "name": {
+        "ko": "별똥별",
+        "en": "Starfall"
+      },
+      "desc": {
+        "ko": "패스 18단계",
+        "en": "Stars come down on the loser"
+      },
       "unlock": "pass",
       "passLevel": 18,
       "fx": {
@@ -352,8 +484,14 @@
     },
     {
       "id": "crownfall",
-      "name": "왕관 강림",
-      "desc": "다이아 달성",
+      "name": {
+        "ko": "왕관 강림",
+        "en": "Crownfall"
+      },
+      "desc": {
+        "ko": "다이아 달성",
+        "en": "A crown falls and shatters"
+      },
       "unlock": "rank",
       "tier": "diamond",
       "fx": {
@@ -367,8 +505,14 @@
     },
     {
       "id": "leafstorm",
-      "name": "잎보라",
-      "desc": "진 판이 잎에 묻힌다",
+      "name": {
+        "ko": "잎보라",
+        "en": "Leafstorm"
+      },
+      "desc": {
+        "ko": "진 판이 잎에 묻힌다",
+        "en": "The losing board is buried in leaves"
+      },
       "unlock": "pass",
       "passLevel": 7,
       "fx": {
@@ -382,8 +526,14 @@
     },
     {
       "id": "voidfall",
-      "name": "공허 낙하",
-      "desc": "진 판이 어둠에 삼켜진다",
+      "name": {
+        "ko": "공허 낙하",
+        "en": "Voidfall"
+      },
+      "desc": {
+        "ko": "진 판이 어둠에 삼켜진다",
+        "en": "The dark swallows the losing board"
+      },
       "unlock": "pass",
       "passLevel": 14,
       "fx": {
@@ -397,8 +547,14 @@
     },
     {
       "id": "sunburst",
-      "name": "해돋이",
-      "desc": "진 판 위로 해가 뜬다",
+      "name": {
+        "ko": "해돋이",
+        "en": "Sunburst"
+      },
+      "desc": {
+        "ko": "진 판 위로 해가 뜬다",
+        "en": "A sun rises over the loser"
+      },
       "unlock": "pass",
       "passLevel": 21,
       "fx": {

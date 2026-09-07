@@ -4,7 +4,7 @@
 
 const TICK_RATE = 30
 const sec = (t) => (t / TICK_RATE).toFixed(1).replace(/\.0$/, '')
-import { t } from './i18n.js'
+import { t, textOf } from './i18n.js'
 
 const signed = (n) => (n > 0 ? `+${n}` : `${n}`)
 
@@ -87,7 +87,7 @@ export function traitDetail(id, count, data, owned = new Set()) {
   const members = data.units.units
     .filter((u) => u.origin === id || u.class === id)
     .sort((a, b) => a.tier - b.tier || a.id.localeCompare(b.id))
-    .map((u) => ({ id: u.id, name: u.name.ko, tier: u.tier, owned: owned.has(u.id) }))
+    .map((u) => ({ id: u.id, name: textOf(u.name), tier: u.tier, owned: owned.has(u.id) }))
 
-  return { id, name: def.name.ko, count, steps, members }
+  return { id, name: textOf(def.name), count, steps, members }
 }

@@ -1,18 +1,136 @@
 {
   "slotsPerUnit": 3,
-  "grantRounds": ["1-2", "1-3", "2-2", "2-5", "3-3", "4-3", "5-3"],
+  "grantRounds": [
+    "1-2",
+    "1-3",
+    "2-2",
+    "2-5",
+    "3-3",
+    "4-3",
+    "5-3"
+  ],
   "items": [
-    { "id": "steel_sword", "name": { "ko": "강철검" }, "effect": { "atkPct": 20 } },
-    { "id": "swift_gloves", "name": { "ko": "쾌속 장갑" }, "effect": { "attackSpeedPct": 25 } },
-    { "id": "executioner_seal", "name": { "ko": "처형자의 인장" }, "effect": { "critChancePct": 25 } },
-    { "id": "piercing_arrowhead", "name": { "ko": "관통 화살촉" }, "effect": { "pierceCount": 1, "piercePct": 40 } },
-    { "id": "oak_shield", "name": { "ko": "참나무 방패" }, "effect": { "def": 30 } },
-    { "id": "giant_heart", "name": { "ko": "거인의 심장" }, "effect": { "hp": 400 } },
-    { "id": "thorn_armor", "name": { "ko": "가시 갑옷" }, "effect": { "thornsPct": 20 } },
-    { "id": "holy_charm", "name": { "ko": "성수 부적" }, "effect": { "mr": 30 } },
-    { "id": "sage_orb", "name": { "ko": "현자의 보주" }, "effect": { "power": 30 } },
-    { "id": "mana_stone", "name": { "ko": "마나 원석" }, "effect": { "manaStart": 20 } },
-    { "id": "vampiric_scythe", "name": { "ko": "흡혈의 낫" }, "effect": { "lifestealPct": 20 } },
-    { "id": "victory_banner", "name": { "ko": "승리의 깃발" }, "effect": { "auraAtkPct": 10, "auraRadius": 1 } }
+    {
+      "id": "steel_sword",
+      "name": {
+        "ko": "강철검",
+        "en": "Steel Sword"
+      },
+      "effect": {
+        "atkPct": 20
+      }
+    },
+    {
+      "id": "swift_gloves",
+      "name": {
+        "ko": "쾌속 장갑",
+        "en": "Swift Gloves"
+      },
+      "effect": {
+        "attackSpeedPct": 25
+      }
+    },
+    {
+      "id": "executioner_seal",
+      "name": {
+        "ko": "처형자의 인장",
+        "en": "Executioner's Seal"
+      },
+      "effect": {
+        "critChancePct": 25
+      }
+    },
+    {
+      "id": "piercing_arrowhead",
+      "name": {
+        "ko": "관통 화살촉",
+        "en": "Piercing Arrowhead"
+      },
+      "effect": {
+        "pierceCount": 1,
+        "piercePct": 40
+      }
+    },
+    {
+      "id": "oak_shield",
+      "name": {
+        "ko": "참나무 방패",
+        "en": "Oak Shield"
+      },
+      "effect": {
+        "def": 30
+      }
+    },
+    {
+      "id": "giant_heart",
+      "name": {
+        "ko": "거인의 심장",
+        "en": "Giant Heart"
+      },
+      "effect": {
+        "hp": 400
+      }
+    },
+    {
+      "id": "thorn_armor",
+      "name": {
+        "ko": "가시 갑옷",
+        "en": "Thorn Armor"
+      },
+      "effect": {
+        "thornsPct": 20
+      }
+    },
+    {
+      "id": "holy_charm",
+      "name": {
+        "ko": "성수 부적",
+        "en": "Holy Charm"
+      },
+      "effect": {
+        "mr": 30
+      }
+    },
+    {
+      "id": "sage_orb",
+      "name": {
+        "ko": "현자의 보주",
+        "en": "Sage Orb"
+      },
+      "effect": {
+        "power": 30
+      }
+    },
+    {
+      "id": "mana_stone",
+      "name": {
+        "ko": "마나 원석",
+        "en": "Mana Stone"
+      },
+      "effect": {
+        "manaStart": 20
+      }
+    },
+    {
+      "id": "vampiric_scythe",
+      "name": {
+        "ko": "흡혈의 낫",
+        "en": "Vampiric Scythe"
+      },
+      "effect": {
+        "lifestealPct": 20
+      }
+    },
+    {
+      "id": "victory_banner",
+      "name": {
+        "ko": "승리의 깃발",
+        "en": "Victory Banner"
+      },
+      "effect": {
+        "auraAtkPct": 10,
+        "auraRadius": 1
+      }
+    }
   ]
 }

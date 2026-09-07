@@ -332,6 +332,30 @@ export function validate(data) {
   if (freeLevels.length === 0) errors.push('무료 칸이 하나도 없다')
   if (freeLevels.length >= maxPassLevel) errors.push('무료 칸이 트랙 전체다 — 팔 것이 없다')
 
+  // 27. 이름·설명은 **두 언어가 다 있어야** 한다. 한쪽만 있으면 그 언어에서
+  // 빈칸이 뜨거나 다른 언어가 섞여 나온다 — 화면에서야 발견하게 된다.
+  const both = (v) => v == null || typeof v === 'string' || (v.ko && v.en)
+  const named = [
+    ['유닛', data.units?.units ?? []],
+    ['아이템', data.items?.items ?? []],
+    ['아바타', data.cosmetics?.avatars ?? []],
+    ['무대', data.cosmetics?.boards ?? []],
+    ['이펙트', data.cosmetics?.booms ?? []],
+    ['상품', data.store?.products ?? []],
+    ['미션', data.missions?.missions ?? []],
+    ['시즌', data.season?.seasons ?? []],
+  ]
+  for (const [what, list] of named) {
+    for (const x of list) {
+      if (!both(x.name)) errors.push(`${what} ${x.id} 의 이름에 영어가 없다`)
+      if (!both(x.desc)) errors.push(`${what} ${x.id} 의 설명에 영어가 없다`)
+      if (!both(x.text)) errors.push(`${what} ${x.id} 의 문구에 영어가 없다`)
+    }
+  }
+  for (const n of data.lobby?.names ?? []) {
+    if (!both(n)) errors.push('봇 이름에 영어가 없다')
+  }
+
   return errors
 }
 
