@@ -1245,13 +1245,12 @@ export async function createPrep({
         hint(t('hint.autoPlace'), 'ok')
         refresh()
       }
-      // 판이 그래도 비었으면(살아 있는 말이 하나도 없으면) 시작할 수 없다.
-      if (boardCount(run.state) > 0) {
-        running = false
-        onFight(toCombatEntries(run.state))
-      } else {
-        timeLeft = 5
-      }
+      // 판이 비어도 시작한다 — **빈 판은 그냥 진다.** 전에는 5초씩 영영
+      // 미뤘는데, 말을 하나도 안 산 사람은 그 화면에서 항복 말고 길이 없었고
+      // 서버는 자기 시계대로 가서 그 사람만 1-1 에 남았다. 빈 쪽은 전투가
+      // 두 틱에 끝나고 피해는 스테이지 값만 받는다(생존자 0).
+      running = false
+      onFight(toCombatEntries(run.state))
     }
   }
 
