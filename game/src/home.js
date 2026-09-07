@@ -147,6 +147,27 @@ export function createHome({
   el.skinsBtn.addEventListener('click', () => openSkins())
   el.skinsClose.addEventListener('click', () => closeSheet(el.skins))
   el.shop.addEventListener('click', backdrop(el.shop))
+  // 패스 트랙은 **가로로** 민다. 휠은 기본이 세로라 마우스로는 못 민다 —
+  // 세로로 안 넘치는 상자라 휠을 굴려도 아무 일이 안 일어나고, 그러면 25칸
+  // 중 여덟 칸만 본 채로 닫는다. 세로 굴림을 가로 밀기로 옮긴다.
+  //
+  // deltaY 를 쓰는 이유: 가로 휠(deltaX)이 달린 장치는 이미 잘 민다. 그쪽이
+  // 왔으면 그대로 두고, 세로만 왔을 때만 옮긴다.
+  el.passRows.addEventListener(
+    'wheel',
+    (ev) => {
+      if (ev.deltaY === 0 || Math.abs(ev.deltaX) > Math.abs(ev.deltaY)) return
+      // 트랙이 끝까지 갔으면 화면 전체가 대신 움직이게 둔다 — 안 그러면
+      // 다 민 뒤에도 휠이 먹통이라 "얼었다"로 읽힌다.
+      const max = el.passRows.scrollWidth - el.passRows.clientWidth
+      const next = el.passRows.scrollLeft + ev.deltaY
+      if (max <= 0 || (next < 0 && ev.deltaY < 0) || (next > max && ev.deltaY > 0)) return
+      ev.preventDefault()
+      el.passRows.scrollLeft = next
+    },
+    { passive: false },
+  )
+
   el.nameBox.addEventListener('click', backdrop(el.nameBox))
   el.nameClose.addEventListener('click', () => closeSheet(el.nameBox))
   /**
