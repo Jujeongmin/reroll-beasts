@@ -1037,7 +1037,7 @@
   #home .btn-sub { transition: color .12s, transform .12s; }
   #home .btn-sub:hover { color: #ffe1a0; transform: translateX(2px); }
 
-  /* ── 아바타 고르기 ──────────────────────────────────── */
+  /* ── 꾸미기(아바타 · 무대 · 승리 이펙트) ─────────────── */
   #skins {
     position: absolute; inset: 0; z-index: 80;
     animation: veilin .3s ease-out;
@@ -1200,6 +1200,7 @@
   #namebox .sheet,
   #gemshop .sheet,
   #passtrack .sheet,
+  #settings .sheet,
   #board .sheet {
     border-style: solid; border-width: 12px; border-image-slice: 6;
     border-image-repeat: repeat; border-image-source: url('/assets/ui/panel_wood.png');
@@ -1212,6 +1213,7 @@
   #namebox .sheet > *,
   #gemshop .sheet > *,
   #passtrack .sheet > *,
+  #settings .sheet > *,
   #board .sheet > * { image-rendering: auto; }
 
   /* 시트가 툭 뜨면 어디서 온 창인지 안 읽힌다. 작게 시작해 커지면 눈이 그
@@ -1230,7 +1232,8 @@
   }
   @keyframes veilin { from { opacity: 0; } }
   @keyframes veilout { to { opacity: 0; } }
-  #skins.closing, #board.closing, #passtrack.closing, #gemshop.closing, #namebox.closing { animation: veilout .24s ease-in forwards; }
+  #skins.closing, #board.closing, #passtrack.closing, #gemshop.closing, #namebox.closing,
+  #settings.closing { animation: veilout .24s ease-in forwards; }
   #skins.closing .sheet,
   #namebox.closing .sheet,
   #gemshop.closing .sheet,
@@ -1661,6 +1664,74 @@
   #passtrack #pass-close {
     align-self: center; font-size: 11px; color: #cbb794; text-decoration: underline;
   }
+  /* ── 설정 ─────────────────────────────────────────── */
+  #settings {
+    position: absolute; inset: 0; z-index: 85;
+    animation: veilin .3s ease-out;
+    display: flex; align-items: center; justify-content: center;
+    background: #06040bc4;
+  }
+  #settings[hidden] { display: none; }
+  #settings.closing { animation: veilout .24s ease-in forwards; }
+  #settings .sheet {
+    animation: sheetin .42s cubic-bezier(.16,1,.3,1);
+    width: 340px; display: flex; flex-direction: column; gap: 6px; padding: 10px 12px 12px;
+  }
+  #settings.closing .sheet { animation: sheetout .24s ease-in forwards; }
+  #settings .bhead { display: flex; align-items: baseline; gap: 6px; }
+  #settings .bhead b { font-size: 14px; color: #ffd98a; text-shadow: 0 2px 0 #6b4a2a; }
+  /* 한 줄: 이름 왼쪽, 손잡이 오른쪽. 설명은 이름 아래 작게 — 손잡이 옆에
+     붙이면 줄이 길어져 손잡이가 화면 밖으로 밀린다. */
+  #settings .row {
+    display: flex; align-items: center; gap: 10px; padding: 6px 2px;
+    box-shadow: inset 0 -1px 0 #ffffff10;
+  }
+  #settings .row .t { flex: 1; min-width: 0; }
+  #settings .row .t b { display: block; font-size: 12px; color: #f0e0bd; font-weight: 800; }
+  #settings .row .t span { display: block; font-size: 9px; color: #a99a86; }
+  #settings .row .c { flex: none; display: flex; align-items: center; gap: 5px; }
+  /* 아직 안 붙은 항목. 손잡이 대신 왜 잠겼는지를 적는다 — 동작 없는 손잡이를
+     열어 두면 눌러 보고 아무 일도 안 생기는 것을 배우게 된다. */
+  #settings .soon { font-size: 9px; color: #8f8069; }
+  #settings .mono { font-size: 11px; color: #cbb794; letter-spacing: .5px; }
+  /* 켜고 끄는 손잡이. 색만으로 상태를 말하면 색약인 눈에는 같은 그림이라,
+     동그라미의 자리도 같이 움직인다. */
+  #settings .tg {
+    position: relative; width: 40px; height: 20px; padding: 0; border: 0; cursor: pointer;
+    border-radius: 10px; background: #2a1f14; box-shadow: inset 0 0 0 1px #ffffff1f;
+    transition: background .15s;
+  }
+  #settings .tg i {
+    position: absolute; left: 2px; top: 2px; width: 16px; height: 16px; border-radius: 50%;
+    background: #8f8069; transition: left .15s, background .15s;
+  }
+  #settings .tg.on { background: #6b5a2a; }
+  #settings .tg.on i { left: 22px; background: #ffd166; }
+  #settings button.danger {
+    border: 0; padding: 3px 9px; font: inherit; font-size: 11px; font-weight: 800;
+    color: #2a1210; background: #e08c7a; cursor: pointer;
+    transition: filter .12s, transform .12s;
+  }
+  #settings button.danger.go { background: #e0604a; color: #fff2ee; }
+  #settings button.danger:hover { filter: brightness(1.1); transform: translateY(-1px); }
+  #settings button.ghost {
+    border: 0; padding: 3px 7px; font: inherit; font-size: 11px; color: #cbb794;
+    background: transparent; text-decoration: underline; cursor: pointer;
+  }
+  #settings .ver { font-size: 9px; color: #8f8069; text-align: center; padding-top: 4px; }
+  #settings #settings-close {
+    align-self: center; font-size: 11px; color: #cbb794; text-decoration: underline;
+  }
+  /* 인게임 톱니. 잠금 버튼과 같은 크기여야 둘이 한 묶음으로 읽힌다. */
+  #btn-ingame-settings {
+    pointer-events: auto; width: 26px; height: 26px; padding: 0; border: 0;
+    font-size: 15px; line-height: 1; color: #f0e0bd; cursor: pointer;
+    background: #2a1f14d9; box-shadow: inset 0 0 0 1px #d8b98455;
+    transition: filter .12s, transform .12s;
+  }
+  #btn-ingame-settings:hover { filter: brightness(1.2); transform: translateY(-1px); }
+  #btn-ingame-settings:active { transform: translateY(1px); }
+
   /* 접속 상태. **할 말이 있을 때만 뜬다** — 붙고 나면 적을 것이 없어서,
      늘 띄워 두면 빈 네모 하나가 하늘 구석에 박혀 있게 된다. */
   #home .conn {
@@ -1785,6 +1856,8 @@
           <div id="streak" class="none"></div>
         </div>
         <div id="hudR">
+          <!-- 판과 무관한 스위치 자리다. 왼쪽은 배치와 상점이 쓴다. -->
+          <button id="btn-ingame-settings" type="button" aria-label="설정">⚙</button>
           <button id="lock" type="button" aria-label="상점 잠금"></button>
         </div>
       </div>
@@ -1828,8 +1901,9 @@
           <button class="x" id="hint-close" title="닫기">✕</button>
         </div>
       </div>
-      <button class="btn-sub" id="btn-skins">아바타 고르기</button>
+      <button class="btn-sub" id="btn-skins">꾸미기</button>
       <button class="btn-sub" id="btn-shop">젬 상점</button>
+      <button class="btn-sub" id="btn-settings">설정</button>
       <div class="queue" id="queue-status" hidden>
         <span id="queue-text"></span>
         <button id="queue-cancel">취소</button>
@@ -1851,7 +1925,7 @@
       <div class="recent" id="record-recent"></div>
       <button class="rankbtn" id="record-rank" hidden></button>
     </div>
-    <!-- 아바타 고르기. 무대에서 걸어다닐 캐릭터를 정한다 — 싸우는 말과는
+    <!-- 꾸미기. 무대에서 걸어다닐 캐릭터·판·승리 이펙트를 정한다 — 싸우는 말과는
          무관하다(밸런스에 안 닿는다). -->
     <div id="skins" hidden>
       <div class="sheet">
@@ -1893,7 +1967,7 @@
     <div id="gemshop" hidden>
       <div class="sheet">
         <div class="bhead">
-          <b>젬 충전</b><span>꾸미기는 [아바타 고르기]에서 산다</span>
+          <b>젬 충전</b><span>꾸미기는 [꾸미기]에서 산다</span>
           <div class="wallet"><i class="g"></i><span id="shop-gems">0</span></div>
         </div>
         <!-- 젬 충전. 값·결제창은 플랫폼(VXShop)이 쥐므로 여기서는 상품만
@@ -1960,6 +2034,17 @@
       <button id="home-retry" hidden>다시 시도</button>
     </div>
   </div>
+  </div>
+
+  <!-- 설정. **홈과 인게임이 이 창 하나를 같이 쓴다** — 두 벌로 만들면 항목
+       하나 늘 때마다 두 군데를 고치게 된다.
+       #home 밖에 둔다: 안에 두면 판에 들어갈 때 홈이 숨으면서 같이 사라진다. -->
+  <div id="settings" hidden>
+    <div class="sheet">
+      <div class="bhead"><b>설정</b></div>
+      <div id="settings-body"></div>
+      <button id="settings-close">닫기</button>
+    </div>
   </div>
 
   <div id="ghost"><img alt="" /></div>

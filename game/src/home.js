@@ -39,6 +39,7 @@ export function createHome({
   onStoreItems,
   onBuyPack,
   onClaimMission,
+  onSettings,
 }) {
   const el = {
     root: document.getElementById('home'),
@@ -71,6 +72,7 @@ export function createHome({
     skinsAct: document.getElementById('skins-act'),
     skinsClose: document.getElementById('skins-close'),
     shopBtn: document.getElementById('btn-shop'),
+    settingsBtn: document.getElementById('btn-settings'),
     shop: document.getElementById('gemshop'),
     shopGems: document.getElementById('shop-gems'),
     shopPacks: document.getElementById('shop-packs'),
@@ -220,6 +222,8 @@ export function createHome({
     closeSheet(el.nameBox)
   }
   el.shopBtn.addEventListener('click', () => openShop())
+  // 설정은 서버가 없어도 열린다 — 움직임·초기화는 기기 쪽 값이다.
+  el.settingsBtn.addEventListener('click', () => onSettings?.())
   el.shopClose.addEventListener('click', () => closeSheet(el.shop))
 
   // ── 꾸미기(아바타 · 무대) ───────────────────────────────

@@ -34,6 +34,7 @@ import { createTutorialMatchmaker } from './tutorialMatchmaker.js'
 import { createHeroView } from './heroView.js'
 import { createAvatar } from './avatarView.js'
 import { createJoystick } from './joystick.js'
+import { createSettings } from './settings.js'
 import { createServerMatchmaker, connectServer, startQueue } from './serverMatchmaker.js'
 import { createPrep } from './prep.js'
 import { createBattle } from './battle.js'
@@ -518,6 +519,38 @@ try {
     },
   })
 
+  /**
+   * 설정 창. **홈과 인게임이 이 한 벌을 같이 쓴다.**
+   *
+   * 항복은 서버가 판정한다 — 화면만 닫으면 그 방은 내가 살아 있는 줄 알고
+   * 계속 돌고, 남은 사람들이 유령과 대진을 잡는다.
+   */
+  const settings = createSettings({
+    account: () => server?.account ?? '',
+    onSurrender: async () => {
+      try {
+        await server?.remoteFunction('surrender', [])
+      } catch (err) {
+        console.warn('항복 실패:', err?.message)
+      }
+      // 결과 화면을 거치지 않는다 — 내가 끝낸 판이라 "졌습니다"를 다시 보여 줄
+      // 이유가 없다. 화면을 다시 띄우는 편이 남은 상태를 손으로 되돌리는 것보다
+      // 확실하다(튜토리얼을 끝냈을 때 쓰는 방식과 같다).
+      location.reload()
+    },
+    onReset: async () => {
+      try {
+        await server?.remoteFunction('resetAccount', [])
+      } catch (err) {
+        // 서버를 못 붙어도 기기 저장은 이미 지웠다. 그 사실을 남긴다.
+        console.warn('계정 초기화 실패:', err?.message)
+      }
+    },
+  })
+  document.getElementById('btn-ingame-settings').addEventListener('click', () => {
+    settings.open({ inGame: true })
+  })
+
   const home = createHome({
     data,
     onPick: (mode) => (mode === 'tutorial' ? startTutorial() : startMatch(mode)),
@@ -527,6 +560,7 @@ try {
       home.setQueue(null)
     },
     onRetry: () => connect(),
+    onSettings: () => settings.open({ inGame: false }),
     /** 미션 수령. 판정은 서버가 하고, 돌아온 프로필을 그대로 흘린다 —
      *  젬·패스 단계가 같이 바뀐다. */
     onClaimMission: async (index) => {
