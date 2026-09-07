@@ -9,6 +9,7 @@ import { roundAt } from '../sim/rounds.js'
 // tools/ 기준 상대 경로. cwd 가 아니라 이 파일 위치로 잡아야 어디서 실행해도,
 // 그리고 tests/validate.test.js 처럼 clone 된 data 로 불러도 항상 같은 자리를 본다.
 const ICON_DIR = fileURLToPath(new URL('../game/public/assets/ui/', import.meta.url))
+const AVATAR_DIR = fileURLToPath(new URL('../game/public/assets/avatars/', import.meta.url))
 
 const SKILL_TYPES = new Set(['single', 'aoe', 'buff', 'summon'])
 
@@ -271,6 +272,44 @@ export function validate(data) {
   // 하루에 뽑을 수가 표에 있는 수보다 많으면 같은 미션이 두 번 뽑힌다.
   if ((data.missions?.perDay ?? 0) > (data.missions?.missions?.length ?? 0))
     errors.push('perDay 가 미션 종류 수보다 많다')
+
+  // 24. 패스 보상. 단계·트랙이 틀리면 그 보상은 **조용히 사라진다** — 예외도
+  // 안 나고 화면에도 안 뜬다. 표를 고치는 그 자리에서 걸려야 한다.
+  const passSeen = new Map()
+  const passLists = [
+    ['아바타', data.cosmetics?.avatars ?? []],
+    ['무대', data.cosmetics?.boards ?? []],
+    ['이펙트', data.cosmetics?.booms ?? []],
+  ]
+  const maxPassLevel = data.pass?.maxLevel ?? 0
+  for (const [what, list] of passLists) {
+    for (const item of list) {
+      if (item.unlock !== 'pass') continue
+      if (
+        !Number.isInteger(item.passLevel) ||
+        item.passLevel < 1 ||
+        item.passLevel > maxPassLevel
+      ) {
+        errors.push(`${what} ${item.id} 의 패스 단계가 1..${maxPassLevel} 밖이다`)
+      }
+      const track = item.passTrack ?? 'free'
+      if (track !== 'free' && track !== 'premium') {
+        errors.push(`${what} ${item.id} 의 패스 트랙 "${item.passTrack}" 를 모른다`)
+      }
+      // 한 칸에 둘이 걸리면 화면이 하나만 그리고 나머지는 조용히 사라진다.
+      const key = `${track}:${item.passLevel}`
+      if (passSeen.has(key)) {
+        errors.push(
+          `패스 보상이 겹친다: ${track} ${item.passLevel}단계에 ${passSeen.get(key)} 와 ${item.id}`,
+        )
+      }
+      passSeen.set(key, item.id)
+      // 아바타 보상은 그림이 있어야 한다. 없으면 트랙에 빈 액자가 뜬다.
+      if (item.file && !existsSync(`${AVATAR_DIR}${item.file}`)) {
+        errors.push(`${what} ${item.id} 의 파일이 없다 (${item.file})`)
+      }
+    }
+  }
 
   return errors
 }

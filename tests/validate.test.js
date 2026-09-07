@@ -105,3 +105,35 @@ describe('미션 표', () => {
     expect(validate(bad).some((e) => e.includes('perDay'))).toBe(true)
   })
 })
+
+describe('패스 보상', () => {
+  it('단계가 범위 밖이면 잡는다', () => {
+    const bad = clone(data)
+    bad.cosmetics.boards.push({ id: 'x', name: 'x', unlock: 'pass', passLevel: 99, colors: {} })
+    expect(validate(bad).some((m) => m.includes('단계'))).toBe(true)
+  })
+
+  it('모르는 트랙 이름을 잡는다 — 오타 하나로 보상이 조용히 사라진다', () => {
+    const bad = clone(data)
+    bad.cosmetics.boards.push({
+      id: 'x', name: 'x', unlock: 'pass', passLevel: 2, passTrack: 'premiun', colors: {},
+    })
+    expect(validate(bad).some((m) => m.includes('트랙'))).toBe(true)
+  })
+
+  it('한 칸에 큰 보상이 둘이면 잡는다 — 화면이 하나만 그린다', () => {
+    const bad = clone(data)
+    bad.cosmetics.boards.push({
+      id: 'x', name: 'x', unlock: 'pass', passLevel: 10, passTrack: 'free', colors: {},
+    })
+    expect(validate(bad).some((m) => m.includes('겹친다'))).toBe(true)
+  })
+
+  it('없는 아바타 파일을 잡는다 — 트랙에 빈 액자가 뜬다', () => {
+    const bad = clone(data)
+    bad.cosmetics.avatars.push({
+      id: 'x', name: 'x', pack: 'chars', file: '없는파일.glb', unlock: 'pass', passLevel: 3,
+    })
+    expect(validate(bad).some((m) => m.includes('파일'))).toBe(true)
+  })
+})
