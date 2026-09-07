@@ -1740,6 +1740,104 @@ export async function createScene({
     fxLive.length = 0
   }
 
+  // ── 짚은 자리 ───────────────────────────────────────────
+  //
+  // 빈 땅을 톡 치면 아바타가 그리로 걸어간다. 그런데 아무 표시가 없으면 그
+  // 인과가 안 보인다 — 아바타는 반 박자 뒤에 움직이기 시작하고, 화면 구석에
+  // 서 있었다면 눌렀다는 사실조차 안 보인다. "눌러도 반응이 없네" 로 읽히면
+  // 조작을 아예 안 쓰게 된다.
+  //
+  // 그래서 둘로 나눈다: **짚은 순간의 파문**(네 손이 닿았다)과 **목적지
+  // 표시**(거기로 간다). 하나만 두면 둘 중 하나가 안 보인다 — 파문만 두면
+  // 걸어가는 동안 어디로 가는지 모르고, 목적지만 두면 이미 그 자리에 서 있을
+  // 때 아무 일도 안 일어난 것처럼 보인다.
+  //
+  // 스프라이트가 아니라 **바닥에 눕힌 판**이다. 스프라이트는 카메라를 보고
+  // 서므로 땅에 그린 표시가 아니라 공중에 뜬 고리로 보인다.
+  const MARK_COLOR = 0xffe6a8
+  const markGeom = new THREE.RingGeometry(0.62, 0.94, 32)
+  markGeom.rotateX(-Math.PI / 2)
+
+  function makeMark(opacity) {
+    const m = new THREE.Mesh(
+      markGeom,
+      new THREE.MeshBasicMaterial({
+        color: MARK_COLOR,
+        transparent: true,
+        opacity,
+        depthWrite: false,
+        blending: THREE.AdditiveBlending,
+        toneMapped: false,
+        fog: false,
+        side: THREE.DoubleSide,
+      }),
+    )
+    m.renderOrder = 11
+    m.visible = false
+    scene.add(m)
+    return m
+  }
+
+  /** 걸어가는 동안 서 있는 목적지 표시. 하나뿐이다 — 갈 곳은 하나다. */
+  const goalMark = makeMark(0.75)
+  /** 짚은 순간 한 번 퍼지는 파문. 연타를 받아 내려고 몇 장 돌려 쓴다. */
+  const ripples = [makeMark(0), makeMark(0), makeMark(0)]
+  let rippleNext = 0
+  const rippleLive = []
+  let markAge = 0
+
+  /** 바닥보다 살짝 위. 같은 높이면 z-파이팅으로 지글거린다. */
+  const markY = () => topY + spacing.unitStep * 0.02
+
+  /**
+   * 짚은 자리에 파문 하나. 목적지 표시도 그 자리로 옮긴다.
+   *
+   * 목적지를 여기서 같이 세우는 이유: 두 표시가 다른 자리에 있으면 "짚은 곳"
+   * 과 "가는 곳"이 다른 것처럼 읽힌다.
+   */
+  function markMove(x, z) {
+    const mesh = ripples[rippleNext++ % ripples.length]
+    mesh.position.set(x, markY(), z)
+    mesh.visible = true
+    const live = rippleLive.find((r) => r.mesh === mesh)
+    if (live) live.age = 0
+    else rippleLive.push({ mesh, age: 0, life: 0.5 })
+    setGoal(x, z)
+  }
+
+  /** 목적지 표시. null 이면 감춘다 — 도착했으면 남길 이유가 없다. */
+  function setGoal(x, z) {
+    if (x == null) {
+      goalMark.visible = false
+      return
+    }
+    goalMark.position.set(x, markY(), z)
+    goalMark.visible = true
+  }
+
+  function updateMarks(dt) {
+    markAge += dt
+    if (goalMark.visible) {
+      // 숨 쉬듯 크기가 오간다. 가만히 있는 고리는 배경 무늬로 읽힌다.
+      const k = 1 + Math.sin(markAge * 4) * 0.08
+      goalMark.scale.setScalar(spacing.unitStep * 0.5 * k)
+      goalMark.material.opacity = 0.5 + Math.sin(markAge * 4) * 0.12
+    }
+    for (let i = rippleLive.length - 1; i >= 0; i--) {
+      const r = rippleLive[i]
+      r.age += dt
+      const k = r.age / r.life
+      if (k >= 1) {
+        r.mesh.visible = false
+        rippleLive.splice(i, 1)
+        continue
+      }
+      // 빠르게 퍼지고 사라진다. 오래 남으면 목적지 표시와 겹쳐 둘 다 흐려진다.
+      r.mesh.scale.setScalar(spacing.unitStep * (0.35 + 0.75 * (1 - (1 - k) * (1 - k))))
+      r.mesh.material.opacity = 0.85 * (1 - k)
+    }
+  }
+
   // ── 투사체 ──────────────────────────────────────────────
   //
   // 원거리 공격이 아무것도 안 날아가면 "저 멀리 있는 말이 왜 죽는가"가 안 보인다.
@@ -1991,6 +2089,9 @@ export async function createScene({
     spawnFx,
     updateFx,
     clearFx,
+    markMove,
+    setGoal,
+    updateMarks,
     spawnBolt,
     updateBolts,
     clearBolts,

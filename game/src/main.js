@@ -341,7 +341,12 @@ try {
   const stick = createJoystick({
     root: document.getElementById('viewport'),
     onMove: (dx, dy) => avatar?.setStick(dx, dy),
-    onTap: (x, y) => avatar?.goTo(x, y),
+    // 짚은 자리에 표시를 남긴다. 없으면 "눌러도 반응이 없다"로 읽힌다 —
+    // 아바타는 반 박자 뒤에 움직이고, 화면 구석에 서 있으면 그마저 안 보인다.
+    onTap: (x, y) => {
+      const at = avatar?.goTo(x, y)
+      if (at) prep.scene.markMove(at.x, at.z)
+    },
   })
 
   // 남의 아바타. **지금 보고 있는 판 위에 서 있는 사람들**이다.
@@ -391,6 +396,11 @@ try {
       // 맞다 — 그게 상대에게 "누가 왔다"로 보인다.
       avatar.setVisible(true)
       if (avatar.tick(dt)) mm?.pushAvatar?.(avatar.position, here)
+      // 목적지 표시는 아바타가 쥔 목적지를 그대로 따른다. 도착하면 사라지고,
+      // 조이스틱을 잡아 목적지를 버려도 같이 꺼진다 — 안 가는 곳을 가리키는
+      // 표시가 남으면 그게 거짓말이다.
+      const goal = avatar.goal
+      prep.scene.setGoal(goal ? goal.x : null, goal?.z)
     }
 
     // 이 판에 와 있는 남들. 온 사람만 그린다.

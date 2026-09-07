@@ -74,10 +74,18 @@ export async function createAvatar({ scene, data, avatarId, at = null, facing: f
       place()
     },
 
-    /** 땅을 짚었다. 그리로 걸어간다. */
+    /**
+     * 땅을 짚었다. 그리로 걸어간다.
+     *
+     * **찍힌 자리를 돌려준다.** 화면이 거기에 표시를 세운다 — 무대 밖을 짚어
+     * 자리가 접혔으면(clampToBounds) 접힌 자리를 알아야 표시와 발이 안 어긋난다.
+     * 땅이 아니면 null.
+     */
     goTo(clientX, clientY) {
       const g = scene.groundAt(clientX, clientY)
-      if (g) target = clampToBounds(g, bounds)
+      if (!g) return null
+      target = clampToBounds(g, bounds)
+      return { ...target }
     },
 
     /**
@@ -121,6 +129,11 @@ export async function createAvatar({ scene, data, avatarId, at = null, facing: f
       view.mixer.update(dt)
       place()
       return moved
+    },
+
+    /** 지금 걸어가는 목적지. 도착했거나 조이스틱을 잡으면 null 이다. */
+    get goal() {
+      return target ? { ...target } : null
     },
 
     /** 몸짓 하나. 환호·피격처럼 걷기와 무관한 동작을 밖에서 시킨다. */

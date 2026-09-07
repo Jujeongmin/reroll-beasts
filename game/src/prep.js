@@ -166,6 +166,18 @@ export async function createPrep({
   const BENCH_UNIT_SCALE = 0.72
 
   const views = new Map() // uid → UnitView
+  // 한 번이라도 무대에 세운 말. **승급을 알아보는 근거다** — 합성 결과는 늘
+  // 새 uid 로 태어나므로(sim/roster.js 가 nextUid 를 올린다), 처음 보는 uid 가
+  // 2성 이상이면 방금 합쳐진 것이다. 전투 중 얼렸다 다시 세우는 말은 uid 가
+  // 그대로라 여기 이미 있다 — 그래서 전투가 끝날 때마다 헛불이 안 난다.
+  const seenUids = new Set()
+  // 사라진 말의 마지막 자리. 승급 연출이 **재료가 있던 곳에서** 시작한다.
+  // 연쇄 합성(9장 → 3성)에서는 중간 2성이 화면에 선 적도 없으므로, 성급을
+  // 안 가리고 같은 종류면 재료로 친다.
+  const lastSpot = new Map() // uid → { unitId, pos }
+  // 진행 중인 짧은 연출. 루프가 늙힌다 — setTimeout 으로 두면 탭이 잠든 사이
+  // 밀린 것이 한꺼번에 터진다.
+  const tweens = []
 
   // 개발용 손잡이. 브라우저 콘솔에서 판 상태를 들여다보려면 이게 필요하다.
   // 프로덕션 번들에는 들어가지 않는다.
@@ -196,6 +208,109 @@ export async function createPrep({
     return scene.benchSpot(w.index)
   }
 
+  /** '#rrggbb' → 0xrrggbb. scene 이 숫자를 받는다. */
+  const hexColor = (css) => parseInt(css.slice(1), 16)
+
+  /**
+   * 승급 연출.
+   *
+   * 세 장이 하나로 합쳐지는 것은 이 게임에서 **가장 자주 일어나는 좋은 일**인데,
+   * 전에는 말이 소리 없이 바뀌어 있었다. 무엇이 사라져 무엇이 됐는지가 안 보이면
+   * 합성이 됐는지 판을 다시 세어 봐야 한다.
+   *
+   * 네 겹이다: 재료가 있던 자리에서 빛이 날아오고(무엇이 사라졌나), 도착한
+   * 자리에서 터지고(언제 올랐나), 말이 한 번 부풀고(어느 말인가), 별색이
+   * 성급을 말한다(몇 성이 됐나). 3성은 크고 오래 간다 — 판을 가르는 순간이다.
+   *
+   * @param {object} v  방금 세운 말의 뷰
+   * @param {object} w  그 말의 자리와 성급
+   */
+  function playStarUp(v, w) {
+    const color = hexColor(STAR_COLOR[w.star - 1] ?? STAR_COLOR[0])
+    const big = w.star >= 3
+    const base = w.where === 'bench' ? BENCH_UNIT_SCALE : 1
+    const at = v.root.position.clone()
+    // 가슴 높이. 발밑에서 터지면 말에 가려 안 보인다.
+    const head = at.clone()
+    head.y += v.height * 0.55
+
+    // 재료: 같은 종류로 방금 사라진 말들 중 가까운 셋. 성급은 안 가린다 —
+    // 연쇄 합성(9장 → 3성)에서 중간 2성은 화면에 선 적이 없다.
+    const mats = [...lastSpot.entries()]
+      .filter(([, m]) => m.unitId === w.unitId)
+      .sort((a, b) => a[1].pos.distanceTo(at) - b[1].pos.distanceTo(at))
+      .slice(0, 3)
+    for (const [uid] of mats) lastSpot.delete(uid)
+
+    const fly = 0.3
+    for (const [, m] of mats) {
+      const from = m.pos.clone()
+      from.y += v.height * 0.4
+      scene.flyFx('wisp', from, head, { color, size: 0.5, life: fly, arc: 0.55, spin: 5 })
+    }
+    // 재료가 하나도 안 잡히면(있을 수 있다 — 화면 없이 정리된 경우) 기다릴
+    // 이유가 없다. 빛이 도착하는 시점에 맞춰 터뜨린다.
+    const wait = mats.length ? fly * 0.85 : 0
+
+    tweens.push({
+      wait,
+      life: big ? 0.6 : 0.45,
+      start() {
+        scene.spawnFx('ring_thick', head, {
+          color,
+          size: big ? 1.3 : 0.9,
+          grow: big ? 2.6 : 2,
+          life: big ? 0.55 : 0.4,
+        })
+        scene.spawnFx('burst', head, {
+          color,
+          size: big ? 1.1 : 0.8,
+          grow: 1.6,
+          life: big ? 0.5 : 0.36,
+          spin: 1.5,
+        })
+        // 별 강조. 배지가 붙는 그 높이에서 한 장 더 태운다 — 별이 하나 는
+        // 것이 이 연출의 결론이다.
+        scene.spawnFx('glow', head.clone().setY(at.y + v.height + scene.spacing.stepX * 0.16), {
+          color,
+          size: big ? 1 : 0.7,
+          grow: 1.8,
+          life: 0.45,
+        })
+      },
+      step(k) {
+        // 부풀었다 돌아온다. sin 이라 시작과 끝이 정확히 제자리다 — 끝나고
+        // 크기가 어긋나면 다음 refresh 까지 말 하나만 커진 채로 남는다.
+        const pulse = Math.sin(Math.PI * k)
+        v.root.scale.setScalar(base * (1 + (big ? 0.32 : 0.22) * pulse))
+        v.root.position.y = at.y + v.height * 0.12 * pulse
+      },
+      done() {
+        v.root.scale.setScalar(base)
+        v.root.position.y = at.y
+      },
+    })
+  }
+
+  /** 짧은 연출을 늙힌다. 루프가 부른다. */
+  function tickTweens(dt) {
+    for (let i = tweens.length - 1; i >= 0; i--) {
+      const t = tweens[i]
+      if (t.wait > 0) {
+        t.wait -= dt
+        if (t.wait > 0) continue
+        t.start?.()
+      }
+      t.age = (t.age ?? 0) + dt
+      const k = Math.min(1, t.age / t.life)
+      t.step?.(k)
+      if (k >= 1) {
+        t.done?.()
+        tweens.splice(i, 1)
+      }
+    }
+  }
+
   async function syncUnits() {
     // 정찰 중에는 내 말을 세우지 않는다. 세우면 남의 판 위에 내 판이 겹친다 —
     // refresh() 는 상점을 굴릴 때마다 불리므로 실제로 겹쳤다.
@@ -207,12 +322,22 @@ export async function createPrep({
       const w = want.get(uid)
       // 성급이 바뀌면 3성 진화 모델로 갈아끼워야 하므로 다시 만든다
       if (!w || w.star !== v.star) {
+        // 마지막 자리를 적어 둔다. 승급 연출이 여기서 출발한다 — 재료가
+        // 사라진 자리에서 빛이 날아와야 무엇이 합쳐졌는지가 보인다.
+        lastSpot.set(uid, { unitId: v.unitId, pos: v.root.position.clone() })
         v.dispose()
         views.delete(uid)
       }
     }
 
     for (const [uid, w] of want) {
+      // 처음 보는 uid 가 2성 이상이면 방금 합쳐진 것이다. 1성은 상점에서
+      // 그냥 사는 값이라 연출할 것이 없다.
+      const merged = !seenUids.has(uid) && w.star > 1
+      seenUids.add(uid)
+      // 다시 세워졌으면 "사라진 말" 목록에서 뺀다 — 전투 중 얼렸다 푼 말이
+      // 나중에 남의 재료로 잡히면 엉뚱한 자리에서 빛이 날아온다.
+      lastSpot.delete(uid)
       if (!views.has(uid)) {
         const v = await scene.makeUnit(w.unitId, w.star, 'A')
         // 비동기로 만드는 사이에 판이 또 바뀌었으면 이 결과는 버린다
@@ -229,6 +354,9 @@ export async function createPrep({
       const spot = spotOf(w)
       if (!spot) continue
       v.root.position.set(spot.x, spot.y, spot.z)
+      // 전투 중(판이 얼어 있을 때)에는 안 튼다. 그때 무대는 리플레이가 쥐고
+      // 있어서, 대기석에서 빛이 터지면 어느 것이 싸우는 말인지 흐려진다.
+      if (merged && running) playStarUp(v, w)
       // 대기석 말은 조금 작게. 판 위와 같은 크기면 칸보다 넓어 서로 겹치고,
       // 판에 올린 말과 대기 중인 말이 구분되지 않는다.
       v.root.scale.setScalar(w.where === 'bench' ? BENCH_UNIT_SCALE : 1)
@@ -1338,6 +1466,8 @@ export async function createPrep({
       // 이펙트도 여기서 늙는다. 전투 루프에만 두면 배치 중에 터뜨린 것(승리
       // 이펙트 미리보기)이 나이를 안 먹어 화면에 굳은 채로 남는다.
       scene.updateFx(dt)
+      scene.updateMarks(dt)
+      tickTweens(dt)
       // 아바타는 배치 중에만 걷는다. 전투 중에는 리플레이가 무대를 쥐고 있어
       // 그 위를 돌아다니면 누가 싸우는 말인지 흐려진다.
       // peekId 를 인자로 넘긴다. 부르는 쪽이 prep 을 되짚으면, 이 루프가
