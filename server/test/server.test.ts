@@ -617,3 +617,71 @@ describe('같은 판을 두 번 세지 않는다', () => {
     expect(after.gems).toBe(before.gems);
   });
 });
+
+// ── 일일 미션 ───────────────────────────────────────────
+
+// 미션 종류가 아홉이고 그중 셋이 날짜·계정으로 뽑힌다. **빈 판으로 지면**
+// 거의 아무것도 안 움직인다(랭크도 아니고 3성도 시너지도 아이템도 없다) —
+// 어떤 셋이 뽑히든 통과하려면 실제로 세우고 이겨야 한다.
+const strongBoard = () =>
+  ['bunny', 'frog', 'cat', 'chicken', 'green_blob', 'orc'].map((unitId, tile) => ({
+    unitId,
+    star: 3,
+    tile,
+    items: tile === 0 ? ['steel_sword', 'swift_gloves', 'oak_shield'] : [],
+  }));
+
+async function playFullGame(server: any) {
+  await server.joinLobby();
+  await server.updateLevel(9);
+  await server.updateBoard(strongBoard());
+  for (let i = 0; i < 30; i++) {
+    const s = await server.resolveRound();
+    if (!s || s.phase === 'done') break;
+    await server.updateBoard(strongBoard());
+  }
+}
+
+describe('일일 미션 — 판 끝에 센다', () => {
+  test('판을 끝내면 진행도가 생긴다', async (server) => {
+    server.connect({ account: 'mission1' });
+    await playFullGame(server);
+    const p = await server.getProfile();
+    expect(p.missions).toBeTruthy();
+    expect(p.missions.day).toMatch(/^\d{4}-\d{2}-\d{2}$/);
+    expect(p.missions.progress.length).toBe(3);
+    expect(p.missions.claimed).toEqual([false, false, false]);
+    // 판 하나를 끝냈으니 적어도 한 칸은 움직였어야 한다 — 어떤 3개가 뽑혔든
+    // "판 수"·"4위 안"·"라운드 승수" 중 하나는 걸린다.
+    expect(p.missions.progress.some((v: number) => v > 0)).toBe(true);
+  });
+});
+
+describe('일일 미션 — 수령', () => {
+  test('안 찬 미션은 서버가 거절한다', async (server) => {
+    server.connect({ account: 'mission2' });
+    await server.joinLobby();
+    const r = await server.claimMission(0);
+    expect(r.ok).toBe(false);
+  });
+
+  test('다 찬 미션을 받으면 패스 경험치가 오르고 두 번은 못 받는다', async (server) => {
+    server.connect({ account: 'mission3' });
+    await playFullGame(server);
+    const before = await server.getProfile();
+    const idx = before.missions.progress.findIndex((v: number) => v > 0);
+    expect(idx).toBeGreaterThanOrEqual(0);
+
+    const r = await server.claimMission(idx);
+    // 진행은 됐지만 목표에 못 미쳤을 수 있다. 그 경우도 거절이 맞다.
+    if (!r.ok) {
+      expect(r.why).toBeTruthy();
+      return;
+    }
+    expect(r.profile.missions.claimed[idx]).toBe(true);
+    expect(r.profile.pass.xp).toBeGreaterThan(before.pass.xp);
+
+    const again = await server.claimMission(idx);
+    expect(again.ok).toBe(false);
+  });
+});

@@ -21,6 +21,8 @@
  */
 import { createLobbyState, resolveRound, assignRanks } from '../../sim/lobbyRound.js'
 import { applyMatchResult, countedMatch } from '../../sim/profile.js'
+import { advanceMissions, claimMission, dayKeyOf } from '../../sim/missions.js'
+import { addPassXp } from '../../sim/pass.js'
 import { sortLeaderboard, rankOf } from '../../sim/rank.js'
 import { sanitizeBoard } from '../../sim/submit.js'
 import {
@@ -46,6 +48,7 @@ import items from '../../game/public/data/items.json'
 import cosmetics from '../../game/public/data/cosmetics.json'
 import passData from '../../game/public/data/pass.json'
 import store from '../../game/public/data/store.json'
+import missions from '../../game/public/data/missions.json'
 
 // 코스메틱·패스도 여기 들어온다. 패스 트랙이 아바타 해금 단계를 cosmetics
 // 에서 읽으므로, 둘 중 하나만 있으면 트랙을 만들 수 없다.
@@ -62,6 +65,7 @@ const DATA: any = {
   cosmetics,
   pass: passData,
   store,
+  missions,
 }
 
 interface Entry {
@@ -281,6 +285,40 @@ export class Server {
       }
       await $global.updateUserState(account, { profile: next })
       return { ok: true, profile: next }
+    })
+  }
+
+  /**
+   * 다 한 미션을 받는다.
+   *
+   * **판정은 서버가 한다.** 진행도는 서버가 판 끝에 적은 값이고, 다 찼는지도
+   * 클라와 같은 순수 함수(claimMission)로 여기서 다시 본다 — 화면에서만 막으면
+   * 조작된 호출 하나로 안 한 미션의 경험치가 들어온다.
+   *
+   * 계정 락은 프로필을 고치는 다른 경로와 **같은 키**다. 키가 갈리면 락이
+   * 없는 것과 같다.
+   */
+  async claimMission(index: number): Promise<any> {
+    const account = $sender.account
+    if (!Number.isInteger(index)) return { ok: false, why: '잘못된 요청' }
+    return $lock(`user:${account}`, async () => {
+      const st: any = await $global.getUserState(account)
+      const profile = st?.profile
+      if (!profile) return { ok: false, why: '아직 미션이 없다' }
+      const dayKey = dayKeyOf(Date.now())
+      const r = claimMission(profile.missions ?? null, index, { dayKey, account }, DATA)
+      if (r.xp <= 0) return { ok: false, why: '아직 못 받는다', profile }
+      // 경험치는 패스에 얹는다. 단계가 오르면 젬도 같이 나온다 — 그 셈은
+      // addPassXp 하나가 쥔다(순위로 오르는 길과 같은 함수다).
+      const pass = addPassXp(profile.pass ?? null, r.xp, DATA)
+      const next = {
+        ...profile,
+        missions: r.state,
+        pass: { xp: pass.xp, level: pass.level, premium: pass.premium },
+        gems: (profile.gems ?? 0) + pass.earned,
+      }
+      await $global.updateUserState(account, { profile: next })
+      return { ok: true, profile: next, xp: r.xp }
     })
   }
 
@@ -601,6 +639,23 @@ export class Server {
             ranked: scored,
             matchId,
           })
+          // 미션도 **같은 쓰기에** 얹는다. 순위가 박히는 이 자리에 판 결과와
+          // 마지막 보드가 다 있다 — 따로 모으면 두 값이 어긋날 자리가 생기고,
+          // 프로필을 두 번 쓰면 그 사이가 잘릴 자리도 하나 더 생긴다.
+          const seat = state.seats.find((x: any) => x.account === r.account)
+          next.missions = advanceMissions(
+            prev?.profile?.missions ?? null,
+            {
+              account: r.account,
+              dayKey: dayKeyOf(Date.now()),
+              rank: r.rank,
+              ranked: scored,
+              board: seat?.board ?? [],
+              level: seat?.level ?? 1,
+              roundWins: seat?.wins ?? 0,
+            },
+            DATA,
+          )
           await $global.updateUserState(r.account, { profile: next })
           return next
         })
