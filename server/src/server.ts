@@ -95,6 +95,7 @@ async function dressSeats(state: any): Promise<void> {
       gems: profile.gems ?? 0,
       avatars: profile.owned ?? [],
       passLevel: profile.pass?.level ?? 1,
+      premium: !!profile.pass?.premium,
       lp: profile.lp ?? 0,
     }
     // 저장해 둔 것도 다시 검산한다 — 시즌이 끝나 패스 단계가 내려가면
@@ -611,6 +612,7 @@ export class Server {
   // 묶어 방이 두 개 생기지 않는다.
 
   async joinQueue(mode: 'normal' | 'ranked'): Promise<any> {
+    if (mode !== 'normal' && mode !== 'ranked') return { status: 'error', why: 'bad_request' }
     const account = $sender.account
     const col = `mmqueue-${mode}`
     await $lock(`queue:${mode}`, async () => {
@@ -623,6 +625,7 @@ export class Server {
   }
 
   async leaveQueue(mode: 'normal' | 'ranked'): Promise<{ ok: boolean }> {
+    if (mode !== 'normal' && mode !== 'ranked') return { ok: false }
     const account = $sender.account
     const col = `mmqueue-${mode}`
     await $lock(`queue:${mode}`, async () => {
@@ -634,6 +637,7 @@ export class Server {
   }
 
   async pollQueue(mode: 'normal' | 'ranked'): Promise<any> {
+    if (mode !== 'normal' && mode !== 'ranked') return { status: 'error', why: 'bad_request' }
     const account = $sender.account
     const col = `mmqueue-${mode}`
     return $lock(`queue:${mode}`, async () => {
@@ -671,7 +675,9 @@ export class Server {
         // 폴링을 안 돌리고 있어도 즉시 안다. 폴링은 이 메시지를 놓쳤을 때의 보루다.
         $global.sendMessageToUser('MATCH_FOUND', q.account, { roomId })
       }
-      return { status: 'matched', roomId }
+      return accounts.includes(account)
+        ? { status: 'matched', roomId }
+        : { status: 'waiting', queued: queued.length - picked.length, waitedMs: Date.now() - me.at }
     })
   }
 
@@ -680,6 +686,10 @@ export class Server {
    * 시드로 만들므로 누가 먼저 들어와도 같은 방이 선다.
    */
   async joinMatchRoom(roomId: string): Promise<any> {
+    if (typeof roomId !== 'string' || !roomId) return null
+    const matches = await $global.getCollectionItems('matches')
+    const match: any = matches.find((m: any) => m.roomId === roomId)
+    if (!match || !match.accounts.includes($sender.account)) return null
     await $global.joinRoom(roomId)
     // 안내판은 지운다. 남겨 두면 다음 큐에서 이 방으로 또 끌려온다.
     await $global.updateMyState({ pendingRoom: null })
@@ -687,10 +697,6 @@ export class Server {
     return $lock(`room:${roomId}`, async () => {
       const existing = await readLobby()
       if (existing) return existing
-
-      const matches = await $global.getCollectionItems('matches')
-      const match: any = matches.find((m: any) => m.roomId === roomId)
-      if (!match) return null
 
       const state: any = createLobbyState({
         seed: match.seed,
@@ -780,7 +786,7 @@ export class Server {
       // 자른다 — 안 자르면 레벨 1 로 여덟을 세우는 길이 남는다.
       seat.board = sanitizeBoard(seat.board, DATA, { cap: seat.level })
       await $room.updateRoomState({ lobby: state })
-      $room.broadcastToRoom('LEVEL_CHANGED', { id: seat.id, level: seat.level })
+      $room.broadcastToRoom('LEVEL_CHANGED', { id: seat.id, level: seat.level, board: seat.board })
       return { ok: true }
     })
   }

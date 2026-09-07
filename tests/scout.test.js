@@ -12,13 +12,14 @@ import { loadData } from '@sim/data.js'
 
 let createServerMatchmaker
 let shopSeedFor
+let startQueue
 let data
 
 beforeAll(async () => {
   // SDK 는 import 시점에 localStorage 를 읽는다 — 브라우저 전제 모듈이라
   // 노드에선 그 줄에서 바로 터진다. 매치메이커가 그 SDK 를 끌고 온다.
   globalThis.localStorage ??= { getItem: () => null, setItem: () => {}, removeItem: () => {} }
-  ;({ createServerMatchmaker, shopSeedFor } = await import('../game/src/serverMatchmaker.js'))
+  ;({ createServerMatchmaker, shopSeedFor, startQueue } = await import('../game/src/serverMatchmaker.js'))
   data = await loadData()
 })
 
@@ -34,6 +35,33 @@ describe('개인 상점 시드', () => {
 
 afterEach(() => {
   vi.useRealTimers()
+})
+
+describe('queue recovery', () => {
+  it('retries registration after an initial network failure', async () => {
+    vi.useFakeTimers()
+    const remoteFunction = vi.fn().mockRejectedValueOnce(new Error('offline'))
+      .mockResolvedValue({ status: 'waiting' })
+    const queue = startQueue({ server: { remoteFunction, onGlobalMessage() {} }, mode: 'normal', data })
+    await vi.advanceTimersByTimeAsync(data.lobby.matching.pollMs)
+    expect(remoteFunction.mock.calls.slice(0, 2).map(c => c[0])).toEqual(['joinQueue', 'joinQueue'])
+    queue.cancel()
+  })
+
+  it('ignores a response arriving after cancellation', async () => {
+    vi.useFakeTimers()
+    let resolve
+    const onUpdate = vi.fn()
+    const remoteFunction = vi.fn().mockImplementationOnce(() => new Promise(r => { resolve = r }))
+      .mockResolvedValue({ ok: true })
+    const queue = startQueue({ server: { remoteFunction, onGlobalMessage() {} }, mode: 'normal', data, onUpdate })
+    queue.cancel()
+    resolve({ status: 'waiting' })
+    await vi.advanceTimersByTimeAsync(data.lobby.matching.pollMs * 2)
+    expect(onUpdate).not.toHaveBeenCalled()
+    expect(remoteFunction).toHaveBeenCalledTimes(2)
+    expect(vi.getTimerCount()).toBe(0)
+  })
 })
 
 /**
@@ -78,6 +106,17 @@ const board = (tile) => [{ unitId: 'frog', star: 1, tile, items: [] }]
 const boards = (calls) => calls.filter((c) => c.fn === 'updateBoard')
 
 describe('정찰 송신', () => {
+  it('updates opponent level and sanitized board without replacing my newer board', async () => {
+    const { server, seats, emit } = fakeServer({ humans: { 0: 'test', 1: 'other' } })
+    await createServerMatchmaker({ data, server })
+    seats[0].board = board(4)
+    emit('LEVEL_CHANGED', { id: 1, level: 4, board: board(3) })
+    expect(seats[1].level).toBe(4)
+    expect(seats[1].board).toEqual(board(3))
+    emit('LEVEL_CHANGED', { id: 0, level: 4, board: board(1) })
+    expect(seats[0].board).toEqual(board(4))
+  })
+
   it('배치가 초 33번 바뀌어도 송신은 제한 아래로 눌린다', async () => {
     vi.useFakeTimers()
     const { calls, server } = fakeServer()

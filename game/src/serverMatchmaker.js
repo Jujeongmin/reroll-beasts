@@ -76,12 +76,15 @@ export function startQueue({ server, mode, data, onUpdate, onMatched }) {
     if (stopped) return
     try {
       const r = await server.remoteFunction(first ? 'joinQueue' : 'pollQueue', [mode])
+      if (stopped) return
       if (r?.status === 'matched') return done(r.roomId)
       if (r?.status === 'waiting') onUpdate?.(r)
+      first = r?.status === 'idle'
     } catch (err) {
+      if (stopped) return
       onUpdate?.({ status: 'error', message: err?.message })
     }
-    timer = setTimeout(() => tick(false), pollMs)
+    if (!stopped) timer = setTimeout(() => tick(first), pollMs)
   }
   tick(true)
 
@@ -133,6 +136,12 @@ export async function createServerMatchmaker({ data, server, roomId = null, time
     // 내 좌석만 건너뛴다 — 내가 보낸 판이 되돌아온 것이라 이미 최신이다.
     // 남(사람이든 봇이든)의 판은 **전부 받는다**. 이게 정찰이다.
     if (seat && !seat.isPlayer) seat.board = m.board
+  })
+  server.onRoomMessage(myRoom, 'LEVEL_CHANGED', (m) => {
+    const seat = seats[m.id]
+    if (!seat) return
+    seat.level = m.level
+    if (!seat.isPlayer && Array.isArray(m.board)) seat.board = m.board
   })
   // 겉모습(무대·아바타). 남이 바꾸면 그 좌석에 붙여 둔다 — 구경 갔을 때
   // 그 사람 무대가 보이고, 그 사람 아바타가 내 판에 서야 한다.

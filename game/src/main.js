@@ -129,7 +129,7 @@ try {
    */
   function grantIfDue(index) {
     if (!itemRounds.has(index)) return
-    const id = grantItem(run.state, createRng(itemSeed(seed, index)), data)
+    const id = grantItem(run.state, createRng(itemSeed(run.seed, index)), data)
     return id
   }
 
