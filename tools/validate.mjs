@@ -307,7 +307,17 @@ export function validate(data) {
     }
   }
 
-  // 25. 무료 칸 목록. 트랙이 한 줄이 되면서 **여기가 유일한 단일소스**다 —
+  // 25. 승리 이펙트의 형태. 모르는 이름이면 **조용히 기본 형태**로 떨어져서,
+  // 여덟 종이 다시 색만 다른 하나가 된다(예외도 안 난다).
+  const BOOM_STYLES = new Set(['burst', 'rain', 'storm', 'pillar', 'slash'])
+  for (const b of data.cosmetics?.booms ?? []) {
+    const style = b.fx?.style
+    if (style && !BOOM_STYLES.has(style)) {
+      errors.push(`승리 이펙트 ${b.id} 의 형태 "${style}" 를 모른다`)
+    }
+  }
+
+  // 26. 무료 칸 목록. 트랙이 한 줄이 되면서 **여기가 유일한 단일소스**다 —
   // 범위 밖 단계를 적으면 그 칸은 영영 안 열리고, 화면에는 자물쇠만 남는다.
   const freeLevels = data.pass?.freeLevels ?? []
   const freeSeen = new Set()

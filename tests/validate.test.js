@@ -151,3 +151,18 @@ describe('패스 보상', () => {
     expect(validate(bad).some((m) => m.includes('파일'))).toBe(true)
   })
 })
+
+describe('승리 이펙트 형태', () => {
+  // style 이 틀리면 예외도 안 나고 그냥 기본 형태로 떨어진다 — 여덟 종이
+  // 다시 색만 다른 하나가 된다. 표를 고치는 그 자리에서 걸려야 한다.
+  it('모르는 형태를 잡는다', () => {
+    const bad = clone(data)
+    bad.cosmetics.booms[0].fx.style = '폭죽'
+    expect(validate(bad).some((m) => m.includes('형태'))).toBe(true)
+  })
+
+  it('형태가 한 가지로 몰려 있지 않다 — 그러면 색만 다른 이펙트가 된다', () => {
+    const styles = new Set(data.cosmetics.booms.map((b) => b.fx.style))
+    expect(styles.size).toBeGreaterThanOrEqual(3)
+  })
+})

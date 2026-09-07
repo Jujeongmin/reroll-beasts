@@ -301,7 +301,8 @@
         "ring": "ring_thick",
         "burst": "burst",
         "spark": "spark",
-        "shots": 5
+        "shots": 5,
+        "style": "burst"
       }
     },
     {
@@ -315,7 +316,8 @@
         "ring": "ring",
         "burst": "wisp",
         "spark": "wisp",
-        "shots": 7
+        "shots": 7,
+        "style": "rain"
       }
     },
     {
@@ -329,7 +331,8 @@
         "ring": "ring_thick",
         "burst": "burst",
         "spark": "spark",
-        "shots": 9
+        "shots": 9,
+        "style": "storm"
       }
     },
     {
@@ -343,7 +346,8 @@
         "ring": "ring",
         "burst": "glow",
         "spark": "trail",
-        "shots": 7
+        "shots": 7,
+        "style": "rain"
       }
     },
     {
@@ -357,7 +361,8 @@
         "ring": "ring_thick",
         "burst": "slash",
         "spark": "spark",
-        "shots": 11
+        "shots": 11,
+        "style": "slash"
       }
     },
     {
@@ -371,7 +376,8 @@
         "ring": "ring",
         "burst": "wisp",
         "spark": "spark",
-        "shots": 7
+        "shots": 7,
+        "style": "storm"
       }
     },
     {
@@ -385,7 +391,8 @@
         "ring": "ring_thick",
         "burst": "burst",
         "spark": "wisp",
-        "shots": 9
+        "shots": 9,
+        "style": "burst"
       }
     },
     {
@@ -399,7 +406,8 @@
         "ring": "ring_thick",
         "burst": "burst",
         "spark": "spark",
-        "shots": 11
+        "shots": 11,
+        "style": "pillar"
       }
     }
   ],

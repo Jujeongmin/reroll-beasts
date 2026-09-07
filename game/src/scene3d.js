@@ -1815,7 +1815,10 @@ export async function createScene({
    * 목적지를 여기서 같이 세우는 이유: 두 표시가 다른 자리에 있으면 "짚은 곳"
    * 과 "가는 곳"이 다른 것처럼 읽힌다.
    */
-  function markMove(x, z) {
+  function markMove(x, z, { ripple = true } = {}) {
+    // 파문을 끄면 목적지 표시만 남는다 — 그건 장식이 아니라 "어디로 간다"는
+    // 정보라서 화면 효과를 줄여도 남겨야 한다.
+    if (!ripple) return setGoal(x, z)
     const mesh = ripples[rippleNext++ % ripples.length]
     mesh.position.set(x, markY(), z)
     mesh.visible = true
@@ -2015,6 +2018,17 @@ export async function createScene({
    * 새 에셋을 안 만든다. 이미 있는 무채색 스프라이트를 색만 바꿔 쓰므로
    * 이펙트가 늘어도 파일은 안 는다(전투 이펙트와 같은 규칙).
    */
+  /**
+   * 승리 이펙트.
+   *
+   * **색만 바꾸면 다 같은 이펙트다.** 전에는 여덟 종이 전부 고리 → 중앙 폭발 →
+   * 나선 불티였고, 다른 것은 색과 스프라이트 이름뿐이었다 — 두 개를 나란히
+   * 틀어도 무엇이 다른지 말할 수 없었다. 그래서 **움직임 자체를 가른다**:
+   * 떨어지는가, 휘몰아치는가, 솟는가, 베는가.
+   *
+   * 무작위를 안 쓴다 — 화면이지만 같은 판을 두 번 보면 같게 보이는 편이 낫다
+   * (관전·리플레이).
+   */
   function playBoom(fx = {}, { enemyHalf = true, at = null } = {}) {
     const color = new THREE.Color(fx.color ?? '#ffd166').getHex()
     // 맞은 자리에서 터진다. 자리를 안 주면 진 쪽 절반의 한가운데로 떨어진다 —
@@ -2022,46 +2036,165 @@ export async function createScene({
     const cx = at?.x ?? arena.cx
     const cz = at?.z ?? (enemyHalf ? (arena.minZ + frontZ) / 2 : (frontZ + arena.maxZ) / 2)
     const y = topY + 0.05
-
-    // 1) 바닥 고리 — 어디에 떨어졌는지를 먼저 말한다.
-    spawnFx(fx.ring ?? 'ring_thick', new THREE.Vector3(cx, y, cz), {
-      color,
-      size: 3.2,
-      grow: 2.4,
-      life: 0.7,
-      rise: 0.05,
-    })
-    // 2) 가운데 폭발 — 조금 늦게 터져야 고리가 먼저 읽힌다.
-    setTimeout(() => {
-      spawnFx(fx.burst ?? 'burst', new THREE.Vector3(cx, y + 0.5, cz), {
-        color,
-        size: 2.6,
-        grow: 2.2,
-        life: 0.55,
-        rise: 0.5,
-      })
-    }, 90)
-    // 3) 불티. 판 위에 흩어 뿌린다 — 한 점에서만 터지면 그 칸만 축하받는
-    //    꼴이라 '판이 졌다'로 안 읽힌다.
+    const spread = Math.min(arena.w, arena.d) * (at ? 0.28 : 0.5)
     const shots = Math.max(1, fx.shots ?? 5)
-    for (let i = 0; i < shots; i++) {
-      const t = i / shots
-      setTimeout(
-        () => {
-          // 무작위를 안 쓴다 — sim 이 아니라 화면이지만, 같은 판을 두 번
-          // 보면 같게 보이는 편이 낫다(관전·리플레이).
+    const V = (x, yy, z) => new THREE.Vector3(x, yy, z)
+    const ringKind = fx.ring ?? 'ring_thick'
+    const burstKind = fx.burst ?? 'burst'
+    const sparkKind = fx.spark ?? 'spark'
+
+    // 바닥 고리는 어느 형태든 먼저 깔린다 — **어디에** 떨어졌는지가 첫 질문이다.
+    spawnFx(ringKind, V(cx, y, cz), { color, size: 3.2, grow: 2.4, life: 0.7, rise: 0.05 })
+
+    switch (fx.style) {
+      // 위에서 쏟아진다. 조각이 높은 데서 시작해 판으로 내려앉는다 —
+      // 서리·별똥처럼 "하늘에서 온 것"에 쓴다.
+      case 'rain': {
+        for (let i = 0; i < shots; i++) {
+          const t = i / shots
           const a = t * Math.PI * 2 * 1.618
-          // 맞은 자리를 중심으로 좁게 흩는다. 판 전체에 뿌리면 누가 맞았는지
-          // 다시 흐려진다.
-          const r = (0.2 + 0.5 * t) * Math.min(arena.w, arena.d) * (at ? 0.28 : 0.5)
-          spawnFx(
-            fx.spark ?? 'spark',
-            new THREE.Vector3(cx + Math.cos(a) * r, y + 0.3, cz + Math.sin(a) * r * 0.6),
-            { color, size: 1.1, grow: 1.9, life: 0.5, rise: 0.35, spin: 3 },
+          const r = (0.25 + 0.6 * t) * spread
+          setTimeout(() => {
+            spawnFx(sparkKind, V(cx + Math.cos(a) * r, y + 3.2, cz + Math.sin(a) * r * 0.6), {
+              color,
+              // 작게 뿌리면 떨어지는 것이 안 보인다 — 한 조각이 눈에 걸릴
+              // 만큼은 커야 "쏟아진다"로 읽힌다.
+              size: 1.9,
+              grow: 1.15,
+              life: 0.55,
+              // 음수라 떨어진다. 바닥에 닿는 순간 사라지도록 수명을 맞춘다.
+              rise: -3,
+              spin: 1.5,
+            })
+          }, i * 70)
+        }
+        setTimeout(() => {
+          spawnFx(burstKind, V(cx, y + 0.2, cz), {
+            color,
+            size: 2.2,
+            grow: 2.6,
+            life: 0.5,
+            rise: 0.1,
+          })
+        }, 120 + shots * 70)
+        break
+      }
+
+      // 옆에서 휘몰아친다. 판을 가로지르는 궤적이라 "쓸고 지나갔다"로 읽힌다.
+      case 'storm': {
+        for (let i = 0; i < shots; i++) {
+          const t = i / shots
+          const off = (t - 0.5) * spread * 1.6
+          setTimeout(() => {
+            flyFx(
+              sparkKind,
+              V(cx - spread * 1.6, y + 0.4 + t * 0.5, cz + off * 0.5),
+              V(cx + spread * 1.6, y + 0.4 + t * 0.5, cz + off),
+              { color, size: 1.2, life: 0.5, arc: 0.25, spin: 5 },
+            )
+          }, i * 45)
+        }
+        setTimeout(() => {
+          spawnFx(burstKind, V(cx, y + 0.5, cz), {
+            color,
+            size: 2.4,
+            grow: 2.4,
+            life: 0.5,
+            rise: 0.3,
+          })
+        }, shots * 45)
+        break
+      }
+
+      // 기둥. 같은 자리에서 겹겹이 솟는다 — 한 점을 내리찍는 느낌이다.
+      case 'pillar': {
+        for (let i = 0; i < shots; i++) {
+          setTimeout(() => {
+            spawnFx(sparkKind, V(cx, y + 0.2, cz), {
+              color,
+              size: 1 + i * 0.12,
+              grow: 1.6,
+              life: 0.55,
+              rise: 2.4,
+              spin: 2,
+            })
+          }, i * 55)
+        }
+        setTimeout(() => {
+          spawnFx(burstKind, V(cx, y + 1.4, cz), {
+            color,
+            size: 3,
+            grow: 2.6,
+            life: 0.6,
+            rise: 0.8,
+          })
+        }, 160)
+        break
+      }
+
+      // 벤다. 두 궤적이 엇갈려 지나가고 그 자리에서 터진다.
+      case 'slash': {
+        const d = spread * 1.4
+        const lines = [
+          [V(cx - d, y + 0.6, cz - d * 0.6), V(cx + d, y + 0.6, cz + d * 0.6)],
+          [V(cx + d, y + 0.6, cz - d * 0.6), V(cx - d, y + 0.6, cz + d * 0.6)],
+        ]
+        lines.forEach(([from, to], i) => {
+          setTimeout(() => {
+            flyFx(burstKind, from, to, { color, size: 2.2, life: 0.3, arc: 0, spin: 0 })
+          }, i * 130)
+        })
+        for (let i = 0; i < shots; i++) {
+          const a = (i / shots) * Math.PI * 2
+          setTimeout(
+            () => {
+              spawnFx(sparkKind, V(cx + Math.cos(a) * spread * 0.5, y + 0.5, cz + Math.sin(a) * spread * 0.3), {
+                color,
+                size: 1,
+                grow: 2,
+                life: 0.45,
+                rise: 0.5,
+                spin: 4,
+              })
+            },
+            260 + i * 35,
           )
-        },
-        140 + i * 55,
-      )
+        }
+        break
+      }
+
+      // 터진다. 가운데가 부풀고 불티가 나선으로 흩어진다(처음부터 있던 형태).
+      default: {
+        setTimeout(() => {
+          spawnFx(burstKind, V(cx, y + 0.5, cz), {
+            color,
+            size: 2.6,
+            grow: 2.2,
+            life: 0.55,
+            rise: 0.5,
+          })
+        }, 90)
+        for (let i = 0; i < shots; i++) {
+          const t = i / shots
+          setTimeout(
+            () => {
+              const a = t * Math.PI * 2 * 1.618
+              // 맞은 자리를 중심으로 좁게 흩는다. 판 전체에 뿌리면 누가 맞았는지
+              // 다시 흐려진다.
+              const r = (0.2 + 0.5 * t) * spread
+              spawnFx(sparkKind, V(cx + Math.cos(a) * r, y + 0.3, cz + Math.sin(a) * r * 0.6), {
+                color,
+                size: 1.1,
+                grow: 1.9,
+                life: 0.5,
+                rise: 0.35,
+                spin: 3,
+              })
+            },
+            140 + i * 55,
+          )
+        }
+      }
     }
   }
 

@@ -33,6 +33,7 @@ import { traitDetail } from './trait-info.js'
 import { standings } from '@sim/lobby.js'
 import { createScene } from './scene3d.js'
 import { createThumbnailer } from './thumbs.js'
+import { reduceMotion } from './settings.js'
 
 const TIER_COLOR = ['var(--t1)', 'var(--t2)', 'var(--t3)', 'var(--t4)', 'var(--t5)']
 const STAR = ['', '★', '★★', '★★★']
@@ -227,6 +228,14 @@ export async function createPrep({
    */
   function playStarUp(v, w) {
     const color = hexColor(STAR_COLOR[w.star - 1] ?? STAR_COLOR[0])
+    // 화면 효과를 줄이라고 한 사람에게는 **결론만** 보여 준다: 별이 올랐다는
+    // 빛 한 장. 빨려듦·폭발·펀치는 이 판이 어떻게 되는지와 무관한 장식이다.
+    if (reduceMotion()) {
+      const head = v.root.position.clone()
+      head.y += v.height * 0.55
+      scene.spawnFx('glow', head, { color, size: 0.9, grow: 1.5, life: 0.35 })
+      return
+    }
     const big = w.star >= 3
     const base = w.where === 'bench' ? BENCH_UNIT_SCALE : 1
     const at = v.root.position.clone()

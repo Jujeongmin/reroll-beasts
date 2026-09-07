@@ -34,7 +34,7 @@ import { createTutorialMatchmaker } from './tutorialMatchmaker.js'
 import { createHeroView } from './heroView.js'
 import { createAvatar } from './avatarView.js'
 import { createJoystick } from './joystick.js'
-import { createSettings } from './settings.js'
+import { createSettings, reduceMotion } from './settings.js'
 import { createServerMatchmaker, connectServer, startQueue } from './serverMatchmaker.js'
 import { createPrep } from './prep.js'
 import { createBattle } from './battle.js'
@@ -367,7 +367,7 @@ try {
     // 아바타는 반 박자 뒤에 움직이고, 화면 구석에 서 있으면 그마저 안 보인다.
     onTap: (x, y) => {
       const at = avatar?.goTo(x, y)
-      if (at) prep.scene.markMove(at.x, at.z)
+      if (at) prep.scene.markMove(at.x, at.z, { ripple: !reduceMotion() })
     },
   })
 
