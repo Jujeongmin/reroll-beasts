@@ -48,6 +48,7 @@ export function createHome({
     menu: document.getElementById('home-menu'),
     queue: document.getElementById('queue-status'),
     queueText: document.getElementById('queue-text'),
+    queueNote: document.getElementById('queue-note'),
     queueCancel: document.getElementById('queue-cancel'),
     head: document.getElementById('record-head'),
     recent: document.getElementById('record-recent'),
@@ -774,7 +775,10 @@ export function createHome({
     }
 
     el.queue.hidden = !v.queue
-    if (v.queue) el.queueText.textContent = v.queue.text
+    if (v.queue) {
+      el.queueText.textContent = v.queue.text
+      el.queueNote.textContent = v.queue.note ?? ''
+    }
 
     el.head.textContent = v.profile ? v.profile.head : t('home.waitFirst')
     el.recent.textContent = v.profile ? v.profile.recent.join(' · ') : ''

@@ -20,7 +20,15 @@ export function homeView({ status, hasAuth, profile, queue, data }) {
       tutorial: 'hidden',
       notice: null,
       profile: viewProfile(profile),
-      queue: { text: t('queue.waiting', { mode: label, n: queue.queued, size: data.lobby.size, sec }) },
+      queue: {
+        text: t('queue.waiting', { mode: label, n: queue.queued, size: data.lobby.size, sec }),
+        // 무엇을 기다리는지 한 줄. 숫자는 lobby.json 에서 읽는다 — 글자에 30 을
+        // 박아 두면 서버가 봇을 채우는 시각과 화면이 말하는 시각이 갈린다.
+        note:
+          queue.mode === 'ranked'
+            ? t('queue.rankedNote', { size: data.lobby.size })
+            : t('queue.botNote', { sec: Math.round((data.lobby.matching?.normalWaitMs ?? 0) / 1000) }),
+      },
     }
   }
 
