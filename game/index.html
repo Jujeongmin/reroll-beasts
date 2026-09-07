@@ -67,7 +67,11 @@
     flex: 1; min-height: 0; position: relative; overflow: hidden;
     background: radial-gradient(130% 100% at 50% 6%, #3a4d7d 0%, #1b2440 50%, #0d1120 100%);
   }
-  #stage canvas { display: block; position: relative; }
+  /* 손가락이 움직이는 순간 브라우저가 화면을 밀기 시작하고 포인터를 가져간다
+     (pointercancel). 그러면 조이스틱이 안 뜨고 유닛도 못 끈다 — 무대에서는
+     브라우저 제스처를 통째로 끈다. */
+  #stage canvas { display: block; position: relative; touch-action: none; }
+  #viewport, #prep, #stage { touch-action: none; }
 
   /* 9-슬라이스 도우미. 원본 32px, 테두리 6px.
      테두리가 좌우 2×BW · 상하 2×BW 를 먹으므로 크기를 잡을 때 그만큼 더한다. */
@@ -1099,6 +1103,9 @@
   }
   #skins .grid {
     display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px; overflow-y: auto;
+    /* flex 자식은 내용보다 못 줄어드는 게 기본이라, 이걸 안 적으면 목록 상자가
+       아래 줄을 밀고 나간다. */
+    min-height: 0;
     /* 행이 제 크기를 갖게 한다. 기본값은 남은 높이에 맞춰 행을 늘리거나
        **줄여서**, 172px 짜리 그림이 40px 칸에 잘려 들어간다. */
     align-content: start;
@@ -1224,7 +1231,9 @@
     transform: translate(-50%, -50%) rotate(45deg); box-shadow: inset 0 0 0 2px currentColor;
   }
   /* 고른 것 줄. 값과 살 수 있는지는 여기서만 말한다. */
-  #skins .foot { flex: none; display: flex; align-items: center; gap: 8px; }
+  /* 아래 줄은 목록 **위에** 선다. 목록이 넘치면 카드 그림이 이 줄을 덮어
+     "이걸로 하기"와 "닫기"가 안 눌렸다. */
+  #skins .foot { flex: none; position: relative; z-index: 1; display: flex; align-items: center; gap: 8px; }
   #skins .foot .nm { font-size: 12px; font-weight: 800; color: #e9dcc2; }
   #skins .foot .why { flex: 1; min-width: 0; font-size: 10px; color: #a99a86; }
   #skins .foot .act {

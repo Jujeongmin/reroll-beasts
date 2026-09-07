@@ -366,7 +366,7 @@ export function createHome({
       el.skinsAct.hidden = true
       return
     }
-    el.skinsPick.textContent = c.name
+    el.skinsPick.textContent = textOf(c.name)
     if (c.unlocked) {
       const cur = currentId()
       el.skinsWhy.textContent = c.id === cur ? t('skins.inUse') : ''
@@ -875,6 +875,13 @@ export function createHome({
       el.hint.hidden = false
       // 나머지를 덮어 고를 것을 하나로 줄인다.
       el.root.classList.add('guiding')
+    },
+
+    /** 전적이 와서 "이미 봤다"가 밝혀졌다. 표시를 거둔다. */
+    clearTutorialNew() {
+      el.menu.querySelector('[data-mode="tutorial"]')?.classList.remove('is-new')
+      el.hint.hidden = true
+      el.root.classList.remove('guiding')
     },
     show() {
       el.root.hidden = false

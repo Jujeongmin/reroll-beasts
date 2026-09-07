@@ -351,6 +351,24 @@ export class Server {
     })
   }
 
+  /**
+   * 튜토리얼을 끝냈다. **계정에** 남긴다.
+   *
+   * 기기 저장(localStorage)만 쓰면 기기를 바꾸거나 브라우저가 저장소를 비울
+   * 때마다 처음 온 사람으로 돌아간다 — 배포본(iframe)에서는 저장소가 칸막이
+   * 되는 일도 잦다. 전적이 없는 사람도 부를 수 있어야 하므로(튜토리얼은 판을
+   * 안 센다) 프로필이 없으면 이 표시 하나만 든 프로필을 만든다.
+   */
+  async markTutorialDone(): Promise<{ ok: boolean }> {
+    const account = $sender.account
+    return $lock(`user:${account}`, async () => {
+      const st: any = await $global.getUserState(account)
+      const profile = { ...(st?.profile ?? {}), tutorialDone: true }
+      await $global.updateUserState(account, { profile })
+      return { ok: true }
+    })
+  }
+
   // ── 광고 보상 ──────────────────────────────────────────
 
   /**

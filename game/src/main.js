@@ -377,6 +377,12 @@ try {
 
   /** 서버가 준 전적을 화면과 해금 판정 양쪽에 흘린다. */
   function applyProfile(p) {
+    // 계정에 튜토리얼 기록이 있으면 기기에도 적어 둔다 — 다음 부팅은 서버를
+    // 기다리지 않고 곧장 안다.
+    if (p?.tutorialDone) {
+      markTutorialDone()
+      home.clearTutorialNew()
+    }
     profileLp = p?.lp ?? 0
     profileRankedGames = p?.rankedGames ?? 0
     profilePassLevel = p?.pass?.level ?? 1
@@ -776,6 +782,9 @@ try {
   // 처음 온 사람도 **메인화면을 먼저 본다.** 부팅하자마자 게임 안으로 밀어
   // 넣으면 무슨 게임인지 보기도 전에 조작을 배우게 되고, 나가는 길도 모른다.
   // 대신 튜토리얼 버튼에 표를 달아 눈이 가게 한다.
+  // 튜토리얼을 봤는지는 **계정이 먼저**다. 기기 저장은 서버에 못 붙었을 때의
+  // 보루다 — 기기를 바꾸거나 저장소가 비면 기기 저장만으로는 처음 온 사람으로
+  // 돌아간다. 전적이 오기 전에는 기기 저장으로 판단하고, 전적이 오면 다시 본다.
   if (!isTutorialDone()) home.markTutorialNew()
 
   // ── 튜토리얼 ────────────────────────────────────────────
@@ -801,6 +810,10 @@ try {
   /** 튜토리얼을 닫고 홈으로 돌린다. 한 번 끝냈으면 다시 자동으로 안 뜬다. */
   function endTutorial() {
     markTutorialDone()
+    // 계정에도 남긴다. 서버가 없으면(튜토리얼은 서버 없이 돈다) 기기 저장만
+    // 남고, 다음에 붙었을 때 이 호출이 다시 나갈 일은 없다 — 그때는 홈에서
+    // 전적을 받아 표시가 이미 꺼진다.
+    server?.remoteFunction('markTutorialDone', [], { needResponse: false })
     // 홈에 나가 서버에 붙으면 이름을 묻는다. 여기서 못 묻는 이유: 이름은
     // 서버가 저장하는데 튜토리얼은 서버 없이 돈다.
     askNameLater()

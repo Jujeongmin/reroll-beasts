@@ -67,7 +67,10 @@ export async function createAvatar({ scene, data, avatarId, at = null, facing: f
     markBase = box.max.y - scene.topY + 0.35
     mark = new T.Mesh(
       new T.ConeGeometry(0.22, 0.4, 4),
-      new T.MeshBasicMaterial({ color: 0xffd166, depthTest: false }),
+      // transparent 를 켠다. 안 켜면 불투명 무리에 들어가 **먼저** 그려지고,
+      // 뒤에 그려지는 반투명 칸 표시(내 진영)가 그 위를 덮는다 — renderOrder 는
+      // 불투명·반투명 무리 안에서만 순서를 정한다.
+      new T.MeshBasicMaterial({ color: 0xffd166, depthTest: false, transparent: true }),
     )
     mark.rotation.x = Math.PI
     mark.renderOrder = 20
