@@ -19,7 +19,7 @@
  * 그래서 마감도 매칭도 **클라 호출이 트리거**다: 서버는 시각·조건만 쥐고,
  * 클라가 찾아올 때 판정한다. 동시 호출은 $lock 으로 한 번만 처리된다.
  */
-import { createLobbyState, resolveRound, assignRanks } from '../../sim/lobbyRound.js'
+import { createLobbyState, resolveRound, assignRanks, concede } from '../../sim/lobbyRound.js'
 import { applyMatchResult, countedMatch } from '../../sim/profile.js'
 import { advanceMissions, claimMission, dayKeyOf } from '../../sim/missions.js'
 import { addPassXp } from '../../sim/pass.js'
@@ -328,6 +328,133 @@ export class Server {
   // 유저 상태는 계정 하나씩만 읽을 수 있다 — "전체에서 몇 등인가"를 물으려면
   // 따로 줄을 세워 둬야 한다. 그래서 랭크 판이 끝날 때마다 컬렉션에 적는다.
 
+  /**
+   * 순위가 박힌 사람들의 전적·LP·패스·젬·미션을 한 번에 쓴다.
+   *
+   * **마감과 항복이 같이 쓴다.** 두 벌로 두면 한쪽만 고친 상태가 남고, 그러면
+   * "항복으로 끝낸 판만 미션이 안 오르는" 식의 어긋남이 생긴다.
+   *
+   * 계정 락으로 묶는 이유: 이 쓰기는 결제·코스메틱 구매와 **같은 프로필**을
+   * 건드린다 — 판이 끝나는 순간에 젬 팩이 들어오면 둘 중 하나가 통째로
+   * 사라진다. 방 락 안에서 계정 락을 잡는 순서는 여기뿐이라 서로 물리지 않는다.
+   */
+  private async settleRanks(state: any, ranked: any[], matchId: string): Promise<void> {
+    // LP 는 **랭크 방에서만** 움직인다. 봇이 섞이는 일반 판이 랭크 점수를
+    // 좌우하면 티어가 실력을 안 가리킨다.
+    const scored = state.mode === 'ranked'
+    for (const r of ranked) {
+      const profile = await $lock(`user:${r.account}`, async () => {
+        const prev: any = await $global.getUserState(r.account)
+        // 이 판을 이미 셌으면 그대로 둔다. 프로필을 쓰고 방 상태를 쓰는 사이가
+        // 잘리면 방은 지난 라운드로 남고, 클라가 마감을 다시 부른다 — 그때 같은
+        // 판이 또 정산되면 판수·LP·젬이 두 번 오른다.
+        if (countedMatch(prev?.profile, matchId)) return prev.profile
+        // 전적·LP·패스·젬을 한 함수가 낸다. 전에는 여기서 전적 칸만 든 객체를
+        // 프로필로 저장해 **이름·산 아바타·고른 겉모습이 판마다 지워졌다.**
+        const next = applyMatchResult(prev?.profile ?? null, r.rank, DATA, {
+          ranked: scored,
+          matchId,
+        })
+        // 미션도 **같은 쓰기에** 얹는다. 순위가 박히는 이 자리에 판 결과와
+        // 마지막 보드가 다 있다 — 따로 모으면 두 값이 어긋날 자리가 생기고,
+        // 프로필을 두 번 쓰면 그 사이가 잘릴 자리도 하나 더 생긴다.
+        const seat = state.seats.find((x: any) => x.account === r.account)
+        next.missions = advanceMissions(
+          prev?.profile?.missions ?? null,
+          {
+            account: r.account,
+            dayKey: dayKeyOf(Date.now()),
+            rank: r.rank,
+            ranked: scored,
+            board: seat?.board ?? [],
+            level: seat?.level ?? 1,
+            roundWins: seat?.wins ?? 0,
+          },
+          DATA,
+        )
+        await $global.updateUserState(r.account, { profile: next })
+        return next
+      })
+      // 순위표는 랭크 판에서만 갱신한다. 일반 판으로도 줄이 생기면 LP 0 인
+      // 사람이 목록을 채워 "몇 등인가"가 아무 뜻도 없어진다.
+      if (scored) await this.putLeaderboard(r.account, profile)
+    }
+  }
+
+  /**
+   * 항복. 내 좌석을 죽이고 그 자리로 순위를 박는다.
+   *
+   * **서버가 해야 하는 일이다.** 클라가 화면만 닫으면 방은 그대로 돌고, 남은
+   * 사람들은 유령과 대진을 잡는다 — 그 좌석은 마감마다 빈 판으로 진다.
+   *
+   * 정산까지 같이 하는 이유: 항복도 그 사람의 판이 끝난 것이다. 순위만 박고
+   * 전적을 안 남기면 그게 곧 항복으로 기록을 피하는 길이 된다.
+   *
+   * 라운드는 안 넘긴다. 항복은 마감이 아니다 — 남은 사람들의 라운드는 그들의
+   * 시각으로 흘러야 한다.
+   */
+  async surrender(): Promise<any> {
+    const roomId = $sender.roomId
+    const account = $sender.account
+    if (!roomId) return { ok: false, why: '방에 없다' }
+
+    return $lock(`room:${roomId}`, async () => {
+      const state = await readLobby()
+      if (!state) return { ok: false, why: '방이 없다' }
+
+      const { changed, seatId } = concede(state, account)
+      // 이미 죽었거나 없는 좌석이면 아무 일도 없다 — 두 번 눌러도 한 번이다.
+      if (!changed) return { ok: false, why: '이미 끝난 판이다' }
+
+      // 혼자 남으면 그 판은 거기서 끝난다. 마감과 같은 규칙이다.
+      const survivors = state.seats.filter((s: any) => s.alive).length
+      if (survivors <= 1) state.phase = 'done'
+
+      const matchId = `${roomId}#${state.seed}`
+      const ranked = assignRanks(state, { final: state.phase === 'done' })
+      await this.settleRanks(state, ranked, matchId)
+
+      await $room.updateRoomState({ lobby: state })
+      // 남은 사람들에게도 알린다. 안 알리면 그들의 순위표에는 항복한 사람이
+      // 계속 살아 있는 것으로 남는다.
+      $room.broadcastToRoom('ROUND_RESOLVED', {
+        round: state.round,
+        phase: state.phase,
+        deadline: state.deadline,
+        fights: [],
+        seats: state.seats.map((s: any) => ({
+          id: s.id,
+          hp: s.hp,
+          alive: s.alive,
+          streak: s.streak,
+        })),
+      })
+      return { ok: true, seatId, rank: ranked.find((r: any) => r.account === account)?.rank ?? null }
+    })
+  }
+
+  /**
+   * 계정을 처음으로 되돌린다. **되돌릴 수 없다.**
+   *
+   * 프로필을 통째로 지운다 — 전적·LP·젬·패스·산 코스메틱·닉네임·미션이 전부
+   * 여기 들어 있다. 순위표 줄도 같이 지운다: 안 지우면 전적은 0인데 순위표에는
+   * 옛 LP 가 남아, 그 사람이 목록에서만 고수로 남는다.
+   *
+   * **결제 기록(purchases)은 안 지운다.** 그건 영수증이다 — 지우면 같은 결제가
+   * 다시 들어올 때 "처음 보는 결제"로 읽혀 두 번 지급된다. 대신 프로필이
+   * 비므로 산 것도 함께 사라진다는 사실을 화면이 미리 말한다.
+   */
+  async resetAccount(): Promise<{ ok: boolean }> {
+    const account = $sender.account
+    return $lock(`user:${account}`, async () => {
+      await $global.updateUserState(account, { profile: null })
+      const rows: any[] = await $global.getCollectionItems('leaderboard')
+      const mine = rows.find((x: any) => x.account === account)
+      if (mine) await $global.deleteCollectionItem('leaderboard', mine.__id)
+      return { ok: true }
+    })
+  }
+
   /** 내 줄을 갱신한다. 없으면 만든다. */
   private async putLeaderboard(account: string, profile: any): Promise<void> {
     const rows = await $global.getCollectionItems('leaderboard')
@@ -623,49 +750,7 @@ export class Server {
       const ranked = assignRanks(state, { final: state.phase === 'done' })
       // LP 는 **랭크 방에서만** 움직인다. 봇이 섞이는 일반 판이 랭크 점수를
       // 좌우하면 티어가 실력을 안 가리킨다.
-      const scored = state.mode === 'ranked'
-      for (const r of ranked) {
-        // 계정 락으로 묶는다. 이 쓰기는 결제·코스메틱 구매와 **같은 프로필**을
-        // 건드린다 — 판이 끝나는 순간에 젬 팩이 들어오면 둘 중 하나가 통째로
-        // 사라진다. 방 락 안에서 계정 락을 잡는 순서는 여기 한 곳뿐이라
-        // 서로 기다리며 물리지 않는다.
-        const profile = await $lock(`user:${r.account}`, async () => {
-          const prev: any = await $global.getUserState(r.account)
-          // 이 판을 이미 셌으면 그대로 둔다. 프로필을 쓰고 방 상태를 쓰는
-          // 사이가 잘리면 방은 지난 라운드로 남고, 클라가 마감을 다시 부른다 —
-          // 그때 같은 판이 또 정산되면 판수·LP·젬이 두 번 오른다.
-          if (countedMatch(prev?.profile, matchId)) return prev.profile
-          // 전적·LP·패스·젬을 한 함수가 낸다. 전에는 여기서 전적 칸만 든
-          // 객체를 프로필로 저장해 **이름·산 아바타·고른 겉모습이 판마다
-          // 지워졌다.** 돈 주고 산 것이 사라지는 자리였다.
-          const next = applyMatchResult(prev?.profile ?? null, r.rank, DATA, {
-            ranked: scored,
-            matchId,
-          })
-          // 미션도 **같은 쓰기에** 얹는다. 순위가 박히는 이 자리에 판 결과와
-          // 마지막 보드가 다 있다 — 따로 모으면 두 값이 어긋날 자리가 생기고,
-          // 프로필을 두 번 쓰면 그 사이가 잘릴 자리도 하나 더 생긴다.
-          const seat = state.seats.find((x: any) => x.account === r.account)
-          next.missions = advanceMissions(
-            prev?.profile?.missions ?? null,
-            {
-              account: r.account,
-              dayKey: dayKeyOf(Date.now()),
-              rank: r.rank,
-              ranked: scored,
-              board: seat?.board ?? [],
-              level: seat?.level ?? 1,
-              roundWins: seat?.wins ?? 0,
-            },
-            DATA,
-          )
-          await $global.updateUserState(r.account, { profile: next })
-          return next
-        })
-        // 순위표는 랭크 판에서만 갱신한다. 일반 판으로도 줄이 생기면 LP 0 인
-        // 사람이 목록을 채워 "몇 등인가"가 아무 뜻도 없어진다.
-        if (scored) await this.putLeaderboard(r.account, profile)
-      }
+      await this.settleRanks(state, ranked, matchId)
 
       await $room.updateRoomState({ lobby: state })
       $room.broadcastToRoom('ROUND_RESOLVED', {

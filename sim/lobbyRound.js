@@ -248,3 +248,31 @@ export function markMine(seats, account) {
   }
   return seats
 }
+
+/**
+ * 항복. 그 계정의 좌석을 **죽인다.**
+ *
+ * 클라가 화면만 닫으면 방은 그대로 돈다 — 남은 일곱이 유령과 대진을 잡고, 그
+ * 좌석은 마감마다 빈 판으로 진다. 나가는 사람에게도 남는 사람에게도 나쁘다.
+ *
+ * **순위는 여기서 안 박는다.** assignRanks 가 그 일을 하고 서버가 이어서
+ * 부른다 — 마감이 쓰는 흐름 그대로다. 죽이는 것과 줄 세우는 것을 한 함수에
+ * 넣으면 마감 쪽과 두 벌이 된다.
+ *
+ * 라운드도 안 넘긴다. 항복은 마감이 아니다 — 남은 사람들의 라운드는 그들의
+ * 시각으로 흘러야 한다.
+ *
+ * 대소문자를 접는 이유는 markMine 과 같다: 지갑 주소는 같은 값이 대소문자만
+ * 달리 적혀 오는 일이 흔하다.
+ */
+export function concede(state, account) {
+  const me = account ? String(account).toLowerCase() : null
+  if (!me) return { changed: false, seatId: null }
+  const seat = state.seats.find(
+    (s) => s.account && String(s.account).toLowerCase() === me,
+  )
+  if (!seat || !seat.alive) return { changed: false, seatId: seat?.id ?? null }
+  seat.hp = 0
+  seat.alive = false
+  return { changed: true, seatId: seat.id }
+}

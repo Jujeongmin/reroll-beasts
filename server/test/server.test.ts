@@ -711,3 +711,82 @@ describe('프리미엄 전용 겉모습', () => {
     expect(r.skin).toBe('stone');
   });
 });
+
+// ── 항복 · 계정 초기화 ──────────────────────────────────
+
+describe('항복', () => {
+  test('좌석이 죽고 전적이 남는다', async (server) => {
+    server.connect({ account: 'quit1' });
+    await server.joinLobby();
+    const r = await server.surrender();
+    expect(r.ok).toBe(true);
+    expect(r.rank).toBeGreaterThan(0);
+
+    const s = await server.getLobby();
+    expect(s.seats[0].alive).toBe(false);
+    expect(s.seats[0].hp).toBe(0);
+
+    // 항복도 그 사람의 판이 끝난 것이다. 전적을 안 남기면 그게 곧 항복으로
+    // 기록을 피하는 길이 된다.
+    const p = await server.getProfile();
+    expect(p.games).toBe(1);
+    expect(p.recent[0]).toBe(r.rank);
+  });
+
+  test('두 번 눌러도 한 번이다', async (server) => {
+    server.connect({ account: 'quit2' });
+    await server.joinLobby();
+    await server.surrender();
+    const again = await server.surrender();
+    expect(again.ok).toBe(false);
+    const p = await server.getProfile();
+    expect(p.games).toBe(1);
+  });
+
+  test('방에 없으면 거절한다', async (server) => {
+    server.connect({ account: 'quit3' });
+    const r = await server.surrender();
+    expect(r.ok).toBe(false);
+  });
+});
+
+describe('계정 초기화', () => {
+  test('프로필이 통째로 사라진다', async (server) => {
+    const account = 'wipe1';
+    server.connect({ account });
+    await server.setName('지울사람');
+    await server.$onItemPurchased({
+      account,
+      purchaseId: 9501,
+      productId: 'gems_small',
+      quantity: 1,
+    });
+    const before = await server.getProfile();
+    expect(before.gems).toBe(300);
+
+    const r = await server.resetAccount();
+    expect(r.ok).toBe(true);
+    expect(await server.getProfile()).toBe(null);
+  });
+
+  test('결제 기록은 남는다 — 지우면 같은 결제가 두 번 들어온다', async (server) => {
+    const account = 'wipe2';
+    server.connect({ account });
+    await server.$onItemPurchased({
+      account,
+      purchaseId: 9502,
+      productId: 'gems_small',
+      quantity: 1,
+    });
+    await server.resetAccount();
+    // 같은 결제를 다시 보낸다. 영수증이 남아 있으면 중복으로 걸러야 한다.
+    const again = await server.$onItemPurchased({
+      account,
+      purchaseId: 9502,
+      productId: 'gems_small',
+      quantity: 1,
+    });
+    expect(again.dup).toBe(true);
+    expect(await server.getProfile()).toBe(null);
+  });
+});

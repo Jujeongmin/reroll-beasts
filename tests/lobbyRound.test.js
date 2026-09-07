@@ -1,6 +1,6 @@
 import { describe, it, expect } from 'vitest'
 import { loadData } from '../sim/data.js'
-import { createLobbyState, resolveRound, prepMs, roundSeed, markMine } from '../sim/lobbyRound.js'
+import { createLobbyState, resolveRound, prepMs, roundSeed, markMine, concede, assignRanks } from '../sim/lobbyRound.js'
 import { totalRounds } from '../sim/rounds.js'
 
 const data = await loadData()
@@ -257,5 +257,63 @@ describe('seat.wins — 라운드 승수', () => {
     expect(s.seats.reduce((n, x) => n + x.wins, 0)).toBeGreaterThan(0)
     // 한 판에 한 좌석이 이길 수 있는 최대는 돈 라운드 수다.
     expect(Math.max(...s.seats.map((x) => x.wins))).toBeLessThanOrEqual(3)
+  })
+})
+
+describe('concede — 항복', () => {
+  // 클라가 화면만 닫으면 방은 그대로 돌고, 남은 사람들은 유령과 대진을 잡는다.
+  // 좌석을 죽이는 일은 서버가 이 함수로 한다.
+  it('그 계정의 좌석을 죽인다', () => {
+    const s = createLobbyState({ seed: 1, accounts: ['me', 'you'], now: 0, data })
+    const r = concede(s, 'me')
+    expect(r.changed).toBe(true)
+    expect(r.seatId).toBe(0)
+    expect(s.seats[0].alive).toBe(false)
+    expect(s.seats[0].hp).toBe(0)
+    // 남의 좌석은 안 건드린다
+    expect(s.seats[1].alive).toBe(true)
+  })
+
+  it('대소문자가 달라도 같은 계정이다 — 지갑 주소 표기가 갈린다', () => {
+    const s = createLobbyState({ seed: 1, accounts: ['0xABC'], now: 0, data })
+    expect(concede(s, '0xabc').changed).toBe(true)
+  })
+
+  it('이미 죽은 좌석은 안 바꾼다 — 두 번 눌러도 한 번이다', () => {
+    const s = createLobbyState({ seed: 1, accounts: ['me'], now: 0, data })
+    concede(s, 'me')
+    expect(concede(s, 'me').changed).toBe(false)
+  })
+
+  it('없는 계정이면 아무 일도 없다', () => {
+    const s = createLobbyState({ seed: 1, accounts: ['me'], now: 0, data })
+    expect(concede(s, '남').changed).toBe(false)
+    expect(s.seats[0].alive).toBe(true)
+  })
+
+  it('계정이 없으면 아무 일도 없다 — 봇 좌석을 죽이면 안 된다', () => {
+    const s = createLobbyState({ seed: 1, accounts: ['me'], now: 0, data })
+    expect(concede(s, null).changed).toBe(false)
+    expect(s.seats.filter((x) => x.alive).length).toBe(s.seats.length)
+  })
+
+  // 항복은 마감이 아니다. 남은 사람들의 라운드는 그들의 시각으로 흘러야 한다.
+  it('라운드를 안 넘긴다', () => {
+    const s = createLobbyState({ seed: 1, accounts: ['me', 'you'], now: 0, data })
+    const round = s.round
+    const deadline = s.deadline
+    concede(s, 'me')
+    expect(s.round).toBe(round)
+    expect(s.deadline).toBe(deadline)
+    expect(s.phase).toBe('prep')
+  })
+
+  it('죽은 뒤 순위를 박으면 꼴찌 자리에 앉는다', () => {
+    const s = createLobbyState({ seed: 1, accounts: ['me', 'you'], now: 0, data })
+    concede(s, 'me')
+    const ranked = assignRanks(s)
+    const mine = ranked.find((r) => r.account === 'me')
+    // 살아남은 사람 수 + 1 이 죽은 자리다.
+    expect(mine.rank).toBe(s.seats.filter((x) => x.alive).length + 1)
   })
 })
