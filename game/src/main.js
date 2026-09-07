@@ -41,6 +41,9 @@ import { createPrep } from './prep.js'
 import { createBattle } from './battle.js'
 
 const boot = document.getElementById('boot')
+// 정적 문구를 지금 언어로 채운다. 화면을 세우기 전에 해야 첫 프레임부터 맞는
+// 언어가 뜬다 — HTML 에 적힌 한국어는 표가 없을 때의 보루다.
+applyStatic()
 
 // ── 화면 맞추기 ───────────────────────────────────────────
 //
