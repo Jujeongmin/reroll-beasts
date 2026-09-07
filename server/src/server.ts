@@ -647,7 +647,23 @@ export class Server {
     // at = 지금 **어느 판에 서 있는가**. 남의 판을 구경 가면 그 좌석 번호다.
     // 이게 아바타의 존재 이유다 — 내 판을 누가 보고 있는지 알려면 보는 쪽이
     // 어디에 있는지가 같이 와야 한다.
-    $room.broadcastToRoom('AVATAR_MOVED', { id: seat.id, x, z, at })
+    //
+    // **거른다.** 클라가 만들어 보내는 값이고 방 전체에 그대로 뿌려진다.
+    // NaN 하나가 들어가면 남들 화면에서 그 아바타의 자리가 NaN 이 되고,
+    // three.js 는 그걸 조용히 삼키거나 프레임을 던진다 — 한 사람이 일곱 명의
+    // 화면을 깨는 길이다. 좌표는 판 범위 안의 유한한 수, at 은 실재하는 좌석.
+    const px = Number(x)
+    const pz = Number(z)
+    const seatAt = Number(at)
+    if (!Number.isFinite(px) || !Number.isFinite(pz)) return { ok: false }
+    if (!Number.isInteger(seatAt) || seatAt < 0 || seatAt >= state.seats.length) return { ok: false }
+    const LIMIT = 64
+    $room.broadcastToRoom('AVATAR_MOVED', {
+      id: seat.id,
+      x: Math.max(-LIMIT, Math.min(LIMIT, px)),
+      z: Math.max(-LIMIT, Math.min(LIMIT, pz)),
+      at: seatAt,
+    })
     return { ok: true }
   }
 

@@ -61,6 +61,26 @@ describe('정찰 — 배치 공유', () => {
     const s = await server.getLobby();
     expect(s.seats[0].level).toBe(7);
   });
+
+  test('아바타 위치는 유한한 수만 방송한다 — NaN 하나가 일곱 명의 화면을 깬다', async (server) => {
+    await server.joinLobby();
+    const bad = await server.updateAvatar(NaN, 0, 0);
+    expect(bad.ok).toBe(false);
+    const str = await server.updateAvatar('abc' as any, 0, 0);
+    expect(str.ok).toBe(false);
+    const ok = await server.updateAvatar(1.5, -2, 0);
+    expect(ok.ok).toBe(true);
+  });
+
+  test('아바타가 서 있는 좌석은 실재해야 한다', async (server) => {
+    await server.joinLobby();
+    const out = await server.updateAvatar(0, 0, 99);
+    expect(out.ok).toBe(false);
+    const neg = await server.updateAvatar(0, 0, -1);
+    expect(neg.ok).toBe(false);
+    const half = await server.updateAvatar(0, 0, 2.5);
+    expect(half.ok).toBe(false);
+  });
 });
 
 describe('라운드 진행', () => {

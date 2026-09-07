@@ -35,7 +35,7 @@ import { accountTag, tagDuplicates, joinTag } from '@sim/name.js'
 import { createScene } from './scene3d.js'
 import { createThumbnailer } from './thumbs.js'
 import { reduceMotion } from './settings.js'
-import { t, textOf } from './i18n.js'
+import { t, textOf, esc } from './i18n.js'
 import { sfx } from './audio.js'
 
 const TIER_COLOR = ['var(--t1)', 'var(--t2)', 'var(--t3)', 'var(--t4)', 'var(--t5)']
@@ -515,12 +515,12 @@ export async function createPrep({
         // 이름과 꼬리를 따로 놓는다. 하나로 붙이면 칸이 좁을 때 말줄임이
         // 꼬리부터 먹는다 — 가르려고 붙인 것이 제일 먼저 사라진다.
         d.innerHTML =
-          `<span class="n">${shown[i].name}</span>` +
-          (shown[i].tag ? `<span class="tg">#${shown[i].tag}</span>` : '') +
+          `<span class="n">${esc(shown[i].name)}</span>` +
+          (shown[i].tag ? `<span class="tg">#${esc(shown[i].tag)}</span>` : '') +
           `<span class="h">${seat.hp}</span>` +
           // 첫 글자는 **푼 이름**에서 뗀다. seat.name 은 봇이면 { ko, en }
           // 객체라 여기에 slice 를 걸면 그 자리에서 터진다.
-          `<span class="av"><b>${shown[i].name.slice(0, 1)}</b></span>`
+          `<span class="av"><b>${esc(shown[i].name.slice(0, 1))}</b></span>`
         const run3 = seat.lastWon === true && (seat.streak ?? 0) >= 3
         d.title =
           t('seat.tip', { name: joinTag(shown[i]), hp: seat.hp }) +

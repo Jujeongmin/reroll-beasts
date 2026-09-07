@@ -6,7 +6,7 @@
 import { homeView } from './home-state.js'
 import { checkName, displayName, tagDuplicates } from '@sim/name.js'
 import { missionsFor, dayKeyOf } from '@sim/missions.js'
-import { t, textOf } from './i18n.js'
+import { t, textOf, esc } from './i18n.js'
 import { avatarChoices, boardChoices, boomChoices } from '@sim/cosmetics.js'
 import { storeProducts } from '@sim/store.js'
 import { seasonAt, daysLeft } from '@sim/season.js'
@@ -706,8 +706,8 @@ export function createHome({
       .map(
         (r, i) =>
           `<div class="row${r.mine ? ' mine' : ''}"><span class="no">${r.rank}</span>` +
-          `<span class="nm">${shown[i].name}` +
-          (shown[i].tag ? `<span class="tg">#${shown[i].tag}</span>` : '') +
+          `<span class="nm">${esc(shown[i].name)}` +
+          (shown[i].tag ? `<span class="tg">#${esc(shown[i].tag)}</span>` : '') +
           `</span><span class="lp">${r.lp} LP</span></div>`,
       )
       .join('')

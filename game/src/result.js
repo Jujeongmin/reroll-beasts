@@ -13,7 +13,7 @@
 import { unitById } from '@sim/data.js'
 import { lpForRank, divisionOf, divisionLabel, nextDivisionLabel, TIERS } from '@sim/rank.js'
 import { accountTag, tagDuplicates, joinTag } from '@sim/name.js'
-import { t, textOf } from './i18n.js'
+import { t, textOf, esc } from './i18n.js'
 import { sfx } from './audio.js'
 
 const STAR = ['', '★', '★★', '★★★']
@@ -101,8 +101,8 @@ export function createResult({ data, thumbFor, onClose }) {
 
     d.innerHTML =
       `<span class="no${seat.rank ? '' : ' none'}">${seat.rank ?? '–'}</span>` +
-      `<span class="who"><span class="n">${label.name}` +
-      (label.tag ? `<span class="tg">#${label.tag}</span>` : '') +
+      `<span class="who"><span class="n">${esc(label.name)}` +
+      (label.tag ? `<span class="tg">#${esc(label.tag)}</span>` : '') +
       `</span><span class="hp">${t('result.hp', { hp: Math.max(0, seat.hp ?? 0) })}</span></span>` +
       `<span class="us">${art || `<span class="empty">${t('result.noUnits')}</span>`}</span>` +
       lpText

@@ -495,6 +495,15 @@ export function textOf(field) {
 }
 
 /** `data-i18n` 이 붙은 요소를 채운다. 정적 문구는 이 한 번으로 끝난다. */
+/**
+ * innerHTML 에 남의 글자를 넣기 전에 건다. 이름 규칙(checkName)이 지금은
+ * 기호를 막지만, 안전이 규칙 한 줄에 매달려 있으면 그 줄이 바뀌는 날
+ * 순위표·좌석·결과판이 한꺼번에 뚫린다.
+ */
+export function esc(v) {
+  return String(v ?? '').replace(/[&<>"']/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' })[c])
+}
+
 export function applyStatic(root = document) {
   for (const el of root.querySelectorAll('[data-i18n]')) {
     el.textContent = t(el.dataset.i18n)
