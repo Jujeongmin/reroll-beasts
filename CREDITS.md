@@ -16,6 +16,10 @@
 | 전투 이펙트 (고리·폭발·잔상·불꽃) | [Particle Pack](https://kenney.nl/assets/particle-pack) | Kenney | CC0 1.0 |
 | 자물쇠 · 시계 아이콘 | 이 저장소 (`tools/make-icons.mjs`) | — | CC0 1.0 |
 | 시너지 아이콘 11종 | 이 저장소 (`tools/trait-icons.mjs`) | — | CC0 1.0 |
+| 조작음 (누르기·열기·구매·거절) | [Interface Sounds](https://kenney.nl/assets/interface-sounds) | Kenney | CC0 1.0 |
+| 전투음 (타격·죽음·폭발) | [Impact Sounds](https://kenney.nl/assets/impact-sounds) | Kenney | CC0 1.0 |
+| 판 끝 승패 곡 | [Music Jingles](https://kenney.nl/assets/music-jingles) | Kenney | CC0 1.0 |
+| 배경음 2곡 (홈·전투) | [Music Loop Bundle](https://abstractionmusic.com) | Abstraction · Tallbeard Studios | CC0 1.0 |
 
 Kenney 는 표기가 의무는 아니지만 권장이라 명시했다.
 
@@ -26,7 +30,13 @@ Kenney 는 표기가 의무는 아니지만 권장이라 명시했다.
 
 `art-src/` 에 받아만 두고 게임에 안 들어간 팩이 있다 (`licenses/` 에는 전문이 있다):
 Stylized Nature · Medieval Village MegaKit · Bestiary Dungeon Monsters (전부 Quaternius, CC0),
-0x72 Dungeon Tileset II, 음악 루프 번들. 쓰게 되면 위 표로 옮긴다.
+0x72 Dungeon Tileset II. 쓰게 되면 위 표로 옮긴다.
+
+소리는 팩에서 열세 개만 골라 넣었다 — 어느 파일이 무엇으로 들어갔는지는
+`tools/audio-import.mjs` 의 표가 단일소스다.
+
+Abstraction·Tallbeard 는 라이선스상 허용은 하되 NFT · AI/기계학습 · 원본 재판매
+용도는 권하지 않는다고 밝혔다. 이 게임은 셋 다 아니다.
 
 ## 코드
 

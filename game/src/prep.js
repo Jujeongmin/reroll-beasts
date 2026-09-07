@@ -35,6 +35,7 @@ import { createScene } from './scene3d.js'
 import { createThumbnailer } from './thumbs.js'
 import { reduceMotion } from './settings.js'
 import { t, textOf } from './i18n.js'
+import { sfx } from './audio.js'
 
 const TIER_COLOR = ['var(--t1)', 'var(--t2)', 'var(--t3)', 'var(--t4)', 'var(--t5)']
 const STAR = ['', '★', '★★', '★★★']
@@ -229,6 +230,9 @@ export async function createPrep({
    */
   function playStarUp(v, w) {
     const color = hexColor(STAR_COLOR[w.star - 1] ?? STAR_COLOR[0])
+    // 소리는 화면 효과를 줄인 사람에게도 난다 — 줄이라고 한 것은 움직임이지
+    // 승급했다는 사실이 아니다. 3성은 한 판에 몇 번 없으니 더 크게 알린다.
+    sfx('merge', { gain: w.star >= 3 ? 1 : 0.75 })
     // 화면 효과를 줄이라고 한 사람에게는 **결론만** 보여 준다: 별이 올랐다는
     // 빛 한 장. 빨려듦·폭발·펀치는 이 판이 어떻게 되는지와 무관한 장식이다.
     if (reduceMotion()) {
@@ -957,7 +961,19 @@ export async function createPrep({
   // 유닛 하나하나에 리스너를 달지 않는다 — 패널은 매번 새로 그려진다.
 
   let hintTimer = 0
-  function hint(text) {
+  /**
+   * 판 아래 한 줄 안내.
+   *
+   * 소리가 여기 붙는 이유: 안내는 대부분 **안 됐다**는 말인데, 손은 판 위에
+   * 있고 눈도 판 위에 있다. 화면 아래 한 줄은 놓치기 쉽다 — 소리가 나면
+   * 다시 눌러 보기 전에 안 됐다는 것을 안다.
+   *
+   * @param {string} text
+   * @param {'bad'|'ok'|'quiet'} [kind] 기본은 'bad' — 안내의 대부분이 거절이다
+   */
+  function hint(text, kind = 'bad') {
+    if (kind === 'bad') sfx('error')
+    else if (kind === 'ok') sfx('drop')
     el.hint.textContent = text
     el.hint.classList.add('show')
     clearTimeout(hintTimer)
@@ -1195,7 +1211,7 @@ export async function createPrep({
       // 판이 **비었을 때만**이 아니라 자리가 남을 때마다 채운다. 넷을 놓을 수
       // 있는데 둘만 놓고 시간이 가면 그냥 손해다 — 대기석 왼쪽부터 올린다.
       if (autoPlaceFromBench() > 0) {
-        hint(t('hint.autoPlace'))
+        hint(t('hint.autoPlace'), 'ok')
         refresh()
       }
       // 판이 그래도 비었으면(살아 있는 말이 하나도 없으면) 시작할 수 없다.
@@ -1428,7 +1444,7 @@ export async function createPrep({
       if (!canTouch(found.uid)) return hint(t('hint.noEquipInBattle'))
       const r = equipItem(run.state, found.uid, held.item.invIndex, data)
       if (!r.ok) hint(r.reason)
-      else hint(t('hint.equipped', { item: textOf(itemById(data.items, held.item.id).name) }))
+      else hint(t('hint.equipped', { item: textOf(itemById(data.items, held.item.id).name) }), 'ok')
       refresh()
       return
     }
@@ -1449,7 +1465,7 @@ export async function createPrep({
     if (target.where === 'sell') {
       const value = sellValue(held.unit.unitId, held.unit.star, data)
       const r = sell(run.state, run.pool, held.uid, data)
-      if (r.ok) hint(t('hint.sold', { gold: value }))
+      if (r.ok) hint(t('hint.sold', { gold: value }), 'ok')
       else hint(r.reason)
     } else {
       const r = moveTo(run.state, held.uid, target, data)
@@ -1553,7 +1569,7 @@ export async function createPrep({
       running = true
       boardFrozen = false
       // 전투 중에는 판을 낀 합성을 미뤄 뒀다. 여기서 제한 없이 한 번 돌린다.
-      if (resolveMerges(run.state, data) > 0) hint(t('hint.merged'))
+      if (resolveMerges(run.state, data) > 0) hint(t('hint.merged'), 'quiet')
       resetTimer()
       last = performance.now()
       scene.resize()

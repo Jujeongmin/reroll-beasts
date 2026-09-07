@@ -11,6 +11,7 @@ import { avatarChoices, boardChoices, boomChoices } from '@sim/cosmetics.js'
 import { storeProducts } from '@sim/store.js'
 import { seasonAt, daysLeft } from '@sim/season.js'
 import { passProgress, passTrack, EMPTY_PASS } from '@sim/pass.js'
+import { sfx } from './audio.js'
 
 /**
  * @param {object} o
@@ -236,6 +237,7 @@ export function createHome({
   let skinPick = null
 
   function openSkins() {
+    sfx('open')
     // 닫는 중에 다시 누를 수 있다. closing 이 남아 있으면 열자마자 사라진다.
     el.skins.classList.remove('closing')
     el.skins.hidden = false
@@ -399,6 +401,7 @@ export function createHome({
     if (res?.profile) state = { ...state, profile: res.profile }
     // 사자마자 입혀 준다 — 산 것을 다시 눌러 고르게 하면 "샀는데 안 바뀐다"로
     // 읽힌다.
+    sfx(res?.ok ? 'buy' : 'error')
     if (res?.ok) applySkin(skinPick)
     else drawSkins()
     render()
@@ -425,6 +428,7 @@ export function createHome({
    * 안 보이면 나중에 살 이유도 생기지 않는다.
    */
   function openPass() {
+    sfx('open')
     el.passSheet.classList.remove('closing')
     el.passSheet.hidden = false
     const p = state.profile?.pass ?? EMPTY_PASS
@@ -598,6 +602,7 @@ export function createHome({
    * 생긴다. 버튼만 죽인다.
    */
   function openShop() {
+    sfx('open')
     el.shop.classList.remove('closing')
     el.shop.hidden = false
     el.shopGems.textContent = String(ownedNow().gems)
@@ -658,6 +663,7 @@ export function createHome({
   /** 순위표를 연다. 서버가 안 주면 그 사실을 그대로 적는다 — 빈 표를 띄우면
    *  아무도 없는 것처럼 보인다. */
   async function openBoard() {
+    sfx('open')
     el.board.classList.remove('closing')
     el.board.hidden = false
     el.boardRows.innerHTML = `<div class="empty">${t('board.loading')}</div>`
@@ -727,6 +733,7 @@ export function createHome({
     if (res?.profile) state = { ...state, profile: res.profile }
     // 못 받았으면 다시 누를 수 있어야 한다. 서버가 잠깐 끊겼을 수도 있는데
     // 버튼이 굳으면 새로고침 말고는 길이 없다.
+    sfx(res?.ok ? 'buy' : 'error')
     if (!res?.ok) btn.disabled = false
     render()
   })

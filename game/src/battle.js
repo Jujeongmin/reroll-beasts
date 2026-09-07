@@ -8,6 +8,7 @@ import * as THREE from 'three'
 import { unitById } from '@sim/data.js'
 import { resolveStats } from '@sim/stats.js'
 import { createUnitState, applyReplayEvent } from './replay.js'
+import { sfx } from './audio.js'
 
 const TICK_RATE = 30
 
@@ -106,6 +107,14 @@ export async function createBattle({ data, scene }) {
    */
   function fxFor(e) {
     if (!liveEvents) return
+    // 소리는 이펙트와 같은 문 안에 둔다 — 눈에 안 보이는 사건에서 소리만
+    // 나면 무엇이 소리를 냈는지 알 길이 없다.
+    //
+    // 공격은 한 판에 수백 번 난다. audio.js 가 최소 간격으로 솎아 내므로
+    // 여기서는 사건마다 한 번씩 부르기만 한다.
+    if (e.type === 'attack' || e.type === 'skill_single' || e.type === 'skill_aoe') sfx('hit')
+    else if (e.type === 'death_blast') sfx('boom', { gain: 0.5 })
+    else if (e.type === 'death') sfx('death')
     switch (e.type) {
       case 'leap': {
         // 도약은 **떠난 자리**에 잔상을 남긴다. 도착점은 이미 말이 서 있다.

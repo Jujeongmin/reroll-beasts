@@ -1,7 +1,7 @@
 // 데이터 불변식 검사. 밸런스를 만졌으면 반드시 돌린다.
 // 스펙 §12.4 의 8개 불변식을 검사하고, 위반 메시지 배열을 되돌린다.
 
-import { existsSync } from 'node:fs'
+import { existsSync, readFileSync, readdirSync } from 'node:fs'
 import { fileURLToPath, pathToFileURL } from 'node:url'
 import { loadData } from '../sim/data.js'
 import { roundAt } from '../sim/rounds.js'
@@ -10,10 +10,12 @@ import { roundAt } from '../sim/rounds.js'
 // 그리고 tests/validate.test.js 처럼 clone 된 data 로 불러도 항상 같은 자리를 본다.
 const ICON_DIR = fileURLToPath(new URL('../game/public/assets/ui/', import.meta.url))
 const AVATAR_DIR = fileURLToPath(new URL('../game/public/assets/avatars/', import.meta.url))
+const AUDIO_DIR = fileURLToPath(new URL('../game/public/assets/audio/', import.meta.url))
+const SRC_DIR = fileURLToPath(new URL('../game/src/', import.meta.url))
 
 const SKILL_TYPES = new Set(['single', 'aoe', 'buff', 'summon'])
 
-export function validate(data) {
+export async function validate(data) {
   const errors = []
   const { combat, units, traits, shop, economy, levels, rounds, lobby, items } = data
   const list = units.units
@@ -356,6 +358,60 @@ export function validate(data) {
     if (!both(n)) errors.push('봇 이름에 영어가 없다')
   }
 
+  // 28. 소리. 두 가지가 조용히 어긋난다:
+  //   - 화면이 표에 없는 이름을 부른다 — audio.js 가 그냥 넘기므로 그 소리만
+  //     영영 안 난다(예외도 콘솔 경고도 없다)
+  //   - 표에 적힌 파일이 없다 — 브라우저가 404 를 삼키고 역시 조용하다
+  // 둘 다 "왜 이것만 소리가 안 나지"로 한참 뒤에 발견된다.
+  errors.push(...(await audioErrors()))
+
+  return errors
+}
+
+/**
+ * 소리 표와 실제 파일·부르는 쪽을 맞춰 본다.
+ *
+ * 표를 정규식으로 긁지 않고 **audio.js 를 그대로 불러온다** — 표가 소스 안에
+ * 있으니 파일을 읽어 뜯는 방법도 되지만, 그러면 표 모양을 조금만 바꿔도
+ * 검사기가 조용히 빈 표를 들고 통과한다. 불러오면 그런 여지가 없다.
+ * (audio.js 는 부를 때까지 브라우저 물건을 안 건드려서 Node 에서도 뜬다.)
+ */
+async function audioErrors() {
+  const errors = []
+  const { SFX_NAMES, BGM_NAMES, AUDIO_FILES } = await import('../game/src/audio.js')
+  const names = new Set(SFX_NAMES)
+  const bgmNames = new Set(BGM_NAMES)
+
+  for (const f of AUDIO_FILES) {
+    if (!existsSync(AUDIO_DIR + f)) errors.push(`소리 파일 ${f} 가 없다 (node tools/audio-import.mjs)`)
+  }
+
+  // 부르는 쪽. 정규식 대신 여는 따옴표까지를 그대로 찾는다 — 이 파일에 역슬래시가
+  // 섞이면 줄끝(CRLF)과 엮여 조용히 안 맞는 검사가 된다.
+  const calls = (text, head) => {
+    const out = []
+    let i = 0
+    for (;;) {
+      i = text.indexOf(head, i)
+      if (i < 0) return out
+      i += head.length
+      const end = text.indexOf("'", i)
+      if (end < 0) return out
+      out.push(text.slice(i, end))
+      i = end
+    }
+  }
+  for (const file of readdirSync(SRC_DIR)) {
+    // audio.js 자신은 뺀다 — 거기 적힌 이름은 표 그 자체다.
+    if (!file.endsWith('.js') || file === 'audio.js') continue
+    const text = readFileSync(SRC_DIR + file, 'utf8')
+    for (const n of calls(text, "sfx('")) {
+      if (!names.has(n)) errors.push(`${file} 가 없는 효과음 "${n}" 를 부른다`)
+    }
+    for (const n of calls(text, "bgm('")) {
+      if (!bgmNames.has(n)) errors.push(`${file} 가 없는 배경음 "${n}" 를 부른다`)
+    }
+  }
   return errors
 }
 
@@ -365,7 +421,7 @@ export function validate(data) {
 const isMain = import.meta.url === pathToFileURL(process.argv[1] ?? '').href
 if (isMain) {
   const data = await loadData()
-  const errors = validate(data)
+  const errors = await validate(data)
   if (errors.length > 0) {
     console.error(`불변식 위반 ${errors.length} 건:`)
     for (const e of errors) console.error(`  - ${e}`)

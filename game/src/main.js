@@ -36,11 +36,26 @@ import { createAvatar } from './avatarView.js'
 import { createJoystick } from './joystick.js'
 import { createSettings, reduceMotion } from './settings.js'
 import { applyStatic, t } from './i18n.js'
+import { initAudio, sfx, bgm, refreshVolumes } from './audio.js'
 import { createServerMatchmaker, connectServer, startQueue } from './serverMatchmaker.js'
 import { createPrep } from './prep.js'
 import { createBattle } from './battle.js'
 
 const boot = document.getElementById('boot')
+// 소리는 첫 손짓을 기다린다 — 브라우저가 그 전에는 재생을 막는다. 여기서
+// 귀만 열어 두고, 무엇을 틀지는 화면들이 정한다.
+initAudio()
+// 눌리는 것에는 소리가 난다. **한 곳에서 잡는다** — 버튼마다 손으로 붙이면
+// 버튼이 늘 때마다 하나씩 조용한 버튼이 생긴다.
+addEventListener(
+  'pointerdown',
+  (ev) => {
+    const b = ev.target.closest?.('button')
+    // 꺼진 버튼은 아무 일도 안 하므로 소리도 안 난다 — 소리가 나면 눌린 줄 안다.
+    if (b && !b.disabled) sfx('click')
+  },
+  true,
+)
 // 정적 문구를 지금 언어로 채운다. 화면을 세우기 전에 해야 첫 프레임부터 맞는
 // 언어가 뜬다 — HTML 에 적힌 한국어는 표가 없을 때의 보루다.
 applyStatic()
@@ -342,6 +357,9 @@ try {
     const at = iWon ? spot.theirs : spot.mine
     setTimeout(() => {
       prep.scene.playBoom(fx, { at })
+      // 이겼으면 크게, 졌으면 작게. 같은 크기로 나면 진 판에서도 축포처럼
+      // 들린다.
+      sfx('boom', { gain: iWon ? 1 : 0.6 })
       floatDamage(at, damage)
     }, hitMs)
   }
@@ -542,6 +560,7 @@ try {
       // 확실하다(튜토리얼을 끝냈을 때 쓰는 방식과 같다).
       location.reload()
     },
+    onVolume: () => refreshVolumes(),
     // 언어가 갈렸다. 창 안만 그리면 뒤에 깔린 홈과 판이 옛 언어로 남는다.
     onLang: () => {
       applyStatic()
@@ -558,6 +577,7 @@ try {
     },
   })
   document.getElementById('btn-ingame-settings').addEventListener('click', () => {
+    sfx('open')
     settings.open({ inGame: true })
   })
 
@@ -570,7 +590,10 @@ try {
       home.setQueue(null)
     },
     onRetry: () => connect(),
-    onSettings: () => settings.open({ inGame: false }),
+    onSettings: () => {
+      sfx('open')
+      settings.open({ inGame: false })
+    },
     /** 미션 수령. 판정은 서버가 하고, 돌아온 프로필을 그대로 흘린다 —
      *  젬·패스 단계가 같이 바뀐다. */
     onClaimMission: async (index) => {
@@ -684,6 +707,7 @@ try {
     },
   })
   home.show()
+  bgm('home')
   // 간판은 **내가 착용한 아바타**다. 고른 것이 곧장 홈에 서야 고르는 의미가
   // 산다. 정지 초상을 먼저 걸고, 살아 있는 모델이 준비되면 그 뒤로 숨는다.
   const heroId = resolveAvatar(pickedAvatar(), data, ownedNow())
@@ -776,6 +800,7 @@ try {
     run.lobby = mm.seats
     drawRound()
     home.hide()
+    bgm('battle')
     hero3d?.stop()
     document.getElementById('prep').hidden = false
     // 1라운드도 지급 라운드일 수 있다 — settle() 은 라운드 2부터 도니 여기서
@@ -998,11 +1023,15 @@ try {
     // 튜토리얼은 한 판이다. 전투를 본 것으로 배울 건 다 배웠다 — 그 뒤로
     // 계속 굴리면 상대가 허수아비 하나뿐인 게임이 이어진다.
     if (coach) {
+      sfx(won ? 'win' : 'lose')
       coach.finish(won)
       return
     }
 
     if (s.hp <= 0 || run.index >= totalRounds(data.rounds)) {
+      // 판 전체가 끝났다. 라운드마다 나는 타격음과 달리 **여기만** 곡이
+      // 붙는다 — 매 라운드 팡파르가 울리면 마지막 판이 특별하지 않다.
+      sfx(s.hp <= 0 ? 'lose' : 'win')
       alert(s.hp <= 0 ? t('run.out', { round: info.label }) : t('run.finished'))
       location.reload()
       return

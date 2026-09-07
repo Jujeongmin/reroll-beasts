@@ -89,8 +89,9 @@ function setReduceMotion(on) {
  * @param {() => string} o.account        지갑 주소. 문의할 때 서로 누군지 짚는 값이다
  * @param {() => Promise<any>} o.onSurrender  인게임에서 항복을 눌렀다
  * @param {() => Promise<any>} o.onReset      계정을 지운다
+ * @param {() => void} o.onVolume            볼륨을 움직였다 — 지금 나는 소리에 먹인다
  */
-export function createSettings({ account, onSurrender, onReset, onLang }) {
+export function createSettings({ account, onSurrender, onReset, onLang, onVolume }) {
   const el = {
     root: document.getElementById('settings'),
     body: document.getElementById('settings-body'),
@@ -182,6 +183,9 @@ export function createSettings({ account, onSurrender, onReset, onLang }) {
     // 놓친다.
     const num = s.parentElement.querySelector('.num')
     if (num) num.textContent = String(v)
+    // 끄는 동안 바로 들려야 한다. 창을 닫고 다시 열어야 반영되면 어느 크기로
+    // 맞추는지 귀로 정할 수가 없다.
+    onVolume?.()
   })
 
   el.body.addEventListener('click', async (ev) => {
