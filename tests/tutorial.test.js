@@ -54,9 +54,12 @@ describe('tutorialStep', () => {
     expect(TUTORIAL_STEPS[tutorialStep(state, ctx)].id).toBe('buy')
   })
 
-  it('셋째를 사면 합성이 일어나고 다음 단계로 넘어간다', () => {
+  it('셋을 사면 합성이 일어나고 다음 단계로 넘어간다 — 둘까지는 첫 단계다', () => {
     const { state, pool, ctx } = fresh()
-    const r = buy(state, pool, 0, data)
+    buy(state, pool, 0, data)
+    buy(state, pool, 1, data)
+    expect(TUTORIAL_STEPS[tutorialStep(state, ctx)].id).toBe('buy')
+    const r = buy(state, pool, 2, data)
     expect(r.ok).toBe(true)
     expect(TUTORIAL_STEPS[tutorialStep(state, ctx)].id).toBe('place')
   })
