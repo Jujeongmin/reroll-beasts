@@ -685,3 +685,29 @@ describe('일일 미션 — 수령', () => {
     expect(again.ok).toBe(false);
   });
 });
+
+describe('프리미엄 전용 겉모습', () => {
+  test('프리미엄을 안 샀으면 전용 무대가 기본값으로 떨어진다', async (server) => {
+    server.connect({ account: 'prem1' });
+    await server.joinLobby();
+    const r = await server.updateLook('voidstone', 'knight', 'flare');
+    expect(r.skin).toBe('stone');
+  });
+
+  test('프리미엄을 사도 단계가 모자라면 안 열린다 — 사면 다 주는 것이 아니다', async (server) => {
+    const account = 'prem2';
+    server.connect({ account });
+    await server.$onItemPurchased({
+      account,
+      purchaseId: 9401,
+      productId: 'pass_premium_s1',
+      quantity: 1,
+    });
+    await server.joinLobby();
+    const p = await server.getProfile();
+    expect(p.pass.premium).toBe(true);
+    // 아직 1단계다. 9단계 보상은 잠긴 채여야 한다.
+    const r = await server.updateLook('voidstone', 'knight', 'flare');
+    expect(r.skin).toBe('stone');
+  });
+});

@@ -273,6 +273,7 @@ export class Server {
         gems: profile.gems ?? 0,
         avatars: profile.owned ?? [],
         passLevel: profile.pass?.level ?? 1,
+        premium: !!profile.pass?.premium,
         lp: profile.lp ?? 0,
       }
       const check: any = canBuyCosmetic(item, owned, DATA)
@@ -563,6 +564,8 @@ export class Server {
         gems: profile?.gems ?? 0,
         avatars: profile?.owned ?? [],
         passLevel: profile?.pass?.level ?? 1,
+        // 프리미엄 전용 보상은 단계만으로 안 열린다(sim/cosmetics.js).
+        premium: !!profile?.pass?.premium,
         lp: profile?.lp ?? 0,
       }
       const skin = resolveBoard(boardId, DATA, owned)

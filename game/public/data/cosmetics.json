@@ -81,7 +81,8 @@
       "pack": "chars",
       "file": "Ninja_Male.glb",
       "unlock": "pass",
-      "passLevel": 10
+      "passLevel": 10,
+      "passTrack": "free"
     },
     {
       "id": "panda",
@@ -113,7 +114,8 @@
       "pack": "cute",
       "file": "Skull.glb",
       "unlock": "pass",
-      "passLevel": 22
+      "passLevel": 22,
+      "passTrack": "free"
     },
     {
       "id": "cyclops",
@@ -162,6 +164,24 @@
       "file": "Knight_Golden_Female.glb",
       "unlock": "rank",
       "tier": "diamond"
+    },
+    {
+      "id": "pirate",
+      "name": "해적",
+      "pack": "chars",
+      "file": "Pirate_Female.glb",
+      "unlock": "pass",
+      "passLevel": 20,
+      "passTrack": "free"
+    },
+    {
+      "id": "zombie",
+      "name": "좀비",
+      "pack": "chars",
+      "file": "Zombie_Male.glb",
+      "unlock": "pass",
+      "passLevel": 25,
+      "passTrack": "premium"
     }
   ],
   "shop": {
@@ -218,7 +238,8 @@
         "base": "#3a1a12",
         "ground": "#5e2418",
         "ring": "#ff8a2a"
-      }
+      },
+      "passTrack": "free"
     },
     {
       "id": "champion",
@@ -231,6 +252,48 @@
         "base": "#4a3a1c",
         "ground": "#546b46",
         "ring": "#ffd45e"
+      }
+    },
+    {
+      "id": "dawnvale",
+      "name": "새벽 골짜기",
+      "desc": "해 뜨기 직전의 돌",
+      "unlock": "pass",
+      "passLevel": 4,
+      "passTrack": "free",
+      "colors": {
+        "floor": "#c9b6d8",
+        "base": "#3a3350",
+        "ground": "#6b6086",
+        "ring": "#ffd9a0"
+      }
+    },
+    {
+      "id": "voidstone",
+      "name": "공허석",
+      "desc": "빛이 닿지 않는 돌",
+      "unlock": "pass",
+      "passLevel": 9,
+      "passTrack": "premium",
+      "colors": {
+        "floor": "#6b5f8c",
+        "base": "#241b38",
+        "ground": "#3c3154",
+        "ring": "#c07bff"
+      }
+    },
+    {
+      "id": "bloomfield",
+      "name": "꽃밭",
+      "desc": "밟으면 꽃가루가 인다",
+      "unlock": "pass",
+      "passLevel": 16,
+      "passTrack": "free",
+      "colors": {
+        "floor": "#e7b8c8",
+        "base": "#4a3b3f",
+        "ground": "#7f9b6a",
+        "ring": "#ff8fb8"
       }
     }
   ],
@@ -289,7 +352,8 @@
         "burst": "glow",
         "spark": "trail",
         "shots": 7
-      }
+      },
+      "passTrack": "free"
     },
     {
       "id": "crownfall",
@@ -301,6 +365,51 @@
         "color": "#fff0b0",
         "ring": "ring_thick",
         "burst": "slash",
+        "spark": "spark",
+        "shots": 11
+      }
+    },
+    {
+      "id": "leafstorm",
+      "name": "잎보라",
+      "desc": "진 판이 잎에 묻힌다",
+      "unlock": "pass",
+      "passLevel": 7,
+      "passTrack": "free",
+      "fx": {
+        "color": "#9fe870",
+        "ring": "ring",
+        "burst": "wisp",
+        "spark": "spark",
+        "shots": 7
+      }
+    },
+    {
+      "id": "voidfall",
+      "name": "공허 낙하",
+      "desc": "진 판이 어둠에 삼켜진다",
+      "unlock": "pass",
+      "passLevel": 14,
+      "passTrack": "premium",
+      "fx": {
+        "color": "#b07bff",
+        "ring": "ring_thick",
+        "burst": "burst",
+        "spark": "wisp",
+        "shots": 9
+      }
+    },
+    {
+      "id": "sunburst",
+      "name": "해돋이",
+      "desc": "진 판 위로 해가 뜬다",
+      "unlock": "pass",
+      "passLevel": 21,
+      "passTrack": "premium",
+      "fx": {
+        "color": "#ffb04a",
+        "ring": "ring_thick",
+        "burst": "burst",
         "spark": "spark",
         "shots": 11
       }

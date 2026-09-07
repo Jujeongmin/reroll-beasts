@@ -185,6 +185,9 @@ try {
     return {
       lp: profileLp,
       passLevel: profilePassLevel,
+      // 프리미엄 전용 보상은 단계만으로 안 열린다. 이 값이 빠지면 산 사람
+      // 화면에서도 잠긴 채로 보인다 — 서버는 열어 주는데 화면만 잠긴다.
+      premium: profilePremium,
       gems: profileGems,
       avatars: profileOwned,
     }
@@ -193,6 +196,7 @@ try {
   // 잠긴 채다. 반대로 두면 접속 실패가 곧 전체 해금이 된다.
   let profileLp = 0
   let profilePassLevel = 1
+  let profilePremium = false
   let profileGems = 0
   let profileOwned = []
 
@@ -341,6 +345,7 @@ try {
   function applyProfile(p) {
     profileLp = p?.lp ?? 0
     profilePassLevel = p?.pass?.level ?? 1
+    profilePremium = !!p?.pass?.premium
     profileGems = p?.gems ?? 0
     profileOwned = p?.owned ?? []
     profileLook = p?.look ?? null

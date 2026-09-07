@@ -166,8 +166,16 @@ describe('젬으로 사는 것', () => {
     expect(canBuyCosmetic(a, { gems: 9999, avatars: [a.id] }, data).ok).toBe(false)
   })
 
-  it('패스 보상 아바타는 둘뿐이다 — 다 패스에 있으면 다른 해금 경로가 죽는다', () => {
-    expect(data.cosmetics.avatars.filter((a) => a.unlock === 'pass').length).toBe(2)
+  // 개수를 못박지 않는다. 시즌마다 패스 보상이 갈리므로 숫자를 적어 두면
+  // 표를 고칠 때마다 테스트가 먼저 깨진다. 지켜야 할 것은 **경로가 안 죽는다** 다:
+  // 아바타가 전부 패스에 있으면 젬 상점도 랭크 보상도 볼 것이 없어진다.
+  it('아바타 해금 경로가 셋 다 살아 있다', () => {
+    const by = (u) => data.cosmetics.avatars.filter((a) => a.unlock === u).length
+    expect(by('gem')).toBeGreaterThan(0)
+    expect(by('rank')).toBeGreaterThan(0)
+    expect(by('pass')).toBeGreaterThan(0)
+    // 패스가 절반을 넘지 않는다 — 넘으면 나머지 경로가 곁다리로 읽힌다.
+    expect(by('pass')).toBeLessThan(data.cosmetics.avatars.length / 2)
   })
 })
 
@@ -281,5 +289,36 @@ describe('프리미엄 전용 패스 보상', () => {
   it('왜 잠겼는지 프리미엄이라고 말한다', () => {
     expect(lockReason(prem)).toContain('프리미엄')
     expect(lockReason(free)).not.toContain('프리미엄')
+  })
+})
+
+describe('시즌 패스 보상 표', () => {
+  const passItems = () =>
+    [...data.cosmetics.avatars, ...data.cosmetics.boards, ...data.cosmetics.booms].filter(
+      (x) => x.unlock === 'pass',
+    )
+
+  it('무료·프리미엄 양쪽에 큰 보상이 있다', () => {
+    const items = passItems()
+    const free = items.filter((x) => (x.passTrack ?? 'free') === 'free')
+    const prem = items.filter((x) => x.passTrack === 'premium')
+    expect(free.length).toBeGreaterThanOrEqual(8)
+    expect(prem.length).toBeGreaterThanOrEqual(4)
+  })
+
+  it('마지막 단계에 보상이 있다 — 끝까지 도는 사람이 가장 많이 보는 칸이다', () => {
+    expect(passItems().some((x) => x.passLevel === data.pass.maxLevel)).toBe(true)
+  })
+
+  it('세 종류가 다 걸려 있다 — 아바타만 있으면 트랙이 한 줄짜리로 읽힌다', () => {
+    expect([
+      data.cosmetics.avatars.some((x) => x.unlock === 'pass'),
+      data.cosmetics.boards.some((x) => x.unlock === 'pass'),
+      data.cosmetics.booms.some((x) => x.unlock === 'pass'),
+    ]).toEqual([true, true, true])
+  })
+
+  it('패스 보상은 안 판다 — 돈으로 얻으면 트랙을 도는 이유가 사라진다', () => {
+    for (const x of passItems()) expect(priceOf(x, data)).toBe(null)
   })
 })
