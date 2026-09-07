@@ -57,11 +57,20 @@ export function passProgress(xp, data) {
   }
 }
 
-/** 그 단계에서 주는 젬. 해당 없으면 0. */
+/**
+ * 그 단계에서 주는 젬. 해당 없으면 0.
+ *
+ * 보너스를 따로 두는 이유: 무료 트랙은 **매 단계 뭔가**가 있어야 빈칸이 안
+ * 생기는데, 매 단계를 크게 주면 젬을 파는 이유가 사라진다. 작게 매번 주고
+ * 다섯 칸마다 조금 얹는다 — 다음 다섯 번째 칸이 곧 다음 목표가 된다.
+ */
 export function gemsAt(level, track, data) {
   const rule = data.pass.gems[track]
   if (!rule || level < 1) return 0
-  return level % rule.everyLevels === 0 ? rule.amount : 0
+  const every = rule.everyLevels ?? 1
+  const base = level % every === 0 ? (rule.amount ?? 0) : 0
+  const bonus = rule.bonusEvery && level % rule.bonusEvery === 0 ? (rule.bonusAmount ?? 0) : 0
+  return base + bonus
 }
 
 /**
@@ -115,24 +124,52 @@ export function addPassXp(prev, gain, data) {
 }
 
 /**
+ * 그 단계·그 트랙에 걸린 큰 보상. 없으면 null.
+ *
+ * 아바타·무대·이펙트를 **한 번에** 훑는다. 종류마다 목록이 갈려 있지만 트랙에
+ * 서는 자리는 하나다 — 종류별로 따로 그리면 한 칸에 둘이 겹친 것을 화면이
+ * 못 본다(그 겹침은 불변식이 막는다).
+ */
+function itemAt(level, track, data) {
+  const lists = [
+    ['avatar', data.cosmetics.avatars],
+    ['board', data.cosmetics.boards],
+    ['boom', data.cosmetics.booms],
+  ]
+  for (const [kind, list] of lists) {
+    const found = list.find(
+      (x) => x.unlock === 'pass' && x.passLevel === level && (x.passTrack ?? 'free') === track,
+    )
+    if (found) {
+      return {
+        kind,
+        id: found.id,
+        name: found.name,
+        file: found.file ?? null,
+        colors: found.colors ?? null,
+        fx: found.fx ?? null,
+      }
+    }
+  }
+  return null
+}
+
+/**
  * 트랙 한 줄씩. 화면이 그대로 그린다.
  *
  * 잠긴 단계도 **전부** 준다 — 무엇이 기다리는지 보여야 계속할 이유가 생긴다.
+ * 프리미엄 줄도 안 산 사람에게 보여 준다. 무엇을 놓치는지 안 보이면 살 이유가
+ * 생기지 않는다.
  */
 export function passTrack(data, pass = EMPTY_PASS) {
   const cur = passLevelOf(pass.xp ?? 0, data)
-  const avatars = data.cosmetics.avatars.filter((a) => a.unlock === 'pass')
   const out = []
   for (let level = 1; level <= data.pass.maxLevel; level++) {
-    const avatar = avatars.find((a) => a.passLevel === level) ?? null
     out.push({
       level,
       reached: level <= cur,
-      free: {
-        gems: gemsAt(level, 'free', data),
-        avatar: avatar ? { id: avatar.id, name: avatar.name, file: avatar.file } : null,
-      },
-      premium: { gems: gemsAt(level, 'premium', data) },
+      free: { gems: gemsAt(level, 'free', data), item: itemAt(level, 'free', data) },
+      premium: { gems: gemsAt(level, 'premium', data), item: itemAt(level, 'premium', data) },
     })
   }
   return out
