@@ -247,3 +247,39 @@ describe('승리 이펙트', () => {
     }
   })
 })
+
+describe('프리미엄 전용 패스 보상', () => {
+  const prem = { id: 'x', unlock: 'pass', passLevel: 9, passTrack: 'premium' }
+  const free = { id: 'y', unlock: 'pass', passLevel: 9, passTrack: 'free' }
+  const old = { id: 'z', unlock: 'pass', passLevel: 9 }
+
+  // 단계만 보고 열면 안 산 사람도 프리미엄 보상을 다 갖는다 — 그러면 살
+  // 이유가 사라진다.
+  it('단계에 닿아도 안 샀으면 안 열린다', () => {
+    expect(isUnlocked(prem, { passLevel: 25, premium: false })).toBe(false)
+    expect(isUnlocked(prem, { passLevel: 25 })).toBe(false)
+  })
+
+  it('샀고 단계도 닿았으면 열린다', () => {
+    expect(isUnlocked(prem, { passLevel: 9, premium: true })).toBe(true)
+  })
+
+  it('샀어도 단계가 모자라면 안 열린다 — 사면 다 주는 것이 아니다', () => {
+    expect(isUnlocked(prem, { passLevel: 8, premium: true })).toBe(false)
+  })
+
+  it('무료 트랙은 사든 안 사든 단계만 본다', () => {
+    expect(isUnlocked(free, { passLevel: 9 })).toBe(true)
+    // passTrack 이 없는 줄은 무료로 친다 — 기존 보상을 안 고쳐도 살아 있다.
+    expect(isUnlocked(old, { passLevel: 9 })).toBe(true)
+  })
+
+  it('젬으로 산 것은 그대로 열린다 — 산 것이 제일 먼저다', () => {
+    expect(isUnlocked(prem, { passLevel: 1, avatars: ['x'] })).toBe(true)
+  })
+
+  it('왜 잠겼는지 프리미엄이라고 말한다', () => {
+    expect(lockReason(prem)).toContain('프리미엄')
+    expect(lockReason(free)).not.toContain('프리미엄')
+  })
+})

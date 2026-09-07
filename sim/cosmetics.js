@@ -22,7 +22,13 @@ export function isUnlocked(item, owned = {}) {
   if (item.unlock === 'free') return true
   // 젬으로만 여는 것. 산 적이 없으면(위에서 안 걸렸으면) 잠긴 채다.
   if (item.unlock === 'gem') return false
-  if (item.unlock === 'pass') return (owned.passLevel ?? 0) >= (item.passLevel ?? 0)
+  if (item.unlock === 'pass') {
+    const reached = (owned.passLevel ?? 0) >= (item.passLevel ?? 0)
+    // 프리미엄 트랙은 **단계만으로 안 열린다.** 안 그러면 안 산 사람도 다 갖고,
+    // 그러면 프리미엄을 살 이유가 남지 않는다. passTrack 이 없는 줄은 무료로
+    // 친다 — 기존 보상 네 줄을 안 고쳐도 지금처럼 동작한다.
+    return reached && (item.passTrack !== 'premium' || !!owned.premium)
+  }
   if (item.unlock === 'rank') {
     const need = TIERS.findIndex((t) => t.id === item.tier)
     const have = TIERS.findIndex((t) => t.id === tierOf(owned.lp ?? 0).id)
@@ -37,7 +43,10 @@ export function isUnlocked(item, owned = {}) {
 /** 왜 잠겼는지 한 줄. 화면이 그대로 쓴다. */
 export function lockReason(item) {
   if (item.unlock === 'gem') return `${item.price ?? 0} 젬`
-  if (item.unlock === 'pass') return `시즌 패스 ${item.passLevel ?? 0}단계`
+  if (item.unlock === 'pass') {
+    const where = item.passTrack === 'premium' ? '프리미엄 ' : ''
+    return `시즌 패스 ${where}${item.passLevel ?? 0}단계`
+  }
   if (item.unlock === 'rank') {
     const t = TIERS.find((x) => x.id === item.tier)
     return t ? `${t.name} 달성` : '조건 미정'
