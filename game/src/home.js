@@ -6,6 +6,7 @@
 import { homeView } from './home-state.js'
 import { checkName, displayName } from '@sim/name.js'
 import { missionsFor, dayKeyOf } from '@sim/missions.js'
+import { t, textOf } from './i18n.js'
 import { avatarChoices, boardChoices, boomChoices } from '@sim/cosmetics.js'
 import { storeProducts } from '@sim/store.js'
 import { seasonAt, daysLeft } from '@sim/season.js'
@@ -214,7 +215,7 @@ export function createHome({
     // 서버가 거절하면 그 사유를 그대로 적는다 — 클라가 통과시킨 것도 서버가
     // 막을 수 있다(규칙이 나중에 갈릴 수 있다).
     if (!res?.ok) {
-      el.nameWhy.textContent = res?.why ?? '저장을 못 했다'
+      el.nameWhy.textContent = res?.why ? t('why.' + res.why) : t('name.failed')
       return
     }
     if (res.profile) state = { ...state, profile: res.profile }
@@ -347,21 +348,21 @@ export function createHome({
     el.skinsPick.textContent = c.name
     if (c.unlocked) {
       const cur = currentId()
-      el.skinsWhy.textContent = c.id === cur ? '지금 쓰는 중' : ''
+      el.skinsWhy.textContent = c.id === cur ? t('skins.inUse') : ''
       el.skinsAct.hidden = c.id === cur
-      el.skinsAct.textContent = '이걸로 하기'
+      el.skinsAct.textContent = t('skins.pick')
       el.skinsAct.dataset.act = 'use'
       return
     }
     if (c.canBuy) {
       el.skinsWhy.textContent = ''
       el.skinsAct.hidden = false
-      el.skinsAct.textContent = `${c.price} 젬으로 사기`
+      el.skinsAct.textContent = t('skins.buy', { n: c.price })
       el.skinsAct.dataset.act = 'buy'
       return
     }
     // 못 사는 이유를 그대로 적는다. 값을 숨기면 얼마를 모아야 하는지 모른다.
-    el.skinsWhy.textContent = c.price ? `${c.price} 젬 · ${c.why}` : c.reason
+    el.skinsWhy.textContent = c.price ? t('skins.priceWhy', { n: c.price, why: t('why.' + c.why) }) : c.reason
     el.skinsAct.hidden = true
   }
 
@@ -390,7 +391,7 @@ export function createHome({
     if (!skinPick || el.skinsAct.dataset.busy) return
     if (el.skinsAct.dataset.act === 'use') return applySkin(skinPick)
     el.skinsAct.dataset.busy = '1'
-    el.skinsAct.textContent = '사는 중…'
+    el.skinsAct.textContent = t('skins.buying')
     // 구매는 **서버가** 판정한다. 여기서 잔액을 깎고 그리면, 서버가 거절했을
     // 때 화면만 산 것처럼 남는다. 서버가 준 새 전적으로 다시 그린다.
     const res = await onBuyAvatar?.(skinPick)
@@ -430,8 +431,8 @@ export function createHome({
     const prog = passProgress(p.xp ?? 0, data)
     const gems = state.profile?.gems ?? 0
     el.passHead.textContent = prog.done
-      ? `${prog.max}단계 · 다 올랐다 · 젬 ${gems}`
-      : `${prog.level}단계 · 다음까지 ${prog.need - prog.into} · 젬 ${gems}`
+      ? t('pass.doneHead', { max: prog.max, gems })
+      : t('pass.head', { lv: prog.level, left: prog.need - prog.into, gems })
 
     const track = passTrack(data, p)
 
@@ -481,8 +482,8 @@ export function createHome({
     // 있으면 산 것이 화면에 안 남는다.
     const bought = !!p.premium
     el.passNote.textContent = bought
-      ? '프리미엄 패스를 갖고 있다 — 모든 칸이 열린다'
-      : '자물쇠 칸은 프리미엄 패스를 사야 열린다'
+      ? t('pass.unlocked')
+      : t('pass.locked')
     el.passRows.innerHTML = track
       .map((t) => {
         // 칸은 셋 중 하나다: **받았다 · 아직이다 · 잠겼다.**
@@ -494,7 +495,7 @@ export function createHome({
           `<div class="step${t.reached ? ' got' : ''}${shut ? ' shut' : ''}` +
           `${t.free ? ' open' : ''}${done ? ' done' : ''}">` +
           `<div class="lv">${t.level}</div>${cell(t)}` +
-          (shut ? '<i class="lock" title="프리미엄 패스를 사야 열린다"></i>' : '') +
+          (shut ? `<i class="lock" title="${t('pass.lockTip')}"></i>` : '') +
           '</div>'
         )
       })
@@ -541,8 +542,8 @@ export function createHome({
     if (!next) return
     // **이름을 같이 적는다.** 단계 숫자만 적으면 "4단계가 뭔데?"가 되고, 그
     // 답이 화면에 없으면 미리보기가 미리보기 노릇을 못 한다.
-    el.passNextLv.textContent = `${next.passLevel}단계 · ${next.name}`
-    el.passNext.parentElement.title = `${next.passLevel}단계 보상: ${next.name}`
+    el.passNextLv.textContent = t('pass.next', { lv: next.passLevel, name: textOf(next.name) })
+    el.passNext.parentElement.title = t('pass.nextTip', { lv: next.passLevel, name: textOf(next.name) })
     // 아바타가 아니면 찍을 그림이 없다. 색 한 칸으로 때우면 빈 상자로 읽히므로,
     // 무대는 색 띠로 이펙트는 그 스프라이트로 — 트랙에서 쓰는 그 그림이다.
     if (!next.file) {
@@ -611,7 +612,7 @@ export function createHome({
    * 화면에 뜬다. 플랫폼을 못 붙었으면 그 사실을 적는다.
    */
   async function drawPacks() {
-    el.shopPacks.innerHTML = '<div class="none">상품을 불러오는 중…</div>'
+    el.shopPacks.innerHTML = `<div class="none">${t('shop.loading')}</div>`
     const live = await onStoreItems?.()
     const known = storeProducts(data)
 
@@ -627,10 +628,10 @@ export function createHome({
      * 못 받았으면 값 자리에 "$0.99 쯤" 이라고 적어 참고값임을 밝힌다.
      */
     const row = (p, item) => {
-      const price = item ? `<div class="p">${item.price}</div>` : `<div class="p off">약 $${p.usd}</div>`
+      const price = item ? `<div class="p">${item.price}</div>` : `<div class="p off">${t('shop.about', { usd: p.usd })}</div>`
       // 이름이 이미 "젬 1,000" 이라 젬 수를 또 적으면 같은 말이 두 번이다.
       // 설명만 적되, 패스는 무엇인지 한 마디를 앞에 붙인다.
-      const what = p.premium ? '시즌 패스 · ' : ''
+      const what = p.premium ? t('shop.passWhat') : ''
       return (
         `<div class="pack${item ? '' : ' off'}" data-pack="${item ? p.id : ''}">` +
         `<img alt="" src="/assets/store/${p.icon ?? `store_${p.id}.png`}" />` +
@@ -645,7 +646,7 @@ export function createHome({
     el.shopPacks.innerHTML =
       (live
         ? ''
-        : '<div class="none">결제는 Verse8 에서 실행할 때만 열린다 — 값은 참고값이다</div>') +
+        : `<div class="none">${t('shop.offline')}</div>`) +
       known.map((p) => row(p, live?.find((x) => x.productId === p.id))).join('')
   }
 
@@ -659,16 +660,16 @@ export function createHome({
   async function openBoard() {
     el.board.classList.remove('closing')
     el.board.hidden = false
-    el.boardRows.innerHTML = '<div class="empty">불러오는 중…</div>'
+    el.boardRows.innerHTML = `<div class="empty">${t('board.loading')}</div>`
     const lb = await onBoard?.()
     if (!lb) {
-      el.boardRows.innerHTML = '<div class="empty">순위표를 못 받았다</div>'
+      el.boardRows.innerHTML = `<div class="empty">${t('board.failed')}</div>`
       el.boardSub.textContent = ''
       return
     }
-    el.boardSub.textContent = lb.myRank ? `${lb.total}명 중 ${lb.myRank}등` : `${lb.total}명`
+    el.boardSub.textContent = lb.myRank ? t('board.mine', { total: lb.total, rank: lb.myRank }) : t('board.total', { total: lb.total })
     if (!lb.top.length) {
-      el.boardRows.innerHTML = '<div class="empty">아직 랭크 판을 끝낸 사람이 없다</div>'
+      el.boardRows.innerHTML = `<div class="empty">${t('board.empty')}</div>`
       return
     }
     el.boardRows.innerHTML = lb.top
@@ -704,9 +705,9 @@ export function createHome({
         const row = document.createElement('div')
         row.className = 'row' + (claimed ? ' done' : '')
         row.innerHTML =
-          `<div class="line"><b>${m.text}</b>` +
+          `<div class="line"><b>${textOf(m.text)}</b>` +
           (full && !claimed
-            ? `<button data-claim="${i}">받기</button>`
+            ? `<button data-claim="${i}">${t('mission.claim')}</button>`
             : `<span class="n">${got}/${m.target}</span>`) +
           '</div>' +
           `<div class="bar"><i style="width:${Math.round((got / m.target) * 100)}%"></i></div>`
@@ -743,19 +744,19 @@ export function createHome({
     el.queue.hidden = !v.queue
     if (v.queue) el.queueText.textContent = v.queue.text
 
-    el.head.textContent = v.profile ? v.profile.head : '첫 판을 기다린다'
+    el.head.textContent = v.profile ? v.profile.head : t('home.waitFirst')
     el.recent.textContent = v.profile ? v.profile.recent.join(' · ') : ''
 
     // 기록이 없으면 티어 줄도 비워 둔다 — 한 판도 안 한 사람에게 "브론즈 0"
     // 을 붙이면 진 것 같은 인상이 된다.
-    el.tier.textContent = v.profile ? v.profile.tier : '랭크 없음'
+    el.tier.textContent = v.profile ? v.profile.tier : t('home.rankNone')
     el.badge.className = `badge ${v.profile ? v.profile.tierId : ''}`
     el.lp.textContent = v.profile ? `${v.profile.lp} LP` : ''
     const next = v.profile?.next
     el.bar.hidden = !next
     if (next) {
       el.barFill.style.width = `${Math.round(next.ratio * 100)}%`
-      el.bar.title = `${next.name}까지 ${next.need} LP`
+      el.bar.title = t('home.toNext', { tier: next.name, lp: next.need })
     }
 
     // 순위표는 서버가 붙어 있어야 볼 수 있다. 기록이 없어도 남의 등수는
@@ -764,18 +765,18 @@ export function createHome({
     // 채로 열어 두면 눌러도 아무 일이 없는 버튼이 된다.
     // 이름은 서버에 저장된다 — 못 붙었으면 바꿀 수도 없다.
     el.nameBtn.hidden = state.status !== 'ready'
-    el.nameBtn.textContent = displayName(state.profile?.name, null) === '유저' ? '이름 정하기' : state.profile?.name
+    el.nameBtn.textContent = displayName(state.profile?.name, null) === t('home.guest') ? t('home.setName') : state.profile?.name
     el.shopBtn.hidden = state.status !== 'ready'
     el.rankBtn.hidden = state.status !== 'ready'
-    el.rankBtn.textContent = '전체 순위 보기'
+    el.rankBtn.textContent = t('home.leaderboard')
 
     // 패스 칸. 시즌 이름·남은 날과 함께 **내 단계**를 적는다 — 진행도가 안
     // 보이면 눌러 볼 이유가 없다.
     const s = seasonAt(Date.now(), data)
     const left = daysLeft(Date.now(), data)
-    el.passSub.textContent = s ? `${s.name} · ${left}일 남음` : '준비 중'
+    el.passSub.textContent = s ? t('pass.leftDays', { name: s.name, days: left }) : t('pass.soon')
     const prog = passProgress(state.profile?.pass?.xp ?? 0, data)
-    el.passLv.textContent = `${prog.level}단계`
+    el.passLv.textContent = t('pass.level', { n: prog.level })
     el.passBar.style.width = `${Math.round(prog.ratio * 100)}%`
     el.passGems.textContent = String(state.profile?.gems ?? 0)
     showNextReward(prog.level)
