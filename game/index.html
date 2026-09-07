@@ -1234,6 +1234,7 @@
   #gemshop .sheet,
   #passtrack .sheet,
   #settings .sheet,
+  #result .sheet,
   #board .sheet {
     border-style: solid; border-width: 12px; border-image-slice: 6;
     border-image-repeat: repeat; border-image-source: url('/assets/ui/panel_wood.png');
@@ -1247,6 +1248,7 @@
   #gemshop .sheet > *,
   #passtrack .sheet > *,
   #settings .sheet > *,
+  #result .sheet > *,
   #board .sheet > * { image-rendering: auto; }
 
   /* 시트가 툭 뜨면 어디서 온 창인지 안 읽힌다. 작게 시작해 커지면 눈이 그
@@ -1271,6 +1273,7 @@
   #namebox.closing .sheet,
   #gemshop.closing .sheet,
   #passtrack.closing .sheet,
+  #result.closing .sheet,
   #board.closing .sheet { animation: sheetout .24s cubic-bezier(.4,0,.9,.5) forwards; }
 
   /* 내 이름. 카드 맨 위 — 티어보다 먼저 읽히는 것이 이름이다. */
@@ -1700,6 +1703,148 @@
     align-self: center; font-size: 11px; color: #cbb794; text-decoration: underline;
   }
   /* ── 설정 ─────────────────────────────────────────── */
+
+  /* ── 결과판 ────────────────────────────────────────────
+     줄 하나가 사람 하나. 보드 격자를 여덟 개 그리지 않는 이유는 자리가 아니라
+     읽힘이다 — 격자 여덟 개를 한 화면에 넣으면 어느 것도 안 읽힌다. 유닛을
+     한 줄로 늘어놓으면 "무엇으로 짰나"에 곧장 답한다. */
+  #result {
+    position: absolute; inset: 0; z-index: 90;
+    animation: veilin .3s ease-out;
+    display: flex; align-items: center; justify-content: center;
+    background: #06040bd6;
+  }
+  #result[hidden] { display: none; }
+  #result.closing { animation: veilout .24s ease-in forwards; }
+  /* 판 하나를 통째로 돌아보는 화면이라 **화면을 다 쓴다.** 작은 창으로 띄우면
+     여덟 줄이 좁은 칸에 눌려, 정작 보러 온 유닛이 콩알만 해진다. */
+  #result .sheet {
+    animation: sheetin .42s cubic-bezier(.16,1,.3,1);
+    width: 100%; height: 100%; display: flex; flex-direction: column; gap: 8px;
+    padding: 14px 18px 16px;
+  }
+  #result .bhead { display: flex; align-items: baseline; gap: 8px; }
+  #result .bhead b { font-size: 20px; color: #ffd98a; text-shadow: 0 2px 0 #6b4a2a; }
+  #result .bhead span { font-size: 12px; color: #a99a86; }
+  /* 여덟 줄이 남는 높이를 고르게 나눠 갖는다 — 줄을 고정 높이로 두면 화면이
+     크든 작든 아래가 비거나 스크롤이 생긴다. */
+  #result-rows { flex: 1; min-height: 0; display: flex; flex-direction: column; gap: 4px; }
+
+  #result .r {
+    flex: 1 1 0; min-height: 0;
+    display: flex; align-items: center; gap: 9px; padding: 3px 8px;
+    background: #1a120bb8; border-radius: 3px; box-shadow: inset 0 0 0 1px #ffffff0f;
+  }
+  /* 내 줄. 여덟 줄 중 어느 것이 나인지 찾게 하지 않는다. */
+  #result .r.me { background: #3a2a0fd9; box-shadow: inset 0 0 0 1px #ffd16659; }
+  #result .r.out { opacity: .62; }
+  /* 등수. 자리를 고정해야 유닛 줄이 세로로 안 어긋난다. */
+  #result .r .no {
+    flex: none; width: 30px; text-align: center;
+    font-size: 16px; font-weight: 800; color: #ffd98a; font-variant-numeric: tabular-nums;
+  }
+  #result .r.top .no { color: #ffe9b0; text-shadow: 0 0 6px #ffb04d99; }
+  /* 등수가 아직 없는 줄. 없는 등수를 지어내지 않는다. */
+  #result .r .no.none { color: #7e7261; }
+  #result .r .who { flex: none; width: 112px; min-width: 0; }
+  #result .r .who .n {
+    display: block; font-size: 12px; font-weight: 800; color: #f0e6cf;
+    overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
+  }
+  #result .r .who .tg { font-size: .85em; font-weight: 700; opacity: .5; }
+  #result .r .who .hp { font-size: 10px; color: #8f8069; font-variant-numeric: tabular-nums; }
+
+  /* 유닛 줄. 넘치면 가로로 민다 — 줄바꿈하면 줄 높이가 사람마다 달라져
+     여덟 줄이 들쭉날쭉해진다. */
+  #result .r .us {
+    flex: 1; min-width: 0; height: 100%; align-items: center;
+    display: flex; gap: 5px; overflow-x: auto; scrollbar-width: none;
+  }
+  #result .r .us::-webkit-scrollbar { display: none; }
+  /* 줄 높이에 맞춰 자란다 — 화면이 커지면 유닛도 같이 커져야 보러 온 것이
+     보인다. 정사각을 지키려고 너비를 높이로 잡는다. */
+  #result .r .u {
+    flex: none; position: relative; height: min(86%, 46px); aspect-ratio: 1;
+    border-radius: 4px; background: #0d0a06;
+    box-shadow: inset 0 0 0 1px var(--sc, #d99154);
+    overflow: hidden;
+  }
+  #result .r .u img { width: 100%; height: 100%; object-fit: cover; display: block; }
+  #result .r .u i {
+    position: absolute; left: 0; right: 0; bottom: 0;
+    font-style: normal; font-size: 10px; line-height: 13px; text-align: center;
+    color: var(--sc, #d99154); background: #000000a6; letter-spacing: -1px;
+  }
+  /* 판이 빈 사람. 탈락한 그 라운드에 아무것도 안 남았거나, 아직 정찰이 안 왔다. */
+  #result .r .us .empty { font-size: 11px; color: #7e7261; align-self: center; }
+
+  #result .r .lp {
+    flex: none; width: 64px; text-align: right;
+    font-size: 13px; font-weight: 800; font-variant-numeric: tabular-nums;
+  }
+  #result .r .lp.up { color: #8fe3a4; }
+  #result .r .lp.down { color: #ff9a8c; }
+  #result .r .lp.none { color: #7e7261; }
+
+  #result-close { align-self: center; min-width: 160px; }
+
+  /* ── 내 티어 띠 ────────────────────────────────────────
+     "몇 점 올랐나"를 숫자로만 적으면 그게 많은지 적은지는 티어 문턱을 외운
+     사람만 안다. 막대 위에서 **움직인 구간을 칠하면** 어디에서 어디로 갔는지가
+     한눈에 보인다. 랭크 판에서만 그린다 — 일반 판은 점수가 안 움직인다. */
+  #result .me-band {
+    flex: none; display: flex; align-items: center; gap: 12px;
+    padding: 8px 12px; border-radius: 4px;
+    background: #241a0dc4; box-shadow: inset 0 0 0 1px #ffd16636;
+  }
+  #result .me-band[hidden] { display: none; }
+  /* 티어 배지. 홈과 같은 색이어야 같은 것으로 읽힌다. */
+  #result .me-band .badge {
+    width: 20px; height: 20px; flex: none; border-radius: 4px;
+    transform: rotate(45deg); box-shadow: inset 0 0 0 2px #00000055;
+  }
+  #result .me-band .badge.bronze { background: linear-gradient(#d08a4e, #8a5527); }
+  #result .me-band .badge.silver { background: linear-gradient(#dfe6ef, #9aa6b6); }
+  #result .me-band .badge.gold { background: linear-gradient(#ffd977, #c99326); }
+  #result .me-band .badge.platinum { background: linear-gradient(#a8f0e2, #3f9f8e); }
+  #result .me-band .badge.diamond { background: linear-gradient(#bfe2ff, #5a8fe0); }
+  #result .me-band .tn { flex: none; font-size: 14px; font-weight: 900; color: #ffe1a0; }
+  #result .me-band .mid { flex: 1; min-width: 0; }
+  /* 막대. 이번 판이 움직인 만큼만 색이 다르다 — 나머지는 원래 갖고 있던 것이다. */
+  /* span 이라 display 를 못 물려받는다 — 안 적으면 인라인이라 높이가 0 이 된다. */
+  #result .me-band .bar {
+    display: block; position: relative; height: 10px; border-radius: 5px; overflow: hidden;
+    background: #00000073; box-shadow: inset 0 0 0 1px #ffffff1a;
+  }
+  #result .me-band .bar i {
+    position: absolute; top: 0; bottom: 0; display: block;
+  }
+  #result .me-band .bar .kept { left: 0; background: linear-gradient(#ffd977, #c99326); }
+  /* 오른 만큼. 밝게 칠해 "이번에 여기까지 왔다"가 보이게 한다. */
+  #result .me-band .bar .gain {
+    background: linear-gradient(#b6ffcb, #4fbf74);
+    animation: lpgrow .6s .15s cubic-bezier(.16,1,.3,1) both;
+  }
+  /* 내린 만큼. 잃은 자리를 빈칸으로 두면 원래 거기까지 안 갔던 것처럼 보인다. */
+  #result .me-band .bar .loss {
+    background: repeating-linear-gradient(45deg, #7d2f28 0 4px, #a83c31 4px 8px);
+  }
+  @keyframes lpgrow { from { transform: scaleX(0); transform-origin: left } to { transform: scaleX(1) } }
+  #result .me-band .nums {
+    display: flex; align-items: baseline; gap: 6px; margin-top: 4px;
+    font-size: 11px; color: #c9b088; font-variant-numeric: tabular-nums;
+  }
+  #result .me-band .nums b { color: #f0e6cf; font-size: 12px; }
+  #result .me-band .nums .to { margin-left: auto; }
+  /* 증감. 띠에서 제일 큰 글자다 — 보러 온 숫자가 이것이다. */
+  #result .me-band .delta {
+    flex: none; min-width: 92px; text-align: right;
+    font-size: 22px; font-weight: 900; font-variant-numeric: tabular-nums;
+  }
+  #result .me-band .delta.up { color: #8fe3a4; }
+  #result .me-band .delta.down { color: #ff9a8c; }
+  #result .me-band .delta.none { color: #a99a86; }
+
   #settings {
     position: absolute; inset: 0; z-index: 85;
     animation: veilin .3s ease-out;
@@ -2113,6 +2258,17 @@
     </div>
   </div>
 
+
+  <!-- 판이 끝났다. #home 밖에 둔다 — 안에 두면 판에 들어갈 때 홈이 숨으면서
+       같이 사라지는데, 이 화면은 바로 그 판 안에서 떠야 한다. -->
+  <div id="result" hidden>
+    <div class="sheet">
+      <div class="bhead"><b id="result-title">결과</b><span id="result-sub"></span></div>
+      <div class="me-band" id="result-band" hidden></div>
+      <div id="result-rows"></div>
+      <button id="result-close" data-i18n="result.leave">나가기</button>
+    </div>
+  </div>
   <div id="ghost"><img alt="" /></div>
   <div id="rotate" data-i18n="rotate">가로로 돌려주세요</div>
   <div id="boot">

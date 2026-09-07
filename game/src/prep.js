@@ -1577,6 +1577,9 @@ export async function createPrep({
     refresh,
     preload,
     scene,
+    // 결과판이 유닛 초상을 여기서 받아 간다. 캐시를 같이 쓰려고 내준다 —
+    // 따로 찍으면 같은 그림을 두 번 만들고 컨텍스트도 하나 더 문다.
+    thumbFor,
     clearUnits,
     heroPortrait,
     avatarPortrait,

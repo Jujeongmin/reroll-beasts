@@ -40,6 +40,7 @@ import { initAudio, sfx, bgm, bgmHold, bgmRelease, refreshVolumes } from './audi
 import { createServerMatchmaker, connectServer, startQueue } from './serverMatchmaker.js'
 import { createPrep } from './prep.js'
 import { createBattle } from './battle.js'
+import { createResult } from './result.js'
 
 const boot = document.getElementById('boot')
 // 소리는 첫 손짓을 기다린다 — 브라우저가 그 전에는 재생을 막는다. 여기서
@@ -108,6 +109,9 @@ try {
     // 그릴 것이 없다 — prep 자체가 아직 안 열려 있다.
     lobby: [],
     opponentId: null,
+    // 어느 모드로 들어왔나. 결과판이 "점수가 움직였나"를 이 값으로 말한다 —
+    // LP 는 랭크 판에서만 움직인다.
+    mode: null,
   }
 
   // mm 이 늦게 정해지므로 호출 시점에 찾아 들어간다. 부팅 때 한 번
@@ -547,6 +551,18 @@ try {
    * 항복은 서버가 판정한다 — 화면만 닫으면 그 방은 내가 살아 있는 줄 알고
    * 계속 돌고, 남은 사람들이 유령과 대진을 잡는다.
    */
+  /**
+   * 결과판. 판이 끝나면 뜬다.
+   *
+   * 나가면 화면을 다시 띄운다 — 남은 판 상태를 손으로 되돌리는 것보다
+   * 확실하다(튜토리얼을 끝냈을 때, 항복했을 때 쓰는 방식과 같다).
+   */
+  const result = createResult({
+    data,
+    thumbFor: (id, star) => prep.thumbFor(id, star),
+    onClose: () => location.reload(),
+  })
+
   const settings = createSettings({
     account: () => server?.account ?? '',
     onSurrender: async () => {
@@ -795,8 +811,9 @@ try {
   connect()
 
   /** 로비가 정해졌다. 판을 세우고 홈을 닫는다. */
-  function enterGame(matchmaker) {
+  function enterGame(matchmaker, mode = null) {
     mm = matchmaker
+    run.mode = mode
     run.lobby = mm.seats
     drawRound()
     home.hide()
@@ -837,7 +854,7 @@ try {
         queue = null
         home.setQueue(null)
         try {
-          enterGame(await createServerMatchmaker({ data, server, roomId }))
+          enterGame(await createServerMatchmaker({ data, server, roomId }), mode)
         } catch (err) {
           console.warn('방 입장 실패:', err?.message)
           home.setStatus('failed')
@@ -1032,12 +1049,28 @@ try {
       return
     }
 
-    if (s.hp <= 0 || run.index >= totalRounds(data.rounds)) {
-      // 판 전체가 끝났다. 라운드마다 나는 타격음과 달리 **여기만** 곡이
-      // 붙는다 — 매 라운드 팡파르가 울리면 마지막 판이 특별하지 않다.
-      sfx(s.hp <= 0 ? 'lose' : 'win')
-      alert(s.hp <= 0 ? t('run.out', { round: info.label }) : t('run.finished'))
-      location.reload()
+    // 내 판이 끝났다. 두 갈래로 온다: 내가 죽었거나(탈락), 23라운드를 다
+    // 채웠거나. 어느 쪽이든 내 등수와 LP 는 이 순간 확정돼 있다 — 서버가
+    // 죽는 자리에서 박는다. 남은 사람이 끝나기를 기다리게 하지 않는다.
+    //
+    // 등수가 박혔는지도 같이 본다. 마지막 한 명으로 남으면 내 체력은 멀쩡하고
+    // 라운드도 안 찼는데 판은 끝난 것이다 — 서버가 그때 1위를 박는다.
+    // 체력만 보면 그 사람은 23라운드까지 혼자 판을 굴린다.
+    const mine = run.lobby.find((x) => x.isPlayer)
+    if (s.hp <= 0 || mine?.rank || run.index >= totalRounds(data.rounds)) {
+      // 곡은 멈춘 채로 둔다. 결과판이 뜨는 자리에 판 음악이 다시 깔리면
+      // 판이 아직 안 끝난 것처럼 들린다.
+      result.open({
+        seats: run.lobby,
+        mySeatId: mySeatId(),
+        // LP 는 랭크 판에서만 움직인다. 일반 판에 0 을 적으면 움직였는데
+        // 0 인 것처럼 읽힌다 — 아예 안 적는다.
+        ranked: run.mode === 'ranked',
+        won: mine?.rank === 1,
+        // 판에 들어가기 전 LP. 서버는 이미 더했지만 화면이 든 값은 아직
+        // 전이라, 여기가 "어디에서 어디로" 의 출발점이다.
+        lp: profileLp,
+      })
       return
     }
 

@@ -141,6 +141,8 @@ export async function createServerMatchmaker({ data, server, roomId = null, time
       seat.hp = s.hp
       seat.alive = s.alive
       seat.streak = s.streak
+      // 등수는 서버만 안다(죽는 자리에서 박는다). 결과판이 이 값을 읽는다.
+      seat.rank = s.rank ?? null
     }
   })
 

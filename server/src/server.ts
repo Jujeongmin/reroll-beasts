@@ -427,6 +427,10 @@ export class Server {
           hp: s.hp,
           alive: s.alive,
           streak: s.streak,
+          // 등수는 **서버가 박은 것만** 보낸다. 클라가 살아 있는 수를 세어
+          // 스스로 매기게 두면 그 셈이 서버와 어긋나는 날이 오고, 결과판에
+          // 뜬 등수와 실제로 받은 LP 가 서로 다른 말을 한다.
+          rank: s.rank ?? null,
         })),
       })
       return { ok: true, seatId, rank: ranked.find((r: any) => r.account === account)?.rank ?? null }
@@ -766,6 +770,10 @@ export class Server {
           hp: s.hp,
           alive: s.alive,
           streak: s.streak,
+          // 등수는 **서버가 박은 것만** 보낸다. 클라가 살아 있는 수를 세어
+          // 스스로 매기게 두면 그 셈이 서버와 어긋나는 날이 오고, 결과판에
+          // 뜬 등수와 실제로 받은 LP 가 서로 다른 말을 한다.
+          rank: s.rank ?? null,
         })),
       })
       return state
