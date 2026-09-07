@@ -514,7 +514,9 @@ try {
   const bootPct = boot.querySelector('.pct')
   const bootWalker = boot.querySelector('#boot-walker')
   await prep.preload((done) => {
-    const pct = Math.round(t * 100)
+    // done 은 0~1. 전에 t 라고 불렀는데 i18n 의 t 와 겹쳐 이름을 바꾸다 이 줄을
+    // 놓쳤고, 로딩 화면에 NaN% 가 떴다 — 함수에 100 을 곱한 값이다.
+    const pct = Math.round(done * 100)
     if (bootBar) bootBar.style.width = `${pct}%`
     if (bootPct) bootPct.textContent = `${pct}%`
     // 말이 채워진 끝을 밟고 간다. 진행도와 따로 걸으면 걷는 시늉만 하는
