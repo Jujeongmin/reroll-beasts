@@ -62,17 +62,37 @@ export const TUTORIAL_STEPS = [
   {
     id: 'xp',
     text: {
-      ko: '경험치를 사면 레벨이 오르고, 판에 놓을 수 있는 수가 는다.',
-      en: 'Buying XP raises your level, and you can place more units.',
+      ko: '경험치를 사면 레벨이 오른다. 판에 놓을 수 있는 수가 늘고, 상점에 높은 티어가 더 자주 나온다.',
+      en: 'Buying XP raises your level: you can place more units, and higher tiers show up in the shop more often.',
     },
     target: '#buyxp',
     done: (state, { startLevel }) => state.level > startLevel,
   },
   {
     id: 'reroll',
-    text: {
-      ko: '원하는 말이 없으면 상점을 새로고침하자. 골드 2가 든다.',
-      en: 'No unit you want? Reroll the shop. It costs 2 gold.',
+    // 방금 오른 레벨이 무엇을 줬는지 **실제 수**로 말한다. "더 자주" 라고만
+    // 하면 얼마나인지 모르고, 숫자를 글자에 박아 두면 표를 고칠 때 거짓말이
+    // 된다 — 그래서 데이터에서 그때그때 읽는다.
+    text: (state, ctx, data) => {
+      const lv = state.level
+      const before = data.shop.tierOdds[String(ctx.startLevel)] ?? []
+      const after = data.shop.tierOdds[String(lv)] ?? []
+      // 제일 많이 오른 티어 하나만 짚는다. 다섯 개를 다 읊으면 못 읽는다.
+      let tier = 1
+      let gain = -Infinity
+      for (let i = 1; i < after.length; i++) {
+        const g = (after[i] ?? 0) - (before[i] ?? 0)
+        if (g > gain) {
+          gain = g
+          tier = i
+        }
+      }
+      const a = before[tier] ?? 0
+      const b = after[tier] ?? 0
+      return {
+        ko: `레벨 ${lv}! 판에 ${lv}마리까지 놓고, ${tier + 1}티어가 ${a}% → ${b}% 로 더 자주 나온다. 원하는 말이 없으면 새로고침하자 — 골드 2.`,
+        en: `Level ${lv}! You can place ${lv} units, and tier ${tier + 1} shows up ${a}% → ${b}%. No unit you want? Reroll — 2 gold.`,
+      }
     },
     target: '#reroll',
     // 처음 상점에 없던 말이 하나라도 있으면 새로고침한 것이다. 사는 것은
@@ -96,6 +116,14 @@ export const TUTORIAL_STEPS = [
  * 단계를 따로 세어 두지 않고 매번 상태에서 다시 구한다 — 세어 두면 되돌리기
  * (판 말을 도로 벤치로)에서 화면과 어긋난다.
  */
+/**
+ * 단계 문구. 고정 문구면 그대로, 함수면 지금 상태로 만든다 — 방금 오른
+ * 레벨이 준 것을 숫자로 말하는 단계가 있다.
+ */
+export function stepText(step, state, ctx, data) {
+  return typeof step.text === 'function' ? step.text(state, ctx, data) : step.text
+}
+
 export function tutorialStep(state, ctx) {
   for (let i = 0; i < TUTORIAL_STEPS.length; i++) {
     const s = TUTORIAL_STEPS[i]

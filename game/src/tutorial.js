@@ -3,7 +3,7 @@
 // 규칙 판정은 여기 없다 — 어느 단계인지는 상태에서 나오고, 이 파일은 그
 // 결과를 말풍선과 불빛으로 바꿀 뿐이다. 판정을 화면에 두면 테스트가 못 덮는다.
 
-import { TUTORIAL_STEPS, tutorialStep } from '@sim/tutorial.js'
+import { TUTORIAL_STEPS, tutorialStep, stepText } from '@sim/tutorial.js'
 import { t, textOf } from './i18n.js'
 
 /** 완료 표시. 지운 사람은 다시 본다 — 그게 맞다. */
@@ -62,7 +62,7 @@ export function markTutorialDone() {
  * @param {() => void} o.onFight  마지막 단계에서 "싸우자" 를 눌렀다
  * @param {() => void} o.onSkip   건너뛰기
  */
-export function createCoach({ run, onFight, onSkip }) {
+export function createCoach({ run, data, onFight, onSkip }) {
   const el = {
     root: document.getElementById('coach'),
     text: document.getElementById('coach-text'),
@@ -112,7 +112,7 @@ export function createCoach({ run, onFight, onSkip }) {
       if (i === index) return
       index = i
       const step = TUTORIAL_STEPS[i]
-      el.text.textContent = textOf(step.text)
+      el.text.textContent = textOf(stepText(step, run.state, ctx, data))
       el.fight.hidden = step.id !== 'fight'
       light(step.target)
     },

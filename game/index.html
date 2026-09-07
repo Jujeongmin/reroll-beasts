@@ -480,8 +480,9 @@
     display: grid; grid-template-columns: 1fr auto 1fr; align-items: center; gap: 8px;
     pointer-events: none;
   }
-  /* 누를 수 있는 것만 포인터를 받는다 — 나머지는 뒤의 판을 그대로 집게 둔다. */
-  #lock { pointer-events: auto; }
+  /* 누를 수 있는 것만 포인터를 받는다 — 나머지는 뒤의 판을 그대로 집게 둔다.
+     #lock 만 적어 두면 옆에 붙는 다음 버튼(설정)이 빠진다 — 오른쪽 줄의 버튼 전부. */
+  #hudR button { pointer-events: auto; }
   #hudL { display: flex; align-items: center; gap: 6px; justify-self: start; }
   /* 골드가 절대 배치(가운데)라 흐름으로는 오른쪽 칸이 안 밀린다.
      잠금도 같이 못 박아 화면 오른쪽 끝에 붙인다. */

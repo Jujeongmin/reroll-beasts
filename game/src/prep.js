@@ -1381,8 +1381,14 @@ export async function createPrep({
   }
 
   el.root.addEventListener('pointerdown', (ev) => {
+    // 누르는 것 위에서는 땅 판정을 안 한다. HUD 줄(설정·잠금)이 빠져 있어서
+    // 그 버튼을 누르면 "빈 땅"으로 보고 포인터를 잡았고, 잡힌 포인터는 버튼의
+    // click 을 못 만들었다 — 버튼은 안 눌리고 아바타만 걸어갔다. 특정 id 를
+    // 열거하는 대신 button 이면 전부 뺀다: 다음 버튼이 또 빠지는 일이 없게.
     if (
+      ev.target.closest('button') ||
       ev.target.closest('#shopbar') ||
+      ev.target.closest('#hudbar') ||
       ev.target.closest('#top') ||
       ev.target.closest('#info')
     ) {

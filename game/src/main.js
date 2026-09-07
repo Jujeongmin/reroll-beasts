@@ -765,6 +765,7 @@ try {
     setupTutorial(run.state, data)
     coach = createCoach({
       run,
+      data,
       onFight: () => prep.fight(),
       onSkip: () => endTutorial(),
     })
