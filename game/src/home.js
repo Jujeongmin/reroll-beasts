@@ -113,6 +113,8 @@ export function createHome({
   // account 는 서버에 붙은 뒤에 온다(setAccount). 미션 추첨이 이 값을 쓴다 —
   // 없으면 남의 목록을 그리게 되므로 빈 문자열로 시작한다.
   let state = { status: 'connecting', profile: null, queue: null, account: '' }
+  // 큐 초를 1초마다 올리는 타이머. 큐가 없으면 0.
+  let queueTick = 0
 
   el.menu.addEventListener('click', (ev) => {
     const btn = ev.target.closest('[data-mode]')
@@ -847,9 +849,24 @@ export function createHome({
       state = { ...state, profile }
       render()
     },
+    /**
+     * 큐 상태가 왔다. 서버는 2초마다 답하는데 화면의 초는 1초마다 올라야 한다 —
+     * 그냥 두면 0, 2, 4 로 두 칸씩 뛰어서 멈춘 것처럼 보인다. 받은 값을 시작점으로
+     * 잡고 그 사이는 화면이 스스로 센다. 다음 답이 오면 다시 맞춘다 — 세는 것은
+     * 화면이지만 **옳은 값은 서버가 정한다.**
+     */
     setQueue(queue) {
+      clearInterval(queueTick)
+      queueTick = 0
       state = { ...state, queue }
       render()
+      if (!queue) return
+      const base = queue.waitedMs ?? 0
+      const from = performance.now()
+      queueTick = setInterval(() => {
+        state = { ...state, queue: { ...queue, waitedMs: base + (performance.now() - from) } }
+        render()
+      }, 1000)
     },
     /** 간판 캐릭터(정지 초상). 부팅에서 한 번 찍어 넘어온다. */
     setHero(url) {
