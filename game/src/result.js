@@ -28,8 +28,10 @@ const TIER_ART = (id) => `url('/assets/ui/tier_${id}.png')`
  * @param {object} o.data
  * @param {(unitId: string, star: number) => Promise<string>} o.thumbFor 유닛 초상
  * @param {() => void} o.onClose 나가기를 눌렀다
+ * @param {(placementId: string, requestId: string) => Promise<any>} [o.onAd] 광고를 끝까지
+ *   봤다 — 서버에 지급을 청구한다. 없으면 버튼이 안 뜬다
  */
-export function createResult({ data, thumbFor, onClose }) {
+export function createResult({ data, thumbFor, onClose, onAd = null }) {
   const el = {
     root: document.getElementById('result'),
     title: document.getElementById('result-title'),
@@ -38,7 +40,48 @@ export function createResult({ data, thumbFor, onClose }) {
     band: document.getElementById('result-band'),
     rows: document.getElementById('result-rows'),
     close: document.getElementById('result-close'),
+    ad: document.getElementById('result-ad'),
   }
+
+  // 광고 SDK. 없으면(로컬·미지원) 버튼을 아예 안 보인다 — 눌러도 아무 일도
+  // 안 생기는 버튼을 두는 것보다 낫다. 한 번 unsupported_env 가 오면 이 세션
+  // 동안 숨긴다(문서 규칙).
+  const ads = () => globalThis.Verse8Ads
+  let adsOff = false
+  let adBusy = false
+
+  el.ad.addEventListener('click', async () => {
+    if (adBusy || !ads() || !onAd) return
+    adBusy = true
+    el.ad.disabled = true
+    try {
+      const r = await ads().showRewarded({ placementId: 'result-double' })
+      if (r.status === 'rewarded') {
+        const res = await onAd('result-double', r.requestId)
+        if (res?.ok) {
+          el.ad.textContent = t('result.adDone', { xp: res.xp })
+          el.ad.classList.add('done')
+          return // 받았다. 다시 누를 수 없다.
+        }
+        el.ad.textContent = t('result.adRefused')
+        return
+      }
+      if (r.status === 'dismissed') {
+        el.ad.textContent = t('result.adDismissed')
+        el.ad.disabled = false
+        return
+      }
+      if (r.error?.code === 'unsupported_env') {
+        adsOff = true
+        el.ad.hidden = true
+        return
+      }
+      el.ad.textContent = t('result.adFail')
+      el.ad.disabled = r.error?.code === 'busy'
+    } finally {
+      adBusy = false
+    }
+  })
 
   el.close.addEventListener('click', () => {
     el.root.classList.add('closing')
@@ -189,6 +232,7 @@ export function createResult({ data, thumbFor, onClose }) {
      */
     open(args) {
       shown = args
+      el.ad.classList.remove('done')
       draw(args)
     },
 
@@ -230,6 +274,15 @@ export function createResult({ data, thumbFor, onClose }) {
       el.rows.replaceChildren(
         ...rows.map((seat, i) => rowFor(seat, labels[i], seat.id === mySeatId, ranked)),
       )
+
+      // 광고 버튼은 등수가 박힌 뒤에만. 등수가 없으면 서버도 줄 수 없다.
+      // 다시 그릴 때 이미 받은 상태(done)는 건드리지 않는다.
+      if (!el.ad.classList.contains('done')) {
+        const can = !!onAd && !!ads() && !adsOff && !!me?.rank
+        el.ad.hidden = !can
+        el.ad.textContent = t('result.ad')
+        el.ad.disabled = false
+      }
 
       // 소리와 애니메이션은 처음 뜰 때만. 등수가 늦게 와서 다시 그릴 때마다
       // 팡파르가 울리면 판이 여러 번 끝난 것처럼 들린다.

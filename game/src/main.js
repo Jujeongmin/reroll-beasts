@@ -574,6 +574,18 @@ try {
     data,
     thumbFor: (id, star) => prep.thumbFor(id, star),
     onClose: () => location.reload(),
+    // 광고를 끝까지 봤다. 지급은 서버가 판정한다 — 등수·판·하루 상한을 서버가
+    // 알고, 클라는 지면 id 와 SDK 가 준 requestId 만 보낸다.
+    onAd: async (placementId, requestId) => {
+      try {
+        const res = await server?.remoteFunction('claimAdReward', [placementId, requestId])
+        if (res?.profile) applyProfile(res.profile)
+        return res
+      } catch (err) {
+        console.warn('광고 보상 실패:', err?.message)
+        return { ok: false, why: 'failed' }
+      }
+    },
   })
 
   const settings = createSettings({

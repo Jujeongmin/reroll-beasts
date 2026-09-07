@@ -23,6 +23,7 @@ import { createLobbyState, resolveRound, assignRanks, concede } from '../../sim/
 import { applyMatchResult, countedMatch } from '../../sim/profile.js'
 import { advanceMissions, claimMission, dayKeyOf } from '../../sim/missions.js'
 import { addPassXp } from '../../sim/pass.js'
+import { adReward, PLACEMENTS } from '../../sim/ads.js'
 import { sortLeaderboard, rankOf } from '../../sim/rank.js'
 import { sanitizeBoard } from '../../sim/submit.js'
 import {
@@ -101,6 +102,33 @@ async function dressSeats(state: any): Promise<void> {
     seat.skin = resolveBoard(look.board, DATA, owned)
     seat.avatar = resolveAvatar(look.avatar, DATA, owned)
     seat.boom = resolveBoom(look.boom, DATA, owned)
+  }
+}
+
+/**
+ * 광고 검증 서버에 묻는다. verified | unverified | unavailable.
+ *
+ * pending(202) 은 몇 번 더 물어본다. 그래도 답이 없으면 unavailable — 본 사람을
+ * 거절하는 것보다 검증 못 한 채 주는 쪽이 낫다(지급물이 낮은 값일 때만).
+ */
+async function verifyAd(requestId: string): Promise<'verified' | 'unverified' | 'unavailable'> {
+  const f: any = (globalThis as any).fetch
+  if (typeof f !== 'function') return 'unavailable'
+  try {
+    for (let i = 0; i < 3; i++) {
+      const res = await f(`https://ads-verifier.verse8.io/ads/status?requestId=${encodeURIComponent(requestId)}`)
+      if (!res.ok && res.status !== 202) return 'unavailable'
+      const body: any = await res.json()
+      if (body.status === 'verified') return 'verified'
+      if (body.status === 'pending') {
+        await new Promise((r) => setTimeout(r, 1200))
+        continue
+      }
+      return 'unverified'
+    }
+    return 'unavailable'
+  } catch {
+    return 'unavailable'
   }
 }
 
@@ -320,6 +348,56 @@ export class Server {
       }
       await $global.updateUserState(account, { profile: next })
       return { ok: true, profile: next, xp: r.xp }
+    })
+  }
+
+  // ── 광고 보상 ──────────────────────────────────────────
+
+  /**
+   * 광고를 끝까지 봤다. 이번 판 패스 경험치를 한 번 더 준다.
+   *
+   * **지급은 서버가 판정한다.** 등수·판·하루 상한은 전부 서버가 아는 값이고,
+   * 클라는 지면 id 와 SDK 가 준 requestId 만 보낸다. SDK 결과의 reward 는
+   * 화면 힌트일 뿐이라 안 받는다.
+   *
+   * requestId 는 두 겹으로 막는다: (계정, requestId) 를 adGrants 에 적어 같은
+   * 광고로 두 번 못 받고, adReward 가 판마다 한 번·하루 상한을 센다.
+   *
+   * 검증 서버(ads-verifier)에 물어볼 수 있으면 verified 일 때만 준다. 이
+   * 런타임에 fetch 가 없거나 검증 서버가 안 닿으면 **준다** — 지급물이 패스
+   * 경험치라 값이 낮고, 거절하면 광고를 끝까지 본 사람이 못 받는 쪽이 더
+   * 나쁘다. 젬 같은 것을 지면에 붙이는 날에는 이 분기를 거절로 바꿔야 한다.
+   */
+  async claimAdReward(placementId: string, requestId: string): Promise<any> {
+    if (typeof placementId !== 'string' || !PLACEMENTS[placementId]) return { ok: false, why: 'unknown_placement' }
+    if (typeof requestId !== 'string' || !requestId || requestId.length > 128) return { ok: false, why: 'bad_request' }
+    const roomId = $sender.roomId
+    const account = $sender.account
+    if (!roomId) return { ok: false, why: 'no_room' }
+    const state = await readLobby()
+    if (!state) return { ok: false, why: 'no_room' }
+    const seat = state.seats.find((s: any) => s.account === account)
+    if (!seat || !seat.rank) return { ok: false, why: 'no_match' }
+    const matchId = `${roomId}#${state.seed}`
+
+    const verdict = await verifyAd(requestId)
+    if (verdict === 'unverified') return { ok: false, why: 'not_watched' }
+
+    return $lock(`user:${account}`, async () => {
+      const grants: any[] = await $global.getCollectionItems('adGrants')
+      if (grants.some((g: any) => g.account === account && g.requestId === requestId)) {
+        return { ok: false, why: 'already' }
+      }
+      const st: any = await $global.getUserState(account)
+      const r: any = adReward(
+        st?.profile ?? null,
+        { placementId, matchId, rank: seat.rank, ranked: state.mode === 'ranked', dayKey: dayKeyOf(Date.now()) },
+        DATA,
+      )
+      if (!r.ok) return { ok: false, why: r.why }
+      await $global.addCollectionItem('adGrants', { account, requestId, placementId, matchId, at: Date.now() })
+      await $global.updateUserState(account, { profile: r.profile })
+      return { ok: true, xp: r.xp, profile: r.profile, verified: verdict }
     })
   }
 

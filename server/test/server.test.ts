@@ -72,6 +72,26 @@ describe('정찰 — 배치 공유', () => {
     expect(ok.ok).toBe(true);
   });
 
+  test('광고 보상 — 모르는 지면은 검증 전에 거절한다', async (server) => {
+    await server.joinLobby();
+    const r = await server.claimAdReward('revive-hero', 'req-1');
+    expect(r.ok).toBe(false);
+    expect(r.why).toBe('unknown_placement');
+  });
+
+  test('광고 보상 — 등수가 안 박힌 판에서는 줄 것이 없다', async (server) => {
+    await server.joinLobby();
+    const r = await server.claimAdReward('result-double', 'req-2');
+    expect(r.ok).toBe(false);
+    expect(r.why).toBe('no_match');
+  });
+
+  test('광고 보상 — requestId 가 글자가 아니면 거절한다', async (server) => {
+    await server.joinLobby();
+    const r = await server.claimAdReward('result-double', 42 as any);
+    expect(r.ok).toBe(false);
+    expect(r.why).toBe('bad_request');
+  });
   test('아바타가 서 있는 좌석은 실재해야 한다', async (server) => {
     await server.joinLobby();
     const out = await server.updateAvatar(0, 0, 99);

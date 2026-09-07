@@ -1819,7 +1819,17 @@
   #result .r .lp.down { color: #ff9a8c; }
   #result .r .lp.none { color: #7e7261; }
 
-  #result-close { align-self: center; min-width: 160px; }
+  #result .acts { align-self: center; display: flex; gap: 10px; align-items: center; }
+  #result-close { min-width: 160px; }
+  /* 광고 버튼. 나가기와 같은 줄, 금빛으로 — "덤"이라는 것이 보여야 한다. */
+  #result-ad {
+    min-width: 200px; padding: 6px 14px; border-radius: 6px;
+    font-size: 12px; font-weight: 800; color: #3b2a16;
+    background: linear-gradient(#ffe08a, #d9a12c); box-shadow: inset 0 -2px 0 #00000033;
+  }
+  #result-ad[hidden] { display: none; }
+  #result-ad:disabled { opacity: .55; cursor: default; }
+  #result-ad.done { background: #2e3f2b; color: #8fe3a4; box-shadow: inset 0 0 0 1px #8fe3a455; }
 
   /* ── 내 티어 띠 ────────────────────────────────────────
      "몇 점 올랐나"를 숫자로만 적으면 그게 많은지 적은지는 티어 문턱을 외운
@@ -2331,9 +2341,14 @@
       </div>
       <div class="me-band" id="result-band" hidden></div>
       <div id="result-rows"></div>
-      <button id="result-close" data-i18n="result.leave">나가기</button>
+      <div class="acts">
+        <!-- 광고 보상. SDK 가 없으면(로컬·미지원 환경) 버튼 자체가 안 뜬다 -->
+        <button id="result-ad" type="button" hidden></button>
+        <button id="result-close" data-i18n="result.leave">나가기</button>
+      </div>
     </div>
   </div>
+  <script src="https://unpkg.com/@verse8/ads@latest/dist/index.global.js" crossorigin="anonymous"></script>
   <div id="ghost"><img alt="" /></div>
   <div id="rotate" data-i18n="rotate">가로로 돌려주세요</div>
   <div id="boot">
