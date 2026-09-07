@@ -1385,15 +1385,12 @@ export async function createPrep({
     // 그 버튼을 누르면 "빈 땅"으로 보고 포인터를 잡았고, 잡힌 포인터는 버튼의
     // click 을 못 만들었다 — 버튼은 안 눌리고 아바타만 걸어갔다. 특정 id 를
     // 열거하는 대신 button 이면 전부 뺀다: 다음 버튼이 또 빠지는 일이 없게.
-    if (
-      ev.target.closest('button') ||
-      ev.target.closest('#shopbar') ||
-      ev.target.closest('#hudbar') ||
-      ev.target.closest('#top') ||
-      ev.target.closest('#info')
-    ) {
-      return
-    }
+    //
+    // **땅은 캔버스뿐이다.** 좌석 목록·HUD·상점·코치 같은 HTML 위를 짚은 것은
+    // 전부 그쪽 일이다. 전에는 빠뜨리면 안 되는 id 를 열거했는데, 하나 빠질
+    // 때마다 그 위를 누르면 아바타가 걸어갔다(좌석 목록이 그랬다). 캔버스가
+    // 아니면 손을 떼는 규칙 하나가 목록보다 낫다.
+    if (ev.target !== scene.renderer.domElement) return
     // 선반 아이템을 짚었으면 그 드래그를 시작하고 끝낸다 — 유닛 판정으로
     // 흘려보내지 않는다.
     const item = itemAtPointer(ev.clientX, ev.clientY)

@@ -16,7 +16,11 @@ const SPEED = 3.4
  * @param {object} o.scene   scene3d
  * @param {string} o.unitId  아바타로 쓸 모델. 나중에 코스메틱이 이걸 바꾼다
  */
-export async function createAvatar({ scene, data, avatarId, at = null, facing: face0 = 0 }) {
+/**
+ * @param {boolean} [o.mine] 내 아바타인가. 머리 위에 표식이 붙는다 — 판에
+ *   남의 아바타가 여럿 서 있으면 어느 것이 나인지 한눈에 안 보인다.
+ */
+export async function createAvatar({ scene, data, avatarId, at = null, facing: face0 = 0, mine = false }) {
   // 아바타는 몬스터가 아니다. 판 위 말과 같은 모델을 쓰면 어느 게 싸우는
   // 말인지 흐려지고, 무엇보다 **아바타는 싸우지 않는다**.
   const id = resolveAvatar(avatarId, data)
@@ -51,6 +55,26 @@ export async function createAvatar({ scene, data, avatarId, at = null, facing: f
     view.root.rotation.y = facing
   }
   place()
+
+  // 머리 위 화살표. 금빛 원뿔을 거꾸로 세워 살짝 떠 있게 한다 — 색만 다르게
+  // 하면 아바타 색과 섞이고, 테두리는 저해상도에서 안 읽힌다. 아바타에 붙여
+  // 두면 따로 좇을 것이 없다.
+  let mark = null
+  let markBase = 0
+  if (mine) {
+    const T = scene.THREE
+    const box = new T.Box3().setFromObject(view.root)
+    markBase = box.max.y - scene.topY + 0.35
+    mark = new T.Mesh(
+      new T.ConeGeometry(0.22, 0.4, 4),
+      new T.MeshBasicMaterial({ color: 0xffd166, depthTest: false }),
+    )
+    mark.rotation.x = Math.PI
+    mark.renderOrder = 20
+    mark.position.y = markBase
+    view.root.add(mark)
+  }
+  let markT = 0
 
   return {
     get position() {
@@ -104,6 +128,12 @@ export async function createAvatar({ scene, data, avatarId, at = null, facing: f
      * 손가락을 대면 목적지를 버리고 손이 시키는 대로 간다.
      */
     tick(dt) {
+      if (mark) {
+        // 살짝 떠올랐다 내려온다. 가만히 있으면 모델의 일부로 읽힌다.
+        markT += dt
+        mark.position.y = markBase + Math.sin(markT * 3) * 0.08
+        mark.rotation.y += dt * 1.5
+      }
       const before = { ...pos }
       // 조이스틱을 잡고 있으면 그 방향, 아니면 찍어 둔 목적지로 걸어간다.
       const dx = stick ? stick.dx : 0

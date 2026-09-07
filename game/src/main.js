@@ -238,6 +238,9 @@ try {
   // 끝나면 둘이 마주 보고 이긴 쪽이 한 방 날린다.
   let foe = null
   let foeId = null
+  // 지금 마주 서 있는 상대 좌석. 대결 중에 그 사람이 내 판을 구경하고 있으면
+  // 정찰 아바타로도 한 번 더 그려져 셋이 된다 — 대결 아바타가 그 사람이다.
+  let duelWith = null
 
   /**
    * 맞은 자리 위에 피해 숫자를 한 번 띄운다.
@@ -282,6 +285,7 @@ try {
    */
   async function setDuel(theirAvatarId) {
     const spot = duelSpots()
+    duelWith = run.opponentId
     // 마주 본다. 내 쪽은 위(-z), 상대는 아래(+z)를 향한다.
     avatar?.warpTo(spot.mine, Math.PI)
     avatar?.setVisible(true)
@@ -306,6 +310,7 @@ try {
   /** 전투가 끝나고 배치로 돌아간다. 상대 아바타는 치운다. */
   function clearDuel() {
     foe?.setVisible(false)
+    duelWith = null
   }
 
   /**
@@ -454,6 +459,9 @@ try {
     // 이 판에 와 있는 남들. 온 사람만 그린다.
     const hereNow = new Set()
     for (const p of mm?.avatarsOn?.(here) ?? []) {
+      // 나는 안 그린다(내 방송이 되돌아와도). 대결 상대도 안 그린다 — 그 사람은
+      // 이미 대결 자리에 서 있다. 둘 다 안 걸러 셋이 서 있던 적이 있다.
+      if (p.id === mySeatId() || (duelWith !== null && p.id === duelWith)) continue
       hereNow.add(p.id)
       const v = peerFor(p.id)
       if (!v) continue
@@ -836,7 +844,7 @@ try {
     prep.show()
     // 판이 선 뒤에 세운다 — 무대 범위(stageBounds)가 그때 정해진다.
     if (!avatar) {
-      createAvatar({ scene: prep.scene, data, avatarId: pickedAvatar() })
+      createAvatar({ scene: prep.scene, data, avatarId: pickedAvatar(), mine: true })
         .then((a) => {
           avatar = a
           // 개발 중 확인용. 아바타는 화면에만 있어 콘솔에서 잡을 손잡이가 없다.
