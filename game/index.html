@@ -830,6 +830,10 @@
       inset 0 1px 0 #ffffff1f,
       0 6px 18px #000000a6;
     font-size: 13px; line-height: 1.4; color: #f6ead0; text-shadow: 0 1px 2px #000a;
+    /* 한국어는 낱말 사이에서만 접는다. 기본값은 글자 어디서나 접어서
+       "합쳐진" / "다." 처럼 한 낱말이 두 줄에 걸린다. 띄어쓰기 없는 긴
+       토막(주소 같은 것)만 anywhere 로 받아 풍선 밖으로 안 새게 한다. */
+    word-break: keep-all; overflow-wrap: anywhere;
   }
   /* 말풍선 꼬리. 위쪽에서 내려온 말이라는 걸 도형 하나로 말한다. */
   #coach .bubble::before {
