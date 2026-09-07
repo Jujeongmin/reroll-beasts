@@ -180,19 +180,23 @@ export function priceOf(item, data) {
 export const avatarPrice = priceOf
 
 /**
- * 살 수 있나. 못 사면 왜인지 같이 준다.
+ * 살 수 있나. 못 사면 **왜인지 코드로** 같이 준다.
+ *
+ * 문장이 아니라 코드인 이유: 이 값은 화면에 그대로 뜬다. 한국어 문장을 여기서
+ * 만들면 영어로 보는 사람에게 한국어가 뜬다 — 무엇이 잘못됐는지는 규칙이 알고,
+ * 그것을 어느 말로 적을지는 화면이 안다.
  *
  * **서버가 이 함수로 검산한다.** 화면에서만 막으면 잠금은 장식이고, 조작된
  * 요청 하나로 젬 없이 아바타가 열린다.
  */
 export function canBuyCosmetic(item, owned = {}, data) {
-  if (!item) return { ok: false, why: '없는 물건' }
+  if (!item) return { ok: false, why: 'no_item' }
   const price = priceOf(item, data)
-  if (price == null) return { ok: false, why: '파는 물건이 아니다' }
-  if (owned.avatars?.includes(item.id)) return { ok: false, why: '이미 갖고 있다' }
+  if (price == null) return { ok: false, why: 'not_for_sale' }
+  if (owned.avatars?.includes(item.id)) return { ok: false, why: 'owned' }
   // 단계로 이미 열린 것을 다시 팔면 젬만 사라진다.
-  if (isUnlocked(item, owned, data)) return { ok: false, why: '이미 열렸다' }
-  if ((owned.gems ?? 0) < price) return { ok: false, why: '젬이 모자라다' }
+  if (isUnlocked(item, owned, data)) return { ok: false, why: 'unlocked' }
+  if ((owned.gems ?? 0) < price) return { ok: false, why: 'need_gems' }
   return { ok: true, price }
 }
 

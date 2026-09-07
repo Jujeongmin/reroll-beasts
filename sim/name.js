@@ -41,11 +41,11 @@ export function checkName(raw) {
   // 코드포인트로 센다 — 이모지는 어차피 OK 정규식에서 막히지만, 길이를 UTF-16
   // 단위로 세면 한 글자가 두 칸으로 잡히는 문자가 생긴다.
   const len = [...name].length
-  if (len < NAME_MIN) return { ok: false, why: `${NAME_MIN}자 이상` }
-  if (len > NAME_MAX) return { ok: false, why: `${NAME_MAX}자 이하` }
-  if (!OK.test(name)) return { ok: false, why: '한글·영문·숫자만' }
+  if (len < NAME_MIN) return { ok: false, why: 'name_short' }
+  if (len > NAME_MAX) return { ok: false, why: 'name_long' }
+  if (!OK.test(name)) return { ok: false, why: 'name_chars' }
   const low = name.toLowerCase()
-  if (RESERVED.some((w) => low.startsWith(w.toLowerCase()))) return { ok: false, why: '못 쓰는 이름' }
+  if (RESERVED.some((w) => low.startsWith(w.toLowerCase()))) return { ok: false, why: 'name_reserved' }
   return { ok: true, name }
 }
 

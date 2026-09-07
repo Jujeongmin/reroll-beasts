@@ -198,7 +198,7 @@ export function createHome({
   // 편의고, 막는 것은 서버다.
   el.nameInput.addEventListener('input', () => {
     const c = checkName(el.nameInput.value)
-    el.nameWhy.textContent = el.nameInput.value && !c.ok ? c.why : ''
+    el.nameWhy.textContent = el.nameInput.value && !c.ok ? t('why.' + c.why) : ''
   })
   el.nameInput.addEventListener('keydown', (ev) => {
     if (ev.key === 'Enter') saveName()
@@ -208,7 +208,7 @@ export function createHome({
   async function saveName() {
     const c = checkName(el.nameInput.value)
     if (!c.ok) {
-      el.nameWhy.textContent = c.why
+      el.nameWhy.textContent = t('why.' + c.why)
       return
     }
     const res = await onSetName?.(c.name)

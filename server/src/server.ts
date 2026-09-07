@@ -206,7 +206,7 @@ export class Server {
   async $onItemPurchased(event: any): Promise<any> {
     const account = event?.account
     const purchaseId = event?.purchaseId
-    if (!account || purchaseId == null) return { ok: false, why: '알 수 없는 결제' }
+    if (!account || purchaseId == null) return { ok: false, why: 'bad_purchase' }
 
     return $lock(`user:${account}`, async () => {
       const seenId = String(purchaseId)
@@ -267,7 +267,7 @@ export class Server {
       const profile = st?.profile
       // 한 판도 안 한 사람은 젬이 0 이라 어차피 못 산다. 없는 전적을 여기서
       // 만들지 않는다 — 전적은 판이 끝날 때만 생긴다.
-      if (!profile) return { ok: false, why: '아직 젬이 없다' }
+      if (!profile) return { ok: false, why: 'no_profile' }
       const item = cosmeticById(id, DATA)
       const owned = {
         gems: profile.gems ?? 0,
@@ -301,14 +301,14 @@ export class Server {
    */
   async claimMission(index: number): Promise<any> {
     const account = $sender.account
-    if (!Number.isInteger(index)) return { ok: false, why: '잘못된 요청' }
+    if (!Number.isInteger(index)) return { ok: false, why: 'bad_request' }
     return $lock(`user:${account}`, async () => {
       const st: any = await $global.getUserState(account)
       const profile = st?.profile
-      if (!profile) return { ok: false, why: '아직 미션이 없다' }
+      if (!profile) return { ok: false, why: 'no_missions' }
       const dayKey = dayKeyOf(Date.now())
       const r = claimMission(profile.missions ?? null, index, { dayKey, account }, DATA)
-      if (r.xp <= 0) return { ok: false, why: '아직 못 받는다', profile }
+      if (r.xp <= 0) return { ok: false, why: 'not_ready', profile }
       // 경험치는 패스에 얹는다. 단계가 오르면 젬도 같이 나온다 — 그 셈은
       // addPassXp 하나가 쥔다(순위로 오르는 길과 같은 함수다).
       const pass = addPassXp(profile.pass ?? null, r.xp, DATA)
@@ -396,15 +396,15 @@ export class Server {
   async surrender(): Promise<any> {
     const roomId = $sender.roomId
     const account = $sender.account
-    if (!roomId) return { ok: false, why: '방에 없다' }
+    if (!roomId) return { ok: false, why: 'no_room' }
 
     return $lock(`room:${roomId}`, async () => {
       const state = await readLobby()
-      if (!state) return { ok: false, why: '방이 없다' }
+      if (!state) return { ok: false, why: 'no_room' }
 
       const { changed, seatId } = concede(state, account)
       // 이미 죽었거나 없는 좌석이면 아무 일도 없다 — 두 번 눌러도 한 번이다.
-      if (!changed) return { ok: false, why: '이미 끝난 판이다' }
+      if (!changed) return { ok: false, why: 'already_done' }
 
       // 혼자 남으면 그 판은 거기서 끝난다. 마감과 같은 규칙이다.
       const survivors = state.seats.filter((s: any) => s.alive).length

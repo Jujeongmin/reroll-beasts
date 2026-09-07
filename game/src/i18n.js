@@ -204,6 +204,12 @@ export const STRINGS = {
 
     // ── 서버가 보내는 사유 ──
     'why.no_item': '없는 물건',
+    'why.bad_purchase': '알 수 없는 결제',
+    'why.no_missions': '아직 미션이 없다',
+    'why.name_short': '너무 짧다',
+    'why.name_long': '너무 길다',
+    'why.name_chars': '한글·영문·숫자만',
+    'why.name_reserved': '못 쓰는 이름',
     'why.not_for_sale': '파는 물건이 아니다',
     'why.owned': '이미 갖고 있다',
     'why.unlocked': '이미 열렸다',
@@ -400,6 +406,12 @@ export const STRINGS = {
     'settings.credits': 'Reroll Beasts · credits in CREDITS.md',
 
     'why.no_item': 'No such item',
+    'why.bad_purchase': 'Unknown purchase',
+    'why.no_missions': 'No missions yet',
+    'why.name_short': 'Too short',
+    'why.name_long': 'Too long',
+    'why.name_chars': 'Letters and digits only',
+    'why.name_reserved': 'That name is reserved',
     'why.not_for_sale': 'Not for sale',
     'why.owned': 'Already owned',
     'why.unlocked': 'Already unlocked',

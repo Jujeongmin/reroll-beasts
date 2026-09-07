@@ -249,7 +249,7 @@ describe('젬 상점', () => {
     }
     const res = await server.buyCosmetic('golden_knight');
     expect(res.ok).toBe(false);
-    expect(res.why).toContain('파는');
+    expect(res.why).toBe('not_for_sale');
   });
 
   test('젬이 모자라면 거절한다 — 화면이 아니라 여기서 막아야 한다', async (server) => {
