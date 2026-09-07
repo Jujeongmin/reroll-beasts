@@ -1,6 +1,6 @@
 import { describe, it, expect } from 'vitest'
 import { loadData } from '../sim/data.js'
-import { createLobbyState, resolveRound, prepMs, roundSeed } from '../sim/lobbyRound.js'
+import { createLobbyState, resolveRound, prepMs, roundSeed, markMine } from '../sim/lobbyRound.js'
 import { totalRounds } from '../sim/rounds.js'
 
 const data = await loadData()
@@ -204,5 +204,33 @@ describe('한 판을 끝까지', () => {
     }
     expect(s.phase).toBe('done')
     expect(guard).toBeLessThan(100)
+  })
+})
+
+describe('markMine — 내 좌석 찾기', () => {
+  const seats = () => [
+    { id: 0, account: '0xAAA', isBot: false },
+    { id: 1, account: null, isBot: true },
+    { id: 2, account: '0xBBB', isBot: false },
+  ]
+
+  // 사람이 여럿인 방에서 "사람 = 나" 로 치면 남의 좌석이 전부 내 좌석으로
+  // 표시된다. 그러면 순위표의 [나] 표시, 남의 판 구경, 정찰 갱신이 전부
+  // 엉뚱한 자리를 가리킨다.
+  it('내 계정 좌석 하나만 나다', () => {
+    const list = markMine(seats(), '0xBBB')
+    expect(list.map((s) => s.isPlayer)).toEqual([false, false, true])
+  })
+
+  it('대소문자가 달라도 같은 계정이다 — 지갑 주소 표기가 갈린다', () => {
+    expect(markMine(seats(), '0xbbb')[2].isPlayer).toBe(true)
+  })
+
+  it('내가 없는 방이면 아무 좌석도 내 것이 아니다 — 관전으로 들어올 수 있다', () => {
+    expect(markMine(seats(), '0xCCC').some((s) => s.isPlayer)).toBe(false)
+  })
+
+  it('계정을 모르면 아무 좌석도 안 집는다 — 남의 자리를 내 자리로 쓰느니 없는 편이 낫다', () => {
+    expect(markMine(seats(), null).some((s) => s.isPlayer)).toBe(false)
   })
 })

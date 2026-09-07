@@ -223,3 +223,23 @@ export function assignRanks(state, { final = false } = {}) {
 
   return out
 }
+
+/**
+ * 좌석 미러에 "이게 나다"를 박는다.
+ *
+ * **사람이면 나, 가 아니다.** 매치 방에는 사람이 여덟까지 앉는다 — 사람 전부에
+ * 표시를 붙이면 순위표의 [나] 도, 남의 판 구경도, 정찰 갱신도 전부 엉뚱한
+ * 자리를 가리킨다. 계정으로 가른다.
+ *
+ * 대소문자를 접는 이유: 지갑 주소는 같은 값이 대소문자만 달리 적혀 오는 일이
+ * 흔하다. 여기서 안 접으면 내 좌석을 못 찾고 남의 판을 내 판으로 쓴다.
+ *
+ * 제자리에서 고친다 — 이 배열은 화면이 그대로 읽는 미러다.
+ */
+export function markMine(seats, account) {
+  const me = account ? String(account).toLowerCase() : null
+  for (const seat of seats) {
+    seat.isPlayer = !!me && !!seat.account && String(seat.account).toLowerCase() === me
+  }
+  return seats
+}

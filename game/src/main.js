@@ -745,7 +745,9 @@ try {
     const onBack = () => settle(result, info)
     // 지금 무대에 올린 전투. 관전에서 돌아올 자리이자 정산의 근거다.
     run.fight = { result, onBack }
-    run.watchId = 0
+    // 내 판을 보고 있다는 표시. **0 이 아니라 내 좌석 번호다** — 매치 방에서
+    // 내 자리는 계정 순서로 정해지고 0 이 아닐 수 있다.
+    run.watchId = mySeatId()
 
     // 전투 중에는 코치를 내린다 — 시킬 게 없는데 "싸우자" 가 계속 떠 있으면
     // 아직 안 누른 줄 안다. 결과가 나오면 finish() 가 다시 올린다.
@@ -785,7 +787,7 @@ try {
    */
   function watchFight(seatId) {
     if (!run.fight) return
-    const mine = seatId === 0 || seatId === run.opponentId
+    const mine = seatId === mySeatId() || seatId === run.opponentId
     const f = mine ? null : (run.otherFights ?? []).find((x) => x.a === seatId || x.b === seatId)
     if (!mine && !f) return
     run.watchId = seatId
@@ -793,7 +795,7 @@ try {
     // 한 라운드의 전투는 동시에 벌어진다 — 보던 시점 그대로 남의 판을 본다.
     // 0 부터 다시 틀면 내 판으로 돌아왔을 때 이미 본 전투를 또 보게 된다.
     const boomOfSeat = (id) =>
-      id === 0 ? myBoomId() : run.lobby.find((x) => x.id === id)?.boom
+      id === mySeatId() ? myBoomId() : run.lobby.find((x) => x.id === id)?.boom
     const avatarOfSeat = (id) => run.lobby.find((x) => x.id === id)?.avatar
     // 남의 전투를 보면 그 판의 두 사람이 선다. 내 전투면 내 아바타 그대로다.
     setDuel(mine ? avatarOfSeat(run.opponentId) : avatarOfSeat(f.b))

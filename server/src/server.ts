@@ -20,9 +20,9 @@
  * 클라가 찾아올 때 판정한다. 동시 호출은 $lock 으로 한 번만 처리된다.
  */
 import { createLobbyState, resolveRound, assignRanks } from '../../sim/lobbyRound.js'
-import { mergeProfile } from '../../sim/profile.js'
-import { addLp, sortLeaderboard, rankOf } from '../../sim/rank.js'
-import { advancePass } from '../../sim/pass.js'
+import { applyMatchResult } from '../../sim/profile.js'
+import { sortLeaderboard, rankOf } from '../../sim/rank.js'
+import { sanitizeBoard } from '../../sim/submit.js'
 import {
   canBuyCosmetic,
   cosmeticById,
@@ -30,7 +30,7 @@ import {
   resolveAvatar,
   resolveBoom,
 } from '../../sim/cosmetics.js'
-import { purchaseGrant } from '../../sim/store.js'
+import { purchaseGrant, applyGrant } from '../../sim/store.js'
 import { checkName, displayName } from '../../sim/name.js'
 import { simulate } from '../../sim/combat.js'
 import { totalRounds } from '../../sim/rounds.js'
@@ -106,6 +106,18 @@ async function readLobby(): Promise<any | null> {
   return room.lobby ?? null
 }
 
+/**
+ * 방 상태를 고치는 **모든** 경로가 쓰는 락.
+ *
+ * 로비는 문서 하나다 — 배치·레벨·겉모습·마감이 전부 그 하나를 읽어서 통째로
+ * 다시 쓴다. 마감만 락을 쥐고 나머지가 안 쥐면, 마감이 도는 사이에 들어온
+ * 배치 한 번이 **라운드가 넘어간 판을 지난 라운드로 되돌린다**(체력·라운드가
+ * 같이 딸려 온다). 읽기-고치기-쓰기를 한 줄로 세우는 것이 유일한 답이다.
+ */
+function withRoom<T>(fn: () => Promise<T>): Promise<T> {
+  return $lock(`room:${$sender.roomId ?? 'none'}`, fn)
+}
+
 export class Server {
   async ping(): Promise<string> {
     return 'pong'
@@ -161,9 +173,14 @@ export class Server {
     const check: any = checkName(raw)
     if (!check.ok) return { ok: false, why: check.why }
     const account = $sender.account
-    const st: any = await $global.getMyState()
-    const profile = { ...(st?.profile ?? {}), name: check.name }
-    await $global.updateUserState(account, { profile })
+    // 계정 락. 프로필 문서 하나를 결제·정산·코스메틱 구매가 같이 고친다 —
+    // 락 없이 읽고 쓰면 그 사이에 들어온 젬이 이름 저장에 덮여 사라진다.
+    const profile = await $lock(`user:${account}`, async () => {
+      const st: any = await $global.getUserState(account)
+      const next = { ...(st?.profile ?? {}), name: check.name }
+      await $global.updateUserState(account, { profile: next })
+      return next
+    })
     return { ok: true, name: check.name, profile }
   }
 
@@ -178,15 +195,16 @@ export class Server {
    * 있다. purchaseId 를 컬렉션에 적어 두고, 이미 있으면 조용히 돌아간다 —
    * 없으면 재시도 한 번에 젬이 두 배로 들어간다.
    *
-   * $lock 은 계정 단위다. 젬 팩 두 개를 연달아 사면 두 훅이 같은 잔액을 읽어
-   * 하나가 사라진다.
+   * $lock 은 계정 단위다(`user:`). 젬 팩 두 개를 연달아 사면 두 훅이 같은
+   * 잔액을 읽어 하나가 사라진다. **프로필을 고치는 모든 경로가 같은 키를 쓴다** —
+   * 결제·구매·이름·겉모습·판 정산. 키가 갈리면 락이 없는 것과 같다.
    */
   async $onItemPurchased(event: any): Promise<any> {
     const account = event?.account
     const purchaseId = event?.purchaseId
     if (!account || purchaseId == null) return { ok: false, why: '알 수 없는 결제' }
 
-    return $lock(`purchase:${account}`, async () => {
+    return $lock(`user:${account}`, async () => {
       const seenId = String(purchaseId)
       // __id 로 못 찾는다 — addCollectionItem 은 제 id 를 붙이고 우리가 넣은
       // __id 는 그냥 필드가 된다. 그래서 필드로 찾는다.
@@ -200,19 +218,14 @@ export class Server {
       // 대시보드에만 있고 우리 표엔 없는 상품일 수 있다(운영이 먼저 등록한다).
       // 그 결제는 지급을 보류하되 **기록은 남긴다** — 나중에 표를 고치고
       // 손으로 채워 줄 수 있어야 한다.
+      //
+      // 반대로 **프로필이 없다는 이유로는 미루지 않는다.** 한 판도 안 하고
+      // 젬부터 산 사람이 딱 그 경우인데, 전에는 돈만 받고 아무것도 안 줬다.
+      // 게다가 결제 id 는 위에서 이미 처리 기록에 남아 재시도까지 중복으로
+      // 걸렀다 — 다시 받을 길이 없었다는 뜻이다. 계정은 여기서 서면 된다.
       const prev: any = await $global.getUserState(account)
-      const profile = prev?.profile ?? null
-      if (grant.known && profile) {
-        const next = {
-          ...profile,
-          gems: (profile.gems ?? 0) + grant.gems,
-          pass: {
-            ...(profile.pass ?? { xp: 0, level: 1 }),
-            premium: grant.premium || !!profile.pass?.premium,
-          },
-        }
-        await $global.updateUserState(account, { profile: next })
-      }
+      const next = applyGrant(prev?.profile ?? null, grant)
+      if (next) await $global.updateUserState(account, { profile: next })
       await $global.addCollectionItem('purchases', {
         purchaseId: seenId,
         account,
@@ -220,12 +233,12 @@ export class Server {
         quantity: event.quantity ?? 1,
         gems: grant.gems,
         premium: grant.premium,
-        // 전적이 없으면(한 판도 안 한 사람) 지급할 자리가 없다. 그 사실을
-        // 남겨야 나중에 왜 안 들어갔는지 알 수 있다.
-        applied: grant.known && !!profile,
+        // 우리 표에 없는 상품만 보류로 남는다. 그 사실을 적어 둬야 나중에
+        // 표를 고치고 손으로 채워 줄 수 있다.
+        applied: !!next,
         at: Date.now(),
       })
-      return { ok: true, applied: grant.known && !!profile }
+      return { ok: true, applied: !!next }
     })
   }
 
@@ -241,7 +254,7 @@ export class Server {
    */
   async buyCosmetic(id: string): Promise<any> {
     const account = $sender.account
-    return $lock(`buy:${account}`, async () => {
+    return $lock(`user:${account}`, async () => {
       const st: any = await $global.getMyState()
       const profile = st?.profile
       // 한 판도 안 한 사람은 젬이 0 이라 어차피 못 산다. 없는 전적을 여기서
@@ -398,7 +411,7 @@ export class Server {
     // 안내판은 지운다. 남겨 두면 다음 큐에서 이 방으로 또 끌려온다.
     await $global.updateMyState({ pendingRoom: null })
 
-    return $lock(`join:${roomId}`, async () => {
+    return $lock(`room:${roomId}`, async () => {
       const existing = await readLobby()
       if (existing) return existing
 
@@ -425,15 +438,20 @@ export class Server {
    * 지금 뭘 사고 어디에 두는지가 남들에게 보인다.
    */
   async updateBoard(board: Entry[]): Promise<{ ok: boolean }> {
-    const state = await readLobby()
-    if (!state) return { ok: false }
-    const seat = state.seats.find((s: any) => s.account === $sender.account)
-    if (!seat || !seat.alive) return { ok: false }
+    return withRoom(async () => {
+      const state = await readLobby()
+      if (!state) return { ok: false }
+      const seat = state.seats.find((s: any) => s.account === $sender.account)
+      if (!seat || !seat.alive) return { ok: false }
 
-    seat.board = Array.isArray(board) ? board.slice(0, 28) : []
-    await $room.updateRoomState({ lobby: state })
-    $room.broadcastToRoom('BOARD_CHANGED', { id: seat.id, board: seat.board })
-    return { ok: true }
+      // **거른다.** 이건 클라가 만들어 보내는 값이다. 전에는 28개로 자르기만
+      // 했다 — 없는 유닛 id 하나면 마감 계산이 예외를 내고 그 방 일곱 명이
+      // 같이 멈췄다. 인원 상한은 그 좌석의 레벨이다.
+      seat.board = sanitizeBoard(board, DATA, { cap: seat.level })
+      await $room.updateRoomState({ lobby: state })
+      $room.broadcastToRoom('BOARD_CHANGED', { id: seat.id, board: seat.board })
+      return { ok: true }
+    })
   }
 
   /**
@@ -458,14 +476,19 @@ export class Server {
 
   /** 레벨도 정찰 대상이다 — 상대 레벨이 다음 판 인원을 말한다. */
   async updateLevel(level: number): Promise<{ ok: boolean }> {
-    const state = await readLobby()
-    if (!state) return { ok: false }
-    const seat = state.seats.find((s: any) => s.account === $sender.account)
-    if (!seat) return { ok: false }
-    seat.level = Math.max(1, Math.min(9, Math.floor(level)))
-    await $room.updateRoomState({ lobby: state })
-    $room.broadcastToRoom('LEVEL_CHANGED', { id: seat.id, level: seat.level })
-    return { ok: true }
+    return withRoom(async () => {
+      const state = await readLobby()
+      if (!state) return { ok: false }
+      const seat = state.seats.find((s: any) => s.account === $sender.account)
+      if (!seat) return { ok: false }
+      seat.level = Math.max(1, Math.min(9, Math.floor(level)))
+      // 레벨이 내려가면 판에 선 인원이 상한을 넘을 수 있다. 넘친 만큼 뒤에서
+      // 자른다 — 안 자르면 레벨 1 로 여덟을 세우는 길이 남는다.
+      seat.board = sanitizeBoard(seat.board, DATA, { cap: seat.level })
+      await $room.updateRoomState({ lobby: state })
+      $room.broadcastToRoom('LEVEL_CHANGED', { id: seat.id, level: seat.level })
+      return { ok: true }
+    })
   }
 
   /**
@@ -480,36 +503,45 @@ export class Server {
    * 최고 티어 무대를 깔고 앉는다. 못 가진 것이면 조용히 기본값으로 떨어진다.
    */
   async updateLook(boardId: string, avatarId: string, boomId: string): Promise<any> {
-    const state = await readLobby()
-    if (!state) return { ok: false }
-    const seat = state.seats.find((s: any) => s.account === $sender.account)
-    if (!seat) return { ok: false }
+    const account = $sender.account
+    return withRoom(async () => {
+      const state = await readLobby()
+      if (!state) return { ok: false }
+      const seat = state.seats.find((s: any) => s.account === account)
+      if (!seat) return { ok: false }
 
-    const st: any = await $global.getMyState()
-    const profile = st?.profile
-    const owned = {
-      gems: profile?.gems ?? 0,
-      avatars: profile?.owned ?? [],
-      passLevel: profile?.pass?.level ?? 1,
-      lp: profile?.lp ?? 0,
-    }
-    const skin = resolveBoard(boardId, DATA, owned)
-    const avatar = resolveAvatar(avatarId, DATA, owned)
-    const boom = resolveBoom(boomId, DATA, owned)
-    if (seat.skin === skin && seat.avatar === avatar && seat.boom === boom) {
+      const st: any = await $global.getUserState(account)
+      const profile = st?.profile
+      const owned = {
+        gems: profile?.gems ?? 0,
+        avatars: profile?.owned ?? [],
+        passLevel: profile?.pass?.level ?? 1,
+        lp: profile?.lp ?? 0,
+      }
+      const skin = resolveBoard(boardId, DATA, owned)
+      const avatar = resolveAvatar(avatarId, DATA, owned)
+      const boom = resolveBoom(boomId, DATA, owned)
+      if (seat.skin === skin && seat.avatar === avatar && seat.boom === boom) {
+        return { ok: true, skin, avatar, boom }
+      }
+      seat.skin = skin
+      seat.avatar = avatar
+      seat.boom = boom
+      // 프로필에도 남긴다. 기기 저장소에만 두면 캐시를 지우거나 다른 기기로
+      // 옮기는 순간 산 것이 기본값으로 풀린다 — 산 물건은 계정에 붙어야 한다.
+      //
+      // 계정 락으로 다시 읽어 쓴다: 여기서 프로필을 읽은 뒤 쓰기까지 사이에
+      // 결제나 판 정산이 끼면, 위에서 읽은 옛 프로필이 그것을 덮는다.
+      await $lock(`user:${account}`, async () => {
+        const cur: any = await $global.getUserState(account)
+        await $global.updateUserState(account, {
+          profile: { ...(cur?.profile ?? {}), look: { board: skin, avatar, boom } },
+        })
+      })
+      await $room.updateRoomState({ lobby: state })
+      $room.broadcastToRoom('LOOK_CHANGED', { id: seat.id, skin, avatar, boom })
       return { ok: true, skin, avatar, boom }
-    }
-    seat.skin = skin
-    seat.avatar = avatar
-    seat.boom = boom
-    // 프로필에도 남긴다. 기기 저장소에만 두면 캐시를 지우거나 다른 기기로
-    // 옮기는 순간 산 것이 기본값으로 풀린다 — 산 물건은 계정에 붙어야 한다.
-    await $global.updateUserState($sender.account, {
-      profile: { ...(profile ?? {}), look: { board: skin, avatar, boom } },
     })
-    await $room.updateRoomState({ lobby: state })
-    $room.broadcastToRoom('LOOK_CHANGED', { id: seat.id, skin, avatar, boom })
-    return { ok: true, skin, avatar, boom }
   }
 
   /**
@@ -523,7 +555,7 @@ export class Server {
     const roomId = $sender.roomId
     if (!roomId) return null
 
-    return $lock(`round:${roomId}`, async () => {
+    return $lock(`room:${roomId}`, async () => {
       const state = await readLobby()
       if (!state) return null
 
@@ -539,21 +571,19 @@ export class Server {
       // 좌우하면 티어가 실력을 안 가리킨다.
       const scored = state.mode === 'ranked'
       for (const r of ranked) {
-        const prev: any = await $global.getUserState(r.account)
-        const profile = mergeProfile(prev?.profile ?? null, r.rank)
-        // 티어는 저장하지 않는다 — LP 에서 언제든 나오는 값이라, 같이 적어
-        // 두면 둘이 어긋날 자리를 하나 더 만드는 것뿐이다.
-        if (scored) profile.lp = addLp(prev?.profile?.lp ?? 0, r.rank)
-        else profile.lp = prev?.profile?.lp ?? 0
-        // 패스 경험치는 **일반 판에서도** 오른다(값은 절반). 랭크만 주면
-        // 일반 매치가 패스에 대해 죽은 경로가 되고, 랭크를 돌 실력이 안 되는
-        // 사람은 패스를 영영 못 올린다.
-        const nextPass = advancePass(prev?.profile?.pass ?? null, r.rank, DATA, { ranked: scored })
-        profile.pass = { xp: nextPass.xp, level: nextPass.level, premium: nextPass.premium }
-        // 젬은 증분만 받아 여기서 더한다 — 잔액 계산을 패스가 쥐면 패스와
-        // 지갑이 한 덩어리가 된다.
-        profile.gems = (prev?.profile?.gems ?? 0) + nextPass.earned
-        await $global.updateUserState(r.account, { profile })
+        // 계정 락으로 묶는다. 이 쓰기는 결제·코스메틱 구매와 **같은 프로필**을
+        // 건드린다 — 판이 끝나는 순간에 젬 팩이 들어오면 둘 중 하나가 통째로
+        // 사라진다. 방 락 안에서 계정 락을 잡는 순서는 여기 한 곳뿐이라
+        // 서로 기다리며 물리지 않는다.
+        const profile = await $lock(`user:${r.account}`, async () => {
+          const prev: any = await $global.getUserState(r.account)
+          // 전적·LP·패스·젬을 한 함수가 낸다. 전에는 여기서 전적 칸만 든
+          // 객체를 프로필로 저장해 **이름·산 아바타·고른 겉모습이 판마다
+          // 지워졌다.** 돈 주고 산 것이 사라지는 자리였다.
+          const next = applyMatchResult(prev?.profile ?? null, r.rank, DATA, { ranked: scored })
+          await $global.updateUserState(r.account, { profile: next })
+          return next
+        })
         // 순위표는 랭크 판에서만 갱신한다. 일반 판으로도 줄이 생기면 LP 0 인
         // 사람이 목록을 채워 "몇 등인가"가 아무 뜻도 없어진다.
         if (scored) await this.putLeaderboard(r.account, profile)

@@ -13,7 +13,7 @@
 
 import { GameServer } from '@agent8/gameserver/dist/src/server/GameServer'
 import { simulate } from '@sim/combat.js'
-import { roundPairs, fightSeed, growBotSeats } from '@sim/lobbyRound.js'
+import { roundPairs, fightSeed, growBotSeats, markMine } from '@sim/lobbyRound.js'
 import { pveBoard } from '@sim/rounds.js'
 import { createRng } from '@sim/rng.js'
 
@@ -100,10 +100,15 @@ export async function createServerMatchmaker({ data, server, roomId = null, time
   if (!state || !state.seats) throw new Error('로비 입장 실패')
 
   // 좌석 미러. prep 의 순위표가 그대로 읽는 배열이라 모양을 로컬판과 맞춘다.
-  for (const seat of state.seats) seat.isPlayer = !seat.isBot
+  // isPlayer 는 **나** 다(사람 전부가 아니다) — 매치 방에는 사람이 여덟까지
+  // 앉는다. 판정은 sim 의 markMine 이 한다.
+  markMine(state.seats, server.account)
 
   const seats = state.seats
   const mySeat = seats.find((s) => s.isPlayer)
+  // 내 좌석이 없으면 진행할 수 없다. 남의 좌석을 내 것으로 삼으면 그 사람
+  // 판에 내 말을 놓고, 정산도 그 사람 것으로 받는다 — 조용히 굴리면 안 된다.
+  if (!mySeat) throw new Error('로비에 내 좌석이 없다')
 
   // 이번 라운드 대진. round() 가 채우고 나머지가 읽는다.
   let pairs = []
@@ -114,6 +119,8 @@ export async function createServerMatchmaker({ data, server, roomId = null, time
   const myRoom = roomId ?? `solo-${server.account}`
   server.onRoomMessage(myRoom, 'BOARD_CHANGED', (m) => {
     const seat = seats[m.id]
+    // 내 좌석만 건너뛴다 — 내가 보낸 판이 되돌아온 것이라 이미 최신이다.
+    // 남(사람이든 봇이든)의 판은 **전부 받는다**. 이게 정찰이다.
     if (seat && !seat.isPlayer) seat.board = m.board
   })
   // 겉모습(무대·아바타). 남이 바꾸면 그 좌석에 붙여 둔다 — 구경 갔을 때

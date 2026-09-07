@@ -25,30 +25,42 @@ afterEach(() => {
   vi.useRealTimers()
 })
 
-/** 보낸 것을 그대로 적어 두는 가짜 서버. 로비 입장만 진짜처럼 답한다. */
-function fakeServer() {
+/**
+ * 보낸 것을 그대로 적어 두는 가짜 서버. 로비 입장만 진짜처럼 답한다.
+ *
+ * humans 는 사람이 앉은 좌석의 계정이다 — 매치 방에는 사람이 여덟까지 앉고,
+ * 그때 "어느 좌석이 나인가"가 계정으로만 갈린다.
+ */
+function fakeServer({ account = 'test', humans = null } = {}) {
   const calls = []
+  const people = humans ?? { 0: account }
   const seats = Array.from({ length: 8 }, (_, id) => ({
     id,
-    isBot: id !== 0,
+    account: people[id] ?? null,
+    isBot: !people[id],
     hp: 100,
     alive: true,
     streak: 0,
     board: [],
     level: 3,
   }))
+  const handlers = new Map()
   const server = {
-    account: 'test',
+    account,
     connected: true,
     async remoteFunction(fn, args, opts) {
       if (fn === 'joinLobby') return { seed: 1234, round: 1, seats, phase: 'prep', deadline: 0 }
       calls.push({ fn, args, throttle: opts?.throttle ?? null })
       return { ok: true }
     },
-    onRoomMessage() {},
+    onRoomMessage(room, kind, fn) {
+      handlers.set(kind, fn)
+    },
     onGlobalMessage() {},
   }
-  return { calls, server }
+  /** 서버가 방송한 것처럼 흘려 넣는다. */
+  const emit = (kind, msg) => handlers.get(kind)?.(msg)
+  return { calls, server, seats, emit }
 }
 
 const board = (tile) => [{ unitId: 'frog', star: 1, tile, items: [] }]
@@ -143,5 +155,39 @@ describe('정찰 송신', () => {
     const levels = calls.filter((c) => c.fn === 'updateLevel')
     expect(levels.map((c) => c.args[0])).toEqual([4, 5])
     expect(levels.every((c) => c.throttle > 0)).toBe(true)
+  })
+})
+
+describe('좌석 식별 — 매치 방', () => {
+  // 사람이 여럿인 방에서 "사람 = 나"로 치면 남의 좌석이 전부 내 좌석으로
+  // 표시된다. 순위표의 [나] 표시, 남의 판 구경, 정찰이 전부 어긋난다.
+  it('사람이 여덟이어도 내 좌석은 하나다', async () => {
+    const humans = Object.fromEntries(Array.from({ length: 8 }, (_, i) => [i, `acc${i}`]))
+    const { server, seats } = fakeServer({ account: 'acc5', humans })
+    await createServerMatchmaker({ data, server })
+    expect(seats.filter((s) => s.isPlayer).map((s) => s.id)).toEqual([5])
+  })
+
+  it('남의 배치가 들어온다 — 이게 정찰이다', async () => {
+    const humans = { 0: 'me', 1: 'you' }
+    const { server, seats, emit } = fakeServer({ account: 'me', humans })
+    await createServerMatchmaker({ data, server })
+
+    emit('BOARD_CHANGED', { id: 1, board: board(3) })
+    expect(seats[1].board).toEqual(board(3))
+  })
+
+  it('내 판이 되돌아와도 덮어쓰지 않는다 — 이미 내 화면이 최신이다', async () => {
+    const { server, seats, emit } = fakeServer({ account: 'me', humans: { 0: 'me' } })
+    await createServerMatchmaker({ data, server })
+
+    seats[0].board = board(1)
+    emit('BOARD_CHANGED', { id: 0, board: board(9) })
+    expect(seats[0].board).toEqual(board(1))
+  })
+
+  it('내가 없는 방이면 들어가지 않는다 — 남의 좌석으로 굴리느니 실패가 낫다', async () => {
+    const { server } = fakeServer({ account: 'me', humans: { 0: 'other' } })
+    await expect(createServerMatchmaker({ data, server })).rejects.toThrow('내 좌석')
   })
 })

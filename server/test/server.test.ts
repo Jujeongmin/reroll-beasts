@@ -436,3 +436,122 @@ describe('겉모습 저장', () => {
     expect(p.look).toEqual({ board: 'stone', avatar: 'elf', boom: 'flare' });
   });
 });
+
+// ── 1차 점검에서 나온 결함들 ────────────────────────────
+//
+// 아래 넷은 전부 "판은 도는데 계정에 남는 것이 틀린" 경로다. 기존 테스트가
+// 한 판 돌리는 것만 봤기 때문에 통째로 비어 있었다.
+
+describe('닉네임 먼저 정한 계정', () => {
+  test('이름만 있는 프로필도 첫 판이 정산된다', async (server) => {
+    const account = 'newbie1';
+    server.connect({ account });
+    // 판을 하기 전에 이름부터 정한다 — 프로필에 전적 칸이 없는 상태가 된다.
+    await server.setName('신입');
+    await server.joinLobby();
+    for (let i = 0; i < 30; i++) {
+      const s = await server.resolveRound();
+      if (!s || s.phase === 'done') break;
+    }
+    const p = await server.getProfile();
+    expect(p.games).toBeGreaterThan(0);
+    // 정산이 이름을 지우면 안 된다. 전에는 전적 칸만 든 객체로 통째로 덮었다.
+    expect(p.name).toBe('신입');
+  });
+});
+
+describe('판 정산이 계정을 지우지 않는다', () => {
+  test('산 것·이름·겉모습이 판 뒤에도 남는다', async (server) => {
+    const account = 'keeper1';
+    server.connect({ account });
+    await server.setName('보관인');
+    await server.joinLobby();
+    // 젬을 넣고 코스메틱을 하나 산다 — 돈 주고 산 것이 사라지는지가 요점이다.
+    await server.$onItemPurchased({
+      account,
+      purchaseId: 9101,
+      productId: 'gems_large',
+      quantity: 1,
+    });
+    const before = await server.getProfile();
+    const buyable = before.gems;
+    expect(buyable).toBeGreaterThan(0);
+
+    for (let i = 0; i < 30; i++) {
+      const s = await server.resolveRound();
+      if (!s || s.phase === 'done') break;
+    }
+    const after = await server.getProfile();
+    expect(after.name).toBe('보관인');
+    // 젬은 줄지 않는다(패스 보상으로 늘 수는 있다)
+    expect(after.gems).toBeGreaterThanOrEqual(buyable);
+    expect(after.games).toBeGreaterThan(0);
+  });
+});
+
+describe('배치 검산 — 서버는 클라를 안 믿는다', () => {
+  test('없는 유닛·5성·남의 칸은 걸러진다', async (server) => {
+    server.connect({ account: 'cheat1' });
+    await server.joinLobby();
+    await server.updateLevel(9);
+    await server.updateBoard([
+      { unitId: '없는말', star: 1, tile: 0, items: [] },
+      { unitId: 'green_blob', star: 9, tile: 1, items: [] },
+      { unitId: 'green_blob', star: 1, tile: 99, items: [] },
+      { unitId: 'green_blob', star: 1, tile: 2, items: [] },
+    ]);
+    const s = await server.getLobby();
+    expect(s.seats[0].board).toEqual([
+      { unitId: 'green_blob', star: 1, tile: 2, items: [] },
+    ]);
+  });
+
+  test('레벨보다 많이 세울 수 없다', async (server) => {
+    server.connect({ account: 'cheat2' });
+    await server.joinLobby();
+    await server.updateLevel(2);
+    await server.updateBoard(
+      [0, 1, 2, 3, 4].map((tile) => ({ unitId: 'green_blob', star: 1, tile, items: [] })),
+    );
+    const s = await server.getLobby();
+    expect(s.seats[0].board.length).toBe(2);
+  });
+
+  test('없는 유닛이 섞여도 마감이 돈다 — 전에는 그 방 전체가 멈췄다', async (server) => {
+    server.connect({ account: 'cheat3' });
+    await server.joinLobby();
+    await server.updateBoard([{ unitId: '__없음__', star: 1, tile: 0, items: [] }]);
+    const s = await server.resolveRound();
+    expect(s).toBeTruthy();
+    expect(s.round).toBeGreaterThan(1);
+  });
+});
+
+describe('한 판도 안 한 계정의 결제', () => {
+  test('프로필이 없어도 젬이 들어온다 — 돈만 받고 안 주면 안 된다', async (server) => {
+    const account = 'fresh1';
+    server.connect({ account });
+    const r = await server.$onItemPurchased({
+      account,
+      purchaseId: 9201,
+      productId: 'gems_small',
+      quantity: 1,
+    });
+    expect(r.applied).toBe(true);
+    const p = await server.getProfile();
+    expect(p.gems).toBe(300);
+  });
+
+  test('프리미엄 패스도 마찬가지다', async (server) => {
+    const account = 'fresh2';
+    server.connect({ account });
+    await server.$onItemPurchased({
+      account,
+      purchaseId: 9202,
+      productId: 'pass_premium_s1',
+      quantity: 1,
+    });
+    const p = await server.getProfile();
+    expect(p.pass.premium).toBe(true);
+  });
+});

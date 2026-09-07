@@ -40,3 +40,25 @@ export function storeProducts(data) {
     bonus: p.bonus ?? null,
   }))
 }
+
+/**
+ * 결제 하나를 프로필에 얹는다. 모르는 상품이면 null — 부르는 쪽이 "안 줬다"를
+ * 기록으로 남긴다.
+ *
+ * **프로필이 없어도 준다.** 전에는 없으면 건너뛰었는데, 한 판도 안 하고 젬부터
+ * 산 사람이 딱 그 경우다 — 돈은 받고 아무것도 안 줬고, 결제 id 는 이미 처리
+ * 기록에 남아 재시도까지 중복으로 걸렀다. 계정은 여기서 서면 된다.
+ *
+ * 모르는 칸은 그대로 넘긴다 — 이름·보유·전적이 결제 한 번에 지워지면 안 된다.
+ */
+export function applyGrant(profile, grant) {
+  if (!grant?.known) return null
+  const base = profile ?? {}
+  const pass = base.pass ?? { xp: 0, level: 1, premium: false }
+  return {
+    ...base,
+    gems: (base.gems ?? 0) + (grant.gems ?? 0),
+    // 프리미엄은 한 번 켜지면 안 꺼진다. 젬 팩을 뒤에 사도 유지돼야 한다.
+    pass: { ...pass, premium: !!grant.premium || !!pass.premium },
+  }
+}
