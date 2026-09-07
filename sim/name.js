@@ -5,7 +5,8 @@
 // 그대로 뜬다.
 //
 // 유일성은 여기서 안 본다 — 그건 전체 목록을 봐야 알 수 있어 순수 함수가
-// 아니다. 지금은 동명이인을 허용한다(순위표는 등수로 구분된다).
+// 아니다. 동명이인은 **허용하고 보이는 자리에서 가른다**: 같은 목록에 같은
+// 이름이 둘 이상이면 그 줄들에만 계정 꼬리를 붙인다(tagDuplicates).
 
 /** 화면에 들어가는 칸 기준. 이보다 길면 좌석 이름이 줄바꿈된다. */
 export const NAME_MIN = 2
@@ -65,4 +66,42 @@ export function displayName(profileName, account) {
   const c = checkName(profileName)
   if (c.ok) return c.name
   return `유저${String(account ?? '').slice(-4)}`
+}
+
+/**
+ * 계정 꼬리 네 자리. 겹치는 이름을 가르는 최소한의 표식이다.
+ *
+ * 계정 전체가 아니라 꼬리인 이유: 목록에 남의 지갑 주소를 뿌릴 이유가 없다.
+ * 네 자리는 같은 목록 안(최대 여덟 명, 순위표 열 줄)에서 겹치기 어렵다 —
+ * 세상 전체에서 유일하려는 값이 아니다.
+ */
+export function accountTag(account) {
+  return String(account ?? '').slice(-4)
+}
+
+/**
+ * 목록 안에서 **이름이 겹치는 사람에게만** 꼬리를 붙인다.
+ *
+ * 항상 붙이지 않는 이유: 겹치는 일은 드문데 늘 "고수#1234" 로 뜨면 이름이
+ * 이름으로 안 읽힌다. 문제는 "같은 목록에 같은 이름이 둘"일 때만 생기므로,
+ * 그때만 답하면 된다.
+ *
+ * 유일성 자체는 여기서 못 본다(전체 목록을 봐야 안다) — 이름은 겹치게 두고
+ * 보이는 자리에서만 가른다.
+ *
+ * @param {{text: string, tag?: string}[]} rows 이미 화면 글자로 푼 이름과 꼬리
+ * @returns {string[]} rows 와 같은 순서의 표시용 이름
+ */
+export function tagDuplicates(rows) {
+  const seen = new Map()
+  for (const r of rows ?? []) {
+    const k = String(r?.text ?? '')
+    seen.set(k, (seen.get(k) ?? 0) + 1)
+  }
+  return (rows ?? []).map((r) => {
+    const text = String(r?.text ?? '')
+    const tag = String(r?.tag ?? '')
+    // 꼬리가 없으면 붙일 것이 없다 — 봇에게는 계정이 없다.
+    return tag && seen.get(text) > 1 ? `${text}#${tag}` : text
+  })
 }

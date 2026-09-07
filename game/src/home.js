@@ -4,7 +4,7 @@
 // 밀어 넣는다. 홈이 SDK 를 알면 홈을 확인하려면 네트워크가 필요해진다.
 
 import { homeView } from './home-state.js'
-import { checkName, displayName } from '@sim/name.js'
+import { checkName, displayName, tagDuplicates } from '@sim/name.js'
 import { missionsFor, dayKeyOf } from '@sim/missions.js'
 import { t, textOf } from './i18n.js'
 import { avatarChoices, boardChoices, boomChoices } from '@sim/cosmetics.js'
@@ -696,11 +696,13 @@ export function createHome({
       el.boardRows.innerHTML = `<div class="empty">${t('board.empty')}</div>`
       return
     }
+    // 같은 이름이 두 줄 이상이면 그 줄들에만 계정 꼬리가 붙는다.
+    const shown = tagDuplicates(lb.top.map((r) => ({ text: r.name, tag: r.tag })))
     el.boardRows.innerHTML = lb.top
       .map(
-        (r) =>
+        (r, i) =>
           `<div class="row${r.mine ? ' mine' : ''}"><span class="no">${r.rank}</span>` +
-          `<span class="nm">${r.name}</span><span class="lp">${r.lp} LP</span></div>`,
+          `<span class="nm">${shown[i]}</span><span class="lp">${r.lp} LP</span></div>`,
       )
       .join('')
   }

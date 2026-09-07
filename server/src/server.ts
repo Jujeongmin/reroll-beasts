@@ -33,7 +33,7 @@ import {
   resolveBoom,
 } from '../../sim/cosmetics.js'
 import { purchaseGrant, applyGrant, paidAlready } from '../../sim/store.js'
-import { checkName, displayName } from '../../sim/name.js'
+import { checkName, displayName, accountTag } from '../../sim/name.js'
 import { simulate } from '../../sim/combat.js'
 import { totalRounds } from '../../sim/rounds.js'
 import combat from '../../game/public/data/combat.json'
@@ -491,6 +491,9 @@ export class Server {
         // 계정 전체를 넘기지 않는다 — 화면에 쓸 것도 아니고, 남의 지갑
         // 주소를 목록으로 뿌릴 이유가 없다.
         name: r.name ?? displayName(null, r.account),
+        // 이름은 겹칠 수 있다(유일성을 안 본다). 같은 이름이 두 줄 이상일 때
+        // 화면이 이 꼬리로 가른다 — 겹치지 않으면 쓰이지 않는다.
+        tag: accountTag(r.account),
         mine: r.account === me,
         lp: r.lp ?? 0,
         games: r.games ?? 0,

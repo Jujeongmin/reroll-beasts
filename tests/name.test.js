@@ -1,7 +1,7 @@
 // 닉네임 규칙. 서버가 이 함수로 검산하므로 여기서 못박는다 — 화면에서만
 // 막으면 조작된 요청 하나로 아무 이름이나 남의 화면에 뜬다.
 import { describe, it, expect } from 'vitest'
-import { checkName, normalizeName, displayName, NAME_MIN, NAME_MAX } from '../sim/name.js'
+import { checkName, normalizeName, displayName, NAME_MIN, NAME_MAX, tagDuplicates, accountTag } from '../sim/name.js'
 
 describe('normalizeName', () => {
   it('앞뒤 공백을 떼고 사이 공백은 하나로 줄인다', () => {
@@ -86,5 +86,41 @@ describe('낱자 이름', () => {
   it('옛한글 자모는 안 받는다 — 겹쳐 쌓여 줄 높이를 밀어낸다', () => {
     // U+1100(ᄀ) · U+1161(ᅡ) 은 호환 자모가 아니라 조합용 낱자다.
     expect(checkName('\u1100\u1161').why).toBe('name_chars')
+  })
+})
+
+describe('tagDuplicates', () => {
+  it('겹치지 않으면 아무것도 안 붙는다', () => {
+    expect(tagDuplicates([{ text: '고수', tag: '1234' }, { text: '하수', tag: 'abcd' }]))
+      .toEqual(['고수', '하수'])
+  })
+
+  it('같은 이름이 둘이면 그 둘에만 꼬리가 붙는다', () => {
+    expect(
+      tagDuplicates([
+        { text: '고수', tag: '1234' },
+        { text: '하수', tag: 'abcd' },
+        { text: '고수', tag: 'ef01' },
+      ]),
+    ).toEqual(['고수#1234', '하수', '고수#ef01'])
+  })
+
+  it('꼬리가 없으면 안 붙인다 — 봇에게는 계정이 없다', () => {
+    expect(tagDuplicates([{ text: '봇1' }, { text: '봇1' }])).toEqual(['봇1', '봇1'])
+  })
+
+  it('빈 목록도 견딘다', () => {
+    expect(tagDuplicates([])).toEqual([])
+    expect(tagDuplicates(null)).toEqual([])
+  })
+})
+
+describe('accountTag', () => {
+  it('계정 꼬리 네 자리다 — 주소 전체를 뿌리지 않는다', () => {
+    expect(accountTag('0xabcdef1234')).toBe('1234')
+  })
+
+  it('계정이 없으면 빈 값이다', () => {
+    expect(accountTag(null)).toBe('')
   })
 })

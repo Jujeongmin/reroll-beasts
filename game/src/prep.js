@@ -31,6 +31,7 @@ import { itemById } from '@sim/items.js'
 import { unitInfo, itemEffectText } from './unit-info.js'
 import { traitDetail } from './trait-info.js'
 import { standings } from '@sim/lobby.js'
+import { accountTag, tagDuplicates } from '@sim/name.js'
 import { createScene } from './scene3d.js'
 import { createThumbnailer } from './thumbs.js'
 import { reduceMotion } from './settings.js'
@@ -491,8 +492,13 @@ export async function createPrep({
     // 체력 내림차순. standings 가 그 순서로 준다.
     const ranked = standings(run.lobby)
     const maxHp = Math.max(1, data.economy.startHp)
+    // 이름은 겹칠 수 있다 — 규칙이 유일성을 안 본다. 같은 방에 같은 이름이
+    // 둘이면 그 둘에만 계정 꼬리를 붙인다. 겹치지 않으면 아무것도 안 붙는다.
+    const shown = tagDuplicates(
+      ranked.map((seat) => ({ text: textOf(seat.name), tag: accountTag(seat.account) })),
+    )
     el.lobby.replaceChildren(
-      ...ranked.map((seat) => {
+      ...ranked.map((seat, i) => {
         const d = document.createElement('div')
         d.className =
           'seat' +
@@ -507,12 +513,14 @@ export async function createPrep({
         d.style.setProperty('--hp', String(ratio))
         d.style.setProperty('--hc', hpColor(ratio))
         d.innerHTML =
-          `<span class="n">${textOf(seat.name)}</span>` +
+          `<span class="n">${shown[i]}</span>` +
           `<span class="h">${seat.hp}</span>` +
-          `<span class="av"><b>${seat.name.slice(0, 1)}</b></span>`
+          // 첫 글자는 **푼 이름**에서 뗀다. seat.name 은 봇이면 { ko, en }
+          // 객체라 여기에 slice 를 걸면 그 자리에서 터진다.
+          `<span class="av"><b>${shown[i].slice(0, 1)}</b></span>`
         const run3 = seat.lastWon === true && (seat.streak ?? 0) >= 3
         d.title =
-          t('seat.tip', { name: textOf(seat.name), hp: seat.hp }) +
+          t('seat.tip', { name: shown[i], hp: seat.hp }) +
           (run3 ? t('seat.streak', { n: seat.streak }) : '') +
           (seat.hp <= 0 ? t('seat.out') : '')
         d.addEventListener('click', () => {
