@@ -137,7 +137,7 @@ export function createSettings({ account, onSurrender, onReset }) {
       row('배경음', slider('bgm', bgmVolume())) +
       row('언어', '<span class="soon">한국어</span>') +
       row(
-        '움직임 줄이기',
+        '화면 효과 줄이기',
         `<button class="tg${motion ? ' on' : ''}" data-act="motion" type="button">` +
           `<i></i></button>`,
       ) +
