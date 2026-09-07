@@ -69,6 +69,20 @@ export const TUTORIAL_STEPS = [
     done: (state, { startLevel }) => state.level > startLevel,
   },
   {
+    id: 'reroll',
+    text: {
+      ko: '원하는 말이 없으면 상점을 새로고침하자. 골드 2가 든다.',
+      en: 'No unit you want? Reroll the shop. It costs 2 gold.',
+    },
+    target: '#reroll',
+    // 처음 상점에 없던 말이 하나라도 있으면 새로고침한 것이다. 사는 것은
+    // 칸을 비우기만 하지 새 말을 들이지 않는다 — 그래서 "상점이 달라졌나"가
+    // 아니라 "새 말이 왔나"를 본다.
+    done: (state, { startShop }) =>
+      // 상점 칸은 유닛 id 문자열이다(객체가 아니다).
+      Array.isArray(startShop) && state.shop.some((id) => id && !startShop.includes(id)),
+  },
+  {
     id: 'fight',
     text: { ko: '준비됐다. 싸워 보자.', en: "You're set. Time to fight." },
     target: null,

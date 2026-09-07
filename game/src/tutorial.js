@@ -73,7 +73,12 @@ export function createCoach({ run, onFight, onSkip }) {
 
   // 시작 레벨을 붙잡아 둔다. "레벨이 올랐나"는 시작값과 비교해야 한다 —
   // 데이터의 startLevel 을 읽으면 나중에 그 값이 바뀔 때 조용히 틀린다.
-  const ctx = { startLevel: run.state.level }
+  const ctx = {
+    startLevel: run.state.level,
+    // 새로고침 단계가 "처음에 없던 말이 왔나"로 판정한다. 그 처음을 여기서
+    // 박아 둔다 — 사는 동안 칸이 비어도 이 목록은 안 변한다.
+    startShop: run.state.shop.filter(Boolean),
+  }
 
   let lit = null
   let index = -1
