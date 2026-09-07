@@ -28,23 +28,31 @@ const DIR = 'assets/audio/'
  * "치고받는 중"은 그대로 전해진다.
  */
 const SFX = {
-  click: ['ui_click.ogg', 0.5, 40],
-  open: ['ui_open.ogg', 0.6, 0],
-  buy: ['ui_buy.ogg', 0.8, 0],
+  click: ['ui_click.ogg', 0.8, 40],
+  open: ['ui_open.ogg', 0.75, 0],
+  buy: ['ui_buy.ogg', 0.7, 0],
   error: ['ui_error.ogg', 0.6, 120],
   drop: ['ui_drop.ogg', 0.6, 60],
   merge: ['merge.ogg', 0.9, 0],
   hit: ['hit.ogg', 0.35, 70],
   death: ['death.ogg', 0.5, 90],
-  boom: ['boom.ogg', 0.8, 0],
+  boom: ['boom.ogg', 0.85, 0],
   win: ['win.ogg', 0.9, 0],
   lose: ['lose.ogg', 0.8, 0],
 }
 
-/** 배경음 표. 이름은 화면 이름이다. */
+/**
+ * 배경음 표. 이름은 화면 이름이고, `mix` 는 그 화면에서의 몫이다.
+ *
+ * 몫이 필요한 이유: 배경음 슬라이더는 하나인데 두 화면이 원하는 크기가 다르다.
+ * 홈은 들려야 하고, 판 안은 **거의 안 들리다시피** 깔려야 한다 — 판 안에서
+ * 곡이 또렷하면 타격음과 승급음이 그 위에 묻힌다.
+ *
+ * 곡이 여럿이면 들어올 때마다 하나 뽑는다.
+ */
 const BGM = {
-  home: 'bgm_home.ogg',
-  battle: 'bgm_battle.ogg',
+  home: { mix: 0.85, files: ['bgm_home.ogg'] },
+  battle: { mix: 0.5, files: ['bgm_battle_a.ogg', 'bgm_battle_b.ogg', 'bgm_battle_c.ogg'] },
 }
 
 // 첫 손짓 전에는 브라우저가 재생을 막는다. 막힌 채로 계속 시도하면 콘솔이
@@ -116,10 +124,17 @@ export function sfx(name, { gain = 1 } = {}) {
 // 쓰면 곡을 바꿀 때 소리가 뚝 끊겨서, 전투로 들어가는 순간이 "장면이 바뀐다"
 // 가 아니라 "뭔가 잘못됐다" 로 들린다.
 
-let cur = null // { name, el }
+/** @type {{name: string, el: HTMLAudioElement, mix: number} | null} */
+let cur = null
 let fading = null
+// 전투가 도는 동안에는 곡을 **멈춰 둔다**(끄는 게 아니다). 자리를 기억해야
+// 배치로 돌아왔을 때 곡이 이어지고, 매 라운드 도입부만 반복하지 않는다.
+let held = false
 
 const FADE_MS = 500
+// 멈추고 살아나는 건 더 빨라야 한다 — 전투가 시작될 때 반 초를 끄는 데
+// 쓰면 첫 타격음 위로 곡이 겹친다.
+const HOLD_MS = 260
 
 function fade(el, to, ms, done) {
   const from = el.volume
@@ -133,9 +148,15 @@ function fade(el, to, ms, done) {
   step()
 }
 
+/** 지금 곡이 향해야 할 크기. 설정 값에 그 곡의 몫을 곱한다. */
+const target = () => Math.max(0, Math.min(1, (bgmVolume() / 100) * (cur?.mix ?? 1)))
+
 function startBgm(name) {
-  const file = BGM[name]
-  if (!file) return
+  const row = BGM[name]
+  if (!row) return
+  // 여러 곡이면 **들어올 때마다 하나 뽑는다.** 판마다 같은 곡이면 세 판째에는
+  // 배경음이 아니라 알람으로 들린다.
+  const file = row.files[Math.floor(Math.random() * row.files.length)]
   const el = new Audio(DIR + file)
   el.loop = true
   el.preload = 'auto'
@@ -145,8 +166,10 @@ function startBgm(name) {
   } catch {
     return
   }
-  cur = { name, el }
-  fade(el, bgmVolume() / 100, FADE_MS)
+  cur = { name, el, mix: row.mix }
+  // 멈춰 둔 채로 다음 곡이 걸리는 경우가 있다(전투 중에 판을 나간다).
+  // 그때는 소리를 안 올린다 — 살아나는 건 bgmResume 이 한다.
+  if (!held) fade(el, target(), FADE_MS)
 }
 
 /**
@@ -177,10 +200,41 @@ export function bgm(name) {
   if (name) startBgm(name)
 }
 
+/**
+ * 곡을 잠깐 멈춘다. 전투가 도는 동안 쓴다.
+ *
+ * 끄지 않고 멈추는 이유: 전투는 한 판에 여러 번 돌고, 그때마다 곡을 다시
+ * 틀면 도입부만 계속 듣게 된다. 자리를 그대로 두고 소리만 내린다.
+ */
+export function bgmHold() {
+  held = true
+  if (!cur) return
+  const el = cur.el
+  fade(el, 0, HOLD_MS, () => {
+    // 멈추는 사이에 곡이 갈렸으면 남의 것을 세우지 않는다.
+    if (held && cur?.el === el) el.pause()
+  })
+}
+
+/** 멈춰 둔 곡을 되살린다. 배치로 돌아올 때 쓴다. */
+export function bgmRelease() {
+  held = false
+  if (!cur) return
+  try {
+    cur.el.play()?.catch(() => {})
+  } catch {
+    return
+  }
+  fade(cur.el, target(), FADE_MS)
+}
+
 /** 설정에서 볼륨을 움직였다. 지금 나는 곡에 바로 먹인다. */
 export function refreshVolumes() {
-  if (cur) cur.el.volume = Math.max(0, Math.min(1, bgmVolume() / 100))
+  // 멈춰 둔 곡은 0 이어야 한다 — 여기서 올리면 전투 중에 슬라이더를 만진
+  // 순간 곡이 되살아난다.
+  if (cur && !held) cur.el.volume = target()
 }
+
 
 /**
  * 첫 손짓을 기다린다. 부팅 때 한 번 부른다.
@@ -214,7 +268,10 @@ export function initAudio() {
 export const SFX_NAMES = Object.keys(SFX)
 export const BGM_NAMES = Object.keys(BGM)
 /** 표가 가리키는 파일이 실제로 있는지 볼 때 쓴다. */
-export const AUDIO_FILES = [...Object.values(SFX).map((r) => r[0]), ...Object.values(BGM)]
+export const AUDIO_FILES = [
+  ...Object.values(SFX).map((r) => r[0]),
+  ...Object.values(BGM).flatMap((r) => r.files),
+]
 
 /**
  * 지금 무슨 곡이 얼마 크기로 나고 있나. 브라우저에서 눈으로 못 보는 것을
@@ -222,4 +279,12 @@ export const AUDIO_FILES = [...Object.values(SFX).map((r) => r[0]), ...Object.va
  * 먹었나"를 귀 말고는 확인할 길이 없다.
  */
 export const bgmState = () =>
-  cur ? { name: cur.name, volume: Math.round(cur.el.volume * 100) / 100 } : null
+  cur
+    ? {
+        name: cur.name,
+        file: cur.el.src.split('/').pop(),
+        volume: Math.round(cur.el.volume * 100) / 100,
+        held,
+        paused: cur.el.paused,
+      }
+    : { name: null, held }

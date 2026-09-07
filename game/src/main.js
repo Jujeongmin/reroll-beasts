@@ -36,7 +36,7 @@ import { createAvatar } from './avatarView.js'
 import { createJoystick } from './joystick.js'
 import { createSettings, reduceMotion } from './settings.js'
 import { applyStatic, t } from './i18n.js'
-import { initAudio, sfx, bgm, refreshVolumes } from './audio.js'
+import { initAudio, sfx, bgm, bgmHold, bgmRelease, refreshVolumes } from './audio.js'
 import { createServerMatchmaker, connectServer, startQueue } from './serverMatchmaker.js'
 import { createPrep } from './prep.js'
 import { createBattle } from './battle.js'
@@ -897,6 +897,10 @@ try {
     // 아직 안 누른 줄 안다. 결과가 나오면 finish() 가 다시 올린다.
     coach?.hide()
     prep.hide()
+    // 전투 소리가 서는 자리를 비운다. 판 안 곡은 낮게 깔리지만, 그 위로
+    // 타격·죽음·폭발이 겹치면 무슨 소리가 났는지가 뭉갠다. 끄지 않고 멈추므로
+    // 배치로 돌아오면 곡이 이어진다(매 라운드 도입부만 듣게 되지 않는다).
+    bgmHold()
     // 두 아바타를 마주 세운다 — 끝에 한 방 주고받을 자리다.
     setDuel(run.lobby.find((x) => x.id === run.opponentId)?.avatar)
     await battle.load(result, {
@@ -1036,6 +1040,11 @@ try {
       location.reload()
       return
     }
+
+    // 전투가 끝났다. 멈춰 둔 곡을 되살린다 — 판이 끝났거나(위 두 갈래)
+    // 튜토리얼이 끝난 경우에는 여기까지 안 온다. 그때는 홈으로 가거나 화면을
+    // 다시 띄우므로 되살릴 곡이 없다.
+    bgmRelease()
 
     run.index += 1
     run.round = roundAt(run.index, data.rounds).label

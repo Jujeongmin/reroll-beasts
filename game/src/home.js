@@ -202,7 +202,10 @@ export function createHome({
     el.nameWhy.textContent = el.nameInput.value && !c.ok ? t('why.' + c.why) : ''
   })
   el.nameInput.addEventListener('keydown', (ev) => {
-    if (ev.key === 'Enter') saveName()
+    // 조합 중의 Enter 는 **글자를 확정하는 키**다. 한글을 치다 Enter 로
+    // 음절을 맺으면 그것으로 저장이 돌아가, 아직 두 글자가 안 됐다는 소리를
+    // 듣는다.
+    if (ev.key === 'Enter' && !ev.isComposing) saveName()
   })
   el.nameSave.addEventListener('click', () => saveName())
 

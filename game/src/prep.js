@@ -232,7 +232,7 @@ export async function createPrep({
     const color = hexColor(STAR_COLOR[w.star - 1] ?? STAR_COLOR[0])
     // 소리는 화면 효과를 줄인 사람에게도 난다 — 줄이라고 한 것은 움직임이지
     // 승급했다는 사실이 아니다. 3성은 한 판에 몇 번 없으니 더 크게 알린다.
-    sfx('merge', { gain: w.star >= 3 ? 1 : 0.75 })
+    sfx('merge', { gain: w.star >= 3 ? 1 : 0.85 })
     // 화면 효과를 줄이라고 한 사람에게는 **결론만** 보여 준다: 별이 올랐다는
     // 빛 한 장. 빨려듦·폭발·펀치는 이 판이 어떻게 되는지와 무관한 장식이다.
     if (reduceMotion()) {
@@ -1107,9 +1107,29 @@ export async function createPrep({
     Digit2: closePeek,
     Escape: closePeek,
   }
+  /**
+   * 지금 글자를 치고 있나.
+   *
+   * 단축키는 **글쇠 자리**(ev.code)로 잡는다 — 한글 자판에서도 같은 자리를
+   * 누르게 하려고 그렇게 했다. 그 대가로, 입력칸에 글자를 칠 때도 같은 자리가
+   * 눌린다: "안" 을 치면 ㅇ 이 KeyD 라 리롤이 돌고, 골드가 없으면 거절 소리가
+   * 난다. 스페이스는 preventDefault 때문에 아예 안 찍힌다.
+   *
+   * 조합 중(isComposing)도 같이 본다. 한글은 글자 하나가 여러 번의 keydown 으로
+   * 만들어지고, 그 사이의 키는 글쇠가 아니라 글자의 일부다.
+   */
+  const typing = (ev) => {
+    if (ev.isComposing) return true
+    const el = document.activeElement
+    if (!el) return false
+    const tag = el.tagName
+    return tag === 'INPUT' || tag === 'TEXTAREA' || el.isContentEditable
+  }
+
   addEventListener('keydown', (ev) => {
     // 키를 누른 채로 두면 repeat 가 초당 수십 번 들어온다 — 리롤이 골드를 쓸어간다.
     if (ev.repeat || ev.ctrlKey || ev.metaKey || ev.altKey) return
+    if (typing(ev)) return
     const act = KEYS[ev.code]
     if (!act) return
     // Space 는 기본이 스크롤이다.

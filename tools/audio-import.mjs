@@ -21,24 +21,31 @@ const OUT = join(ROOT, 'game', 'public', 'assets', 'audio')
 // **글자 그대로** 같아야 한다.
 const MAP = [
   // ── 조작음 (Kenney Interface Sounds, CC0) ──
-  ['kenney_interface-sounds/Audio/click_001.ogg', 'ui_click.ogg'],
-  ['kenney_interface-sounds/Audio/open_001.ogg', 'ui_open.ogg'],
-  ['kenney_interface-sounds/Audio/confirmation_001.ogg', 'ui_buy.ogg'],
+  ['kenney_interface-sounds/Audio/switch_002.ogg', 'ui_click.ogg'],
+  ['kenney_interface-sounds/Audio/scratch_003.ogg', 'ui_open.ogg'],
+  // 구매·승급은 둘 다 종이다. 같은 팩의 다른 타건이라 톤이 갈린다 —
+  // 구매는 한 번 맑게, 승급은 낮고 길게 울린다.
+  ['kenney_impact-sounds/Audio/impactBell_heavy_000.ogg', 'ui_buy.ogg'],
   ['kenney_interface-sounds/Audio/error_003.ogg', 'ui_error.ogg'],
   ['kenney_interface-sounds/Audio/drop_002.ogg', 'ui_drop.ogg'],
-  ['kenney_interface-sounds/Audio/bong_001.ogg', 'merge.ogg'],
+  ['kenney_impact-sounds/Audio/impactBell_heavy_001.ogg', 'merge.ogg'],
   // ── 전투음 (Kenney Impact Sounds, CC0) ──
   ['kenney_impact-sounds/Audio/impactPunch_medium_000.ogg', 'hit.ogg'],
   ['kenney_impact-sounds/Audio/impactSoft_heavy_000.ogg', 'death.ogg'],
-  ['kenney_impact-sounds/Audio/impactMetal_light_000.ogg', 'boom.ogg'],
+  ['kenney_impact-sounds/Audio/impactMining_000.ogg', 'boom.ogg'],
   // ── 짧은 곡 (Kenney Music Jingles, CC0) ──
   ['kenney_music-jingles/Audio/Steel jingles/jingles_STEEL00.ogg', 'win.ogg'],
   ['kenney_music-jingles/Audio/Steel jingles/jingles_STEEL08.ogg', 'lose.ogg'],
   // ── 배경음 (Abstraction Music Loop Bundle, CC0) ──
-  // 두 개만 쓴다. 하나가 2MB 라 여러 개를 넣으면 첫 화면이 그만큼 늦어진다 —
-  // 배경음은 필요할 때 받는다(audio.js 가 늦게 부른다).
+  // 판 안은 세 곡을 돌린다 — 들어올 때마다 하나 뽑는다. 한 곡이면 세 판째에
+  // 배경음이 아니라 알람으로 들린다. 전부 잔잔한 쪽이다: 판 안에서는 곡이
+  // 거의 안 들리다시피 깔려야 타격음이 그 위에 산다.
+  //
+  // 한 곡이 2MB 다. 첫 화면에서 받지 않는다 — audio.js 가 필요할 때 부른다.
   ['music-loop-bundle/Week 16 - Vacation Day CHILLOUT.ogg', 'bgm_home.ogg'],
-  ['music-loop-bundle/Week 17 - Alley Cat DUMPSTER PARTY.ogg', 'bgm_battle.ogg'],
+  ['music-loop-bundle/Week 19 - Dark Portents SHROUDED FUTURE.ogg', 'bgm_battle_a.ogg'],
+  ['music-loop-bundle/Week 24 - Pull Me Down DEEP WELL.ogg', 'bgm_battle_b.ogg'],
+  ['music-loop-bundle/Week 26 - Seaside CORAL REEF.ogg', 'bgm_battle_c.ogg'],
 ]
 
 await mkdir(OUT, { recursive: true })
