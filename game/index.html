@@ -1375,6 +1375,42 @@
     width: 116px; height: 20px; pointer-events: none;
     background: radial-gradient(50% 50% at 50% 50%, #000000aa 0%, #00000000 72%);
   }
+  /* 오늘의 미션. 패스 카드 **바로 위**에 둔다 — 미션 경험치가 그 게이지로
+     들어가므로 둘이 붙어 있어야 인과가 보인다. */
+  #home .missions {
+    position: absolute; right: 10px; bottom: 148px; width: 186px;
+    box-sizing: border-box; padding: 7px 12px 10px;
+    display: flex; flex-direction: column; gap: 5px;
+    border: 0;
+    background: url('/assets/ui/lobby_panel.png') center/100% 100% no-repeat;
+    image-rendering: pixelated; color: #f0e0bd; font-size: 10px;
+  }
+  #home .missions[hidden] { display: none; }
+  #home .missions .ttl {
+    font-size: 12px; font-weight: 900; color: #ffd98a; text-align: center;
+    text-shadow: 0 2px 0 #6b4a2a;
+  }
+  #home .missions .row { display: flex; flex-direction: column; gap: 2px; }
+  /* 받은 줄은 **사라지지 않고** 흐려진다 — 줄이 사라지면 오늘 뭘 했는지가
+     화면에서 지워진다. */
+  #home .missions .row.done { opacity: .45; }
+  #home .missions .line { display: flex; align-items: center; gap: 4px; line-height: 1.2; }
+  #home .missions .line b { font-weight: 400; }
+  #home .missions .line .n { margin-left: auto; opacity: .75; font-variant-numeric: tabular-nums; }
+  #home .missions .bar {
+    height: 5px; background: #00000066; box-shadow: inset 0 0 0 1px #00000059;
+  }
+  #home .missions .bar i {
+    display: block; height: 100%; background: linear-gradient(90deg, #ffd166, #ff9a3c);
+  }
+  #home .missions button {
+    margin-left: auto; border: 0; padding: 1px 7px; font: inherit; font-weight: 800;
+    color: #2a1d10; background: #ffd166; cursor: pointer;
+    transition: filter .12s, transform .12s;
+  }
+  #home .missions button:hover { filter: brightness(1.1); transform: translateY(-1px); }
+  #home .missions button:active { transform: translateY(1px); }
+
   /* 시즌 패스 요약. 누르면 트랙이 열린다. */
   #home .pass {
     position: absolute; right: 10px; bottom: 10px; width: 186px; height: 132px;
@@ -1767,6 +1803,12 @@
          WebGL 컨텍스트를 못 얻는 기기에서는 이게 그대로 남는다. -->
     <img class="hero" id="home-hero" alt="" />
     <div class="hero3d-mount" id="home-hero3d"></div>
+    <!-- 오늘의 미션. 목록은 서버에서 안 받는다 — 날짜와 계정으로 다시
+         계산한다(sim/missions.js). 진행도만 프로필에서 읽는다. -->
+    <div class="missions" id="home-missions" hidden>
+      <div class="ttl">오늘의 미션</div>
+      <div id="mission-rows"></div>
+    </div>
     <!-- 시즌 패스 요약. 누르면 트랙이 열린다. 단계와 게이지를 여기에 두는
          이유: 진행도가 안 보이면 눌러 볼 이유가 없다. -->
     <div class="pass" id="home-pass">

@@ -522,6 +522,20 @@ try {
       home.setQueue(null)
     },
     onRetry: () => connect(),
+    /** 미션 수령. 판정은 서버가 하고, 돌아온 프로필을 그대로 흘린다 —
+     *  젬·패스 단계가 같이 바뀐다. */
+    onClaimMission: async (index) => {
+      try {
+        const res = await server?.remoteFunction('claimMission', [index])
+        if (res?.profile) applyProfile(res.profile)
+        return res
+      } catch (err) {
+        // 서버가 그 함수를 아직 모를 수 있다(배포가 화면보다 늦는 경우).
+        // 던지면 버튼이 눌린 채로 굳는다 — 실패로 돌려 다시 누르게 둔다.
+        console.warn('미션 수령 실패:', err?.message)
+        return { ok: false, why: '지금은 못 받는다' }
+      }
+    },
     onPickedAvatar: () => resolveAvatar(pickedAvatar(), data, ownedNow()),
     onAvatarPortrait: (file) => prep.avatarPortrait(file),
     /**
@@ -688,6 +702,8 @@ try {
       return
     }
     home.setStatus('ready')
+    // 미션 추첨이 계정을 쓴다. 붙은 뒤에야 알 수 있는 값이다.
+    home.setAccount(server.account)
     // 전적은 홈에 머무는 동안 바뀌지 않는다 — 내 판이 끝나야 바뀌는데
     // 그때는 홈에 없다. 그래서 한 번만 받는다.
     try {

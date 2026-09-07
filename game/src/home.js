@@ -5,6 +5,7 @@
 
 import { homeView } from './home-state.js'
 import { checkName, displayName } from '@sim/name.js'
+import { missionsFor, dayKeyOf } from '@sim/missions.js'
 import { avatarChoices, boardChoices, boomChoices } from '@sim/cosmetics.js'
 import { storeProducts } from '@sim/store.js'
 import { seasonAt, daysLeft } from '@sim/season.js'
@@ -37,6 +38,7 @@ export function createHome({
   onPickedBoom,
   onStoreItems,
   onBuyPack,
+  onClaimMission,
 }) {
   const el = {
     root: document.getElementById('home'),
@@ -79,6 +81,8 @@ export function createHome({
     boardRows: document.getElementById('board-rows'),
     boardSub: document.getElementById('board-sub'),
     boardClose: document.getElementById('board-close'),
+    missions: document.getElementById('home-missions'),
+    missionRows: document.getElementById('mission-rows'),
     conn: document.getElementById('home-conn'),
     note: document.getElementById('home-note'),
     retry: document.getElementById('home-retry'),
@@ -99,7 +103,9 @@ export function createHome({
   // 플랫폼이 iframe URL 로 넣어 주는 값. 없으면 로컬 실행이다.
   const hasAuth = new URLSearchParams(location.search).has('auth')
 
-  let state = { status: 'connecting', profile: null, queue: null }
+  // account 는 서버에 붙은 뒤에 온다(setAccount). 미션 추첨이 이 값을 쓴다 —
+  // 없으면 남의 목록을 그리게 되므로 빈 문자열로 시작한다.
+  let state = { status: 'connecting', profile: null, queue: null, account: '' }
 
   el.menu.addEventListener('click', (ev) => {
     const btn = ev.target.closest('[data-mode]')
@@ -551,6 +557,55 @@ export function createHome({
   }
   el.retry.addEventListener('click', () => onRetry())
 
+  /**
+   * 오늘의 미션 세 줄.
+   *
+   * 목록은 **서버에서 안 받는다** — 날짜와 계정으로 다시 계산한다
+   * (sim/missions.js). 진행도만 프로필에서 읽는다. 서버가 없으면 카드를 안
+   * 띄운다: 미션은 계정에 쌓이는 값이라 로컬로 흉내 낼 수 없다.
+   */
+  function renderMissions() {
+    const ms = state.profile?.missions
+    if (!ms || !Array.isArray(ms.progress)) {
+      el.missions.hidden = true
+      return
+    }
+    el.missions.hidden = false
+    const list = missionsFor(ms.day ?? dayKeyOf(Date.now()), state.account, data)
+    el.missionRows.replaceChildren(
+      ...list.map((m, i) => {
+        const got = Math.min(ms.progress[i] ?? 0, m.target)
+        const full = got >= m.target
+        const claimed = !!ms.claimed?.[i]
+        const row = document.createElement('div')
+        row.className = 'row' + (claimed ? ' done' : '')
+        row.innerHTML =
+          `<div class="line"><b>${m.text}</b>` +
+          (full && !claimed
+            ? `<button data-claim="${i}">받기</button>`
+            : `<span class="n">${got}/${m.target}</span>`) +
+          '</div>' +
+          `<div class="bar"><i style="width:${Math.round((got / m.target) * 100)}%"></i></div>`
+        return row
+      }),
+    )
+  }
+
+  // 위임으로 받는다 — 줄은 다시 그릴 때마다 새로 만들어진다.
+  el.missionRows.addEventListener('click', async (ev) => {
+    const btn = ev.target.closest('[data-claim]')
+    if (!btn) return
+    // 두 번 눌러도 한 번만 간다. 판정은 서버가 다시 하지만, 두 번째 호출이
+    // 거절로 돌아오면 화면에 "못 받는다"가 뜬다.
+    btn.disabled = true
+    const res = await onClaimMission?.(Number(btn.dataset.claim))
+    if (res?.profile) state = { ...state, profile: res.profile }
+    // 못 받았으면 다시 누를 수 있어야 한다. 서버가 잠깐 끊겼을 수도 있는데
+    // 버튼이 굳으면 새로고침 말고는 길이 없다.
+    if (!res?.ok) btn.disabled = false
+    render()
+  })
+
   function render() {
     const v = homeView({ ...state, hasAuth, data })
 
@@ -601,6 +656,8 @@ export function createHome({
     el.passGems.textContent = String(state.profile?.gems ?? 0)
     showNextReward(prog.level)
 
+    renderMissions()
+
     el.note.textContent = v.notice ?? ''
     el.retry.hidden = state.status !== 'failed'
     // 할 말이 없으면 상자째 감춘다. 붙고 나면 적을 것이 없어서, 늘 띄워 두면
@@ -615,6 +672,11 @@ export function createHome({
     openName,
     setStatus(status) {
       state = { ...state, status }
+      render()
+    },
+    /** 계정. 미션 추첨이 이 값을 쓴다 — 서버에 붙은 뒤에 온다. */
+    setAccount(account) {
+      state = { ...state, account }
       render()
     },
     setProfile(profile) {
