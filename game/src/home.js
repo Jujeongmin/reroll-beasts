@@ -299,8 +299,8 @@ export function createHome({
     const list = skinList()
     const cur = currentId()
     el.skinsGems.textContent = String(ownedNow().gems)
-    for (const t of el.skinsTabs.querySelectorAll('[data-tab]')) {
-      t.classList.toggle('on', t.dataset.tab === skinTab)
+    for (const tab of el.skinsTabs.querySelectorAll('[data-tab]')) {
+      tab.classList.toggle('on', tab.dataset.tab === skinTab)
     }
     el.skinsGrid.innerHTML = list
       .map((c) => {
@@ -387,9 +387,9 @@ export function createHome({
   }
 
   el.skinsTabs.addEventListener('click', (ev) => {
-    const t = ev.target.closest('[data-tab]')
-    if (!t || t.dataset.tab === skinTab) return
-    skinTab = t.dataset.tab
+    const tab = ev.target.closest('[data-tab]')
+    if (!tab || tab.dataset.tab === skinTab) return
+    skinTab = tab.dataset.tab
     skinPick = null
     drawSkins()
   })
@@ -507,16 +507,19 @@ export function createHome({
       ? t('pass.unlocked')
       : t('pass.locked')
     el.passRows.innerHTML = track
-      .map((t) => {
+      // 칸 이름을 slot 으로 둔다. t 라고 부르면 i18n 의 t 를 가려서,
+      // **잠긴 칸을 그리는 순간** t('pass.lockTip') 이 슬롯 객체를 부른다 —
+      // 패스 창이 통째로 안 열린다.
+      .map((slot) => {
         // 칸은 셋 중 하나다: **받았다 · 아직이다 · 잠겼다.**
         // 받은 것과 아직인 것이 똑같이 보이면 "내가 저걸 받았던가"를 트랙에서
         // 알 수 없고, 그러면 진행도 화면이 진행도를 말하지 않는다.
-        const shut = !t.free && !bought
-        const done = t.reached && !shut
+        const shut = !slot.free && !bought
+        const done = slot.reached && !shut
         return (
-          `<div class="step${t.reached ? ' got' : ''}${shut ? ' shut' : ''}` +
-          `${t.free ? ' open' : ''}${done ? ' done' : ''}">` +
-          `<div class="lv">${t.level}</div>${cell(t)}` +
+          `<div class="step${slot.reached ? ' got' : ''}${shut ? ' shut' : ''}` +
+          `${slot.free ? ' open' : ''}${done ? ' done' : ''}">` +
+          `<div class="lv">${slot.level}</div>${cell(slot)}` +
           (shut ? `<i class="lock" title="${t('pass.lockTip')}"></i>` : '') +
           '</div>'
         )

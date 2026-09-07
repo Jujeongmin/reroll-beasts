@@ -91,7 +91,7 @@ export function startQueue({ server, mode, data, onUpdate, onMatched }) {
  * roomId 를 주면 그 매치 방(사람들이 모인 방), 없으면 1인 방(봇 7). 1인 방은
  * 지금 홈에서 못 들어가지만 서버 함수가 살아 있다 — 튜토리얼이 그 위에 선다.
  */
-export async function createServerMatchmaker({ data, server, roomId = null, timeoutMs = 3500 }) {
+export async function createServerMatchmaker({ data, server, roomId = null, timeoutMs = 3500, onSeats = null }) {
   server = server ?? (await connectServer({ timeoutMs }))
 
   const state = roomId
@@ -144,6 +144,9 @@ export async function createServerMatchmaker({ data, server, roomId = null, time
       // 등수는 서버만 안다(죽는 자리에서 박는다). 결과판이 이 값을 읽는다.
       seat.rank = s.rank ?? null
     }
+    // 좌석이 갱신됐다고 알린다. 결과판이 이걸 기다린다 — 내 체력이 0 이 된
+    // 순간과 서버가 등수를 박는 순간은 같지 않다.
+    onSeats?.(seats)
   })
 
   /**
@@ -216,6 +219,10 @@ export async function createServerMatchmaker({ data, server, roomId = null, time
    */
   function pushBoard(entries) {
     boardScout.cancel()
+    // 내 좌석에도 적는다. 남의 판은 BOARD_CHANGED 로 미러에 들어오지만 내 판은
+    // 내가 보낸 것이 되돌아와도 건너뛴다(이미 최신이라고) — 그래서 결과판이
+    // 내 줄만 "판이 비었다" 로 그렸다. 서버에 보내는 그 값을 그대로 둔다.
+    mySeat.board = entries
     return server.remoteFunction('updateBoard', [entries]).catch(() => {})
   }
 
@@ -314,6 +321,7 @@ export async function createServerMatchmaker({ data, server, roomId = null, time
 
     /** 배치 중 실시간 정찰. 남이 내 자리를 열어 두고 있으면 이 경로로 보인다. */
     pushBoardLive(entries) {
+      mySeat.board = entries
       boardScout.push(entries)
     },
 

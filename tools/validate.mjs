@@ -365,6 +365,10 @@ export async function validate(data) {
   // 둘 다 "왜 이것만 소리가 안 나지"로 한참 뒤에 발견된다.
   errors.push(...(await audioErrors()))
 
+  // 29. i18n 의 t 를 가리는 지역 이름. 가린 자리에서 t() 를 부르면 그 화면이
+  //     통째로 안 뜨는데, 가려도 안 부르면 우연히 멀쩡해서 안 보인다.
+  errors.push(...shadowErrors())
+
   return errors
 }
 
@@ -410,6 +414,41 @@ async function audioErrors() {
     }
     for (const n of calls(text, "bgm('")) {
       if (!bgmNames.has(n)) errors.push(`${file} 가 없는 배경음 "${n}" 를 부른다`)
+    }
+  }
+  return errors
+}
+
+/**
+ * 화면 코드가 i18n 의 `t` 를 지역 이름으로 가리고 있나.
+ *
+ * 이 검사가 있는 이유: 한 판을 통째로 날린 버그가 이 종류였다. 결과판을 담은
+ * `result` 를 `settle(result, info)` 의 매개변수가 가려서, **판이 끝나는 그
+ * 순간에만** 터졌다. 패스 트랙의 `.map((t) => …)` 도 같았다 — 잠긴 칸을
+ * 그릴 때만 터져서 창이 통째로 안 열렸다.
+ *
+ * 가려도 그 안에서 안 부르면 우연히 멀쩡하다. 그 우연이 문제다: 한 줄만
+ * 더하면 같은 길로 가는데, 그때는 원인이 그 줄에 안 보인다.
+ */
+function shadowErrors() {
+  const errors = []
+  const IMPORTS_T = /import\s*\{[^}]*\bt\b[^}]*\}\s*from\s*'\.\/i18n\.js'/
+  // 지역에 t 를 만드는 꼴들. 화살표 매개변수 · 선언 · for 문.
+  const SHADOWS = [
+    ['(t)', '화살표 매개변수'],
+    ['(t,', '매개변수'],
+    [', t)', '매개변수'],
+    ['const t =', '선언'],
+    ['let t =', '선언'],
+    ['for (const t ', 'for 문'],
+    ['for (let t ', 'for 문'],
+  ]
+  for (const file of readdirSync(SRC_DIR)) {
+    if (!file.endsWith('.js')) continue
+    const text = readFileSync(SRC_DIR + file, 'utf8')
+    if (!IMPORTS_T.test(text)) continue
+    for (const [needle, what] of SHADOWS) {
+      if (text.includes(needle)) errors.push(`${file} 가 i18n 의 t 를 ${what}로 가린다 ("${needle}")`)
     }
   }
   return errors

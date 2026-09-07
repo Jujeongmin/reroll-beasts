@@ -106,7 +106,7 @@ export async function createPrep({
   const localToField = []
   for (const row of allyRows) {
     for (let col = 0; col < data.combat.board.rows[row]; col++) {
-      localToField.push(scene.board.tiles.findIndex((t) => t.row === row && t.col === col))
+      localToField.push(scene.board.tiles.findIndex((tile) => tile.row === row && tile.col === col))
     }
   }
   const fieldToLocal = new Map(localToField.map((f, i) => [f, i]))
@@ -206,8 +206,8 @@ export async function createPrep({
 
   function spotOf(w) {
     if (w.where === 'board') {
-      const t = tileXZ(w.index)
-      return { x: t.x, y: scene.topY, z: t.z }
+      const tile = tileXZ(w.index)
+      return { x: tile.x, y: scene.topY, z: tile.z }
     }
     return scene.benchSpot(w.index)
   }
@@ -310,17 +310,17 @@ export async function createPrep({
   /** 짧은 연출을 늙힌다. 루프가 부른다. */
   function tickTweens(dt) {
     for (let i = tweens.length - 1; i >= 0; i--) {
-      const t = tweens[i]
-      if (t.wait > 0) {
-        t.wait -= dt
-        if (t.wait > 0) continue
-        t.start?.()
+      const tw = tweens[i]
+      if (tw.wait > 0) {
+        tw.wait -= dt
+        if (tw.wait > 0) continue
+        tw.start?.()
       }
-      t.age = (t.age ?? 0) + dt
-      const k = Math.min(1, t.age / t.life)
-      t.step?.(k)
+      tw.age = (tw.age ?? 0) + dt
+      const k = Math.min(1, tw.age / tw.life)
+      tw.step?.(k)
       if (k >= 1) {
-        t.done?.()
+        tw.done?.()
         tweens.splice(i, 1)
       }
     }
@@ -454,9 +454,9 @@ export async function createPrep({
         return
       }
       const field = localToField[e.tile]
-      const t = field === undefined ? null : scene.board.tiles[field]
-      if (!t) continue
-      v.root.position.set(t.x, scene.topY, t.z)
+      const tile = field === undefined ? null : scene.board.tiles[field]
+      if (!tile) continue
+      v.root.position.set(tile.x, scene.topY, tile.z)
       v.root.rotation.y = 0
       const worn = e.items ?? []
       if (e.star > 1 || worn.length > 0) {
@@ -638,8 +638,8 @@ export async function createPrep({
   const traitIcon = (id) => `url('/assets/ui/trait_${id}.png')`
 
   function traitLabel(id) {
-    const t = [...data.traits.origins, ...data.traits.classes].find((x) => x.id === id)
-    return t ? textOf(t.name) : id
+    const trait = [...data.traits.origins, ...data.traits.classes].find((x) => x.id === id)
+    return trait ? textOf(trait.name) : id
   }
 
   /**
@@ -788,10 +788,10 @@ export async function createPrep({
     if (!at || at.where !== 'board') return null
     const from = localToField[at.index]
     const out = new Set()
-    for (let t = 0; t < simBoard.tileCount; t++) {
+    for (let tile = 0; tile < simBoard.tileCount; tile++) {
       const d = simBoard.dist[from][t]
       // 자기 칸은 뺀다 — "닿는 범위" 를 보여주는 것이지 서 있는 자리가 아니다
-      if (d > 0 && d <= range) out.add(t)
+      if (d > 0 && d <= range) out.add(tile)
     }
     return out
   }

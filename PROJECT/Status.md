@@ -63,7 +63,7 @@
   새로 읽어 슬라이더가 끄는 동안 바로 들린다. 파일 반입은
   `tools/audio-import.mjs` 의 표가 단일소스다(ogg 그대로 — 변환기가 없다)
 
-`npm run check` — 불변식 28종 + 테스트 690개(40 파일).
+`npm run check` — 불변식 29종 + 테스트 690개(40 파일).
 `npx -y @agent8/gameserver-node test` — 54개.
 
 ## Not Implemented

@@ -513,7 +513,7 @@ try {
   const bootBar = boot.querySelector('.bar i')
   const bootPct = boot.querySelector('.pct')
   const bootWalker = boot.querySelector('#boot-walker')
-  await prep.preload((t) => {
+  await prep.preload((done) => {
     const pct = Math.round(t * 100)
     if (bootBar) bootBar.style.width = `${pct}%`
     if (bootPct) bootPct.textContent = `${pct}%`
@@ -557,7 +557,10 @@ try {
    * 나가면 화면을 다시 띄운다 — 남은 판 상태를 손으로 되돌리는 것보다
    * 확실하다(튜토리얼을 끝냈을 때, 항복했을 때 쓰는 방식과 같다).
    */
-  const result = createResult({
+  // 이름을 resultView 로 둔다. settle(result, info) 의 매개변수가 전투 결과라
+  // 여기서 result 라고 부르면 그 안에서 이 창을 못 본다 — 판이 끝나는 그
+  // 순간에만 터지는 종류의 어긋남이다.
+  const resultView = createResult({
     data,
     thumbFor: (id, star) => prep.thumbFor(id, star),
     onClose: () => location.reload(),
@@ -854,7 +857,17 @@ try {
         queue = null
         home.setQueue(null)
         try {
-          enterGame(await createServerMatchmaker({ data, server, roomId }), mode)
+          enterGame(
+            await createServerMatchmaker({
+              data,
+              server,
+              roomId,
+              // 등수는 내 체력이 0 이 되는 순간이 아니라 서버가 박는 순간에
+              // 온다. 결과판이 이미 떠 있으면 그 자리에서 다시 그린다.
+              onSeats: (seats) => resultView.seatsChanged(seats),
+            }),
+            mode,
+          )
         } catch (err) {
           console.warn('방 입장 실패:', err?.message)
           home.setStatus('failed')
@@ -1060,7 +1073,7 @@ try {
     if (s.hp <= 0 || mine?.rank || run.index >= totalRounds(data.rounds)) {
       // 곡은 멈춘 채로 둔다. 결과판이 뜨는 자리에 판 음악이 다시 깔리면
       // 판이 아직 안 끝난 것처럼 들린다.
-      result.open({
+      resultView.open({
         seats: run.lobby,
         mySeatId: mySeatId(),
         // LP 는 랭크 판에서만 움직인다. 일반 판에 0 을 적으면 움직였는데

@@ -174,6 +174,10 @@ export function createResult({ data, thumbFor, onClose }) {
     el.band.hidden = false
   }
 
+  // 마지막으로 띄운 인자. 등수가 늦게 와도 같은 화면을 다시 그리려면
+  // 무엇으로 그렸는지를 들고 있어야 한다.
+  let shown = null
+
   return {
     /**
      * @param {object} o
@@ -183,7 +187,26 @@ export function createResult({ data, thumbFor, onClose }) {
      * @param {boolean} o.won 내가 1등인가
      * @param {number} o.lp 판에 들어가기 전 내 LP
      */
-    open({ seats, mySeatId, ranked = false, won = false, lp = 0 }) {
+    open(args) {
+      shown = args
+      draw(args)
+    },
+
+    /**
+     * 좌석이 갱신됐다. **떠 있을 때만** 다시 그린다.
+     *
+     * 내 체력이 0 이 되는 순간과 서버가 등수를 박는 순간은 같지 않다 —
+     * 화면은 곧장 뜨고, 등수와 LP 는 한 박자 뒤에 온다. 그때 다시 안 그리면
+     * 여덟 줄이 영영 `–` 로 남는다.
+     */
+    seatsChanged(seats) {
+      if (!shown || el.root.hidden) return
+      shown = { ...shown, seats }
+      draw(shown)
+    },
+  }
+
+  function draw({ seats, mySeatId, ranked = false, won = false, lp = 0 }) {
       const rows = order(seats ?? [])
       const me = rows.find((s) => s.id === mySeatId)
       // 이름은 겹칠 수 있다. 같은 목록에 같은 이름이 둘이면 그 줄들에만 꼬리.
@@ -208,9 +231,12 @@ export function createResult({ data, thumbFor, onClose }) {
         ...rows.map((seat, i) => rowFor(seat, labels[i], seat.id === mySeatId, ranked)),
       )
 
-      el.root.classList.remove('closing')
-      el.root.hidden = false
-      sfx(won ? 'win' : 'lose')
-    },
+      // 소리와 애니메이션은 처음 뜰 때만. 등수가 늦게 와서 다시 그릴 때마다
+      // 팡파르가 울리면 판이 여러 번 끝난 것처럼 들린다.
+      if (el.root.hidden) {
+        el.root.classList.remove('closing')
+        el.root.hidden = false
+        sfx(won ? 'win' : 'lose')
+      }
   }
 }

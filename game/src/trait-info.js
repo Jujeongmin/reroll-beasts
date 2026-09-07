@@ -3,7 +3,7 @@
 // 언젠가 반드시 어긋난다. 여기서 수치를 읽어 문장을 만든다.
 
 const TICK_RATE = 30
-const sec = (t) => (t / TICK_RATE).toFixed(1).replace(/\.0$/, '')
+const sec = (ticks) => (ticks / TICK_RATE).toFixed(1).replace(/\.0$/, '')
 import { t, textOf } from './i18n.js'
 
 const signed = (n) => (n > 0 ? `+${n}` : `${n}`)
@@ -65,7 +65,7 @@ export function unknownKeys(effect) {
 }
 
 export function traitById(traitsData, id) {
-  return [...traitsData.origins, ...traitsData.classes].find((t) => t.id === id) ?? null
+  return [...traitsData.origins, ...traitsData.classes].find((x) => x.id === id) ?? null
 }
 
 /**
