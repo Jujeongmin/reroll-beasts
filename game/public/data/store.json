@@ -1,5 +1,5 @@
 {
-  "note": "VXShop 대시보드에 등록하는 상품. id 는 대시보드의 productId 와 **글자 그대로** 같아야 한다 — 다르면 결제는 되고 지급은 안 된다.",
+  "note": "VXShop 대시보드에 등록하는 상품. id 는 대시보드의 productId 와 **글자 그대로** 같아야 한다 — 다르면 결제는 되고 지급은 안 된다. 그림은 tools/store-import.mjs 가 art-src 에서 굽는다 — 대시보드에 올리는 것은 512 PNG, 게임 안에서 쓰는 것은 256 webp(icon 칸).",
   "products": [
     {
       "id": "gems_small",
@@ -7,7 +7,7 @@
       "desc": "아바타 하나 값이 넉넉하다",
       "gems": 300,
       "usd": 0.99,
-      "icon": "store_gems_small.png"
+      "icon": "store_gems_small.webp"
     },
     {
       "id": "gems_medium",
@@ -16,7 +16,7 @@
       "gems": 1000,
       "usd": 2.99,
       "bonus": "+10%",
-      "icon": "store_gems_medium.png"
+      "icon": "store_gems_medium.webp"
     },
     {
       "id": "gems_large",
@@ -25,7 +25,7 @@
       "gems": 2600,
       "usd": 6.99,
       "bonus": "+23%",
-      "icon": "store_gems_large.png"
+      "icon": "store_gems_large.webp"
     },
     {
       "id": "pass_premium_s1",
@@ -33,7 +33,7 @@
       "desc": "단계마다 젬 40. 끝까지 올리면 1,000 젬",
       "premium": true,
       "usd": 4.99,
-      "icon": "store_pass_premium.png"
+      "icon": "store_pass_premium.webp"
     }
   ]
 }

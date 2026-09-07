@@ -230,18 +230,26 @@
   /* 순위표. 줄마다 **따로 선 팻말**이고, 폭은 이름 길이를 따라간다.
      고정 폭으로 잡으면 짧은 이름 줄에 빈 나무가 남고, 그 빈 자리가 판을 가린다.
      오른쪽 끝에 맞춰 세우므로 왼쪽 들쭉날쭉이 곧 이름 길이가 된다. */
+  /* 좌석 목록. **화면 맨 위에서 시작하지 않는다** — 라운드 띠와 같은 높이에서
+     시작하면 둘이 한 줄로 뭉쳐 보이고, 기기 노치에도 물린다. 한 칸 내려 앉힌다.
+     칸이 넘치면 줄 높이를 줄여 담는다: 여덟 줄이 화면 밖으로 밀리면 누가
+     살아 있는지를 못 세게 된다. overflow 를 감추는 대신 flex 가 줄이게 둔다. */
   #lobby {
-    position: absolute; right: 6px; top: 8px; bottom: 42px; z-index: 4;
+    position: absolute; right: 6px; top: 46px; bottom: 44px; z-index: 4;
     display: flex; flex-direction: column; align-items: flex-end; gap: 2px;
+    overflow: hidden;
   }
   .seat {
-    flex: 0 1 auto; min-height: 0; height: 26px; max-width: 148px;
+    /* 26px 이 기본이고 자리가 모자라면 거기서 줄어든다(min-height 0).
+       글자도 화면 높이를 따라 조금 줄인다 — 줄만 줄이면 글자가 넘쳐 잘린다. */
+    flex: 0 1 26px; min-height: 0; max-width: 148px;
+    font-size: clamp(8px, 2.3vh, 10px);
     display: flex; align-items: center; gap: 4px; padding: 0 0 0 3px;
     border-style: solid; border-width: 6px; border-image-slice: 6;
     border-image-repeat: repeat; border-image-source: url('/assets/ui/panel_wood.png');
     background: #c58747;
     image-rendering: pixelated;
-    font-size: 10px; color: #f0e6cf; cursor: pointer;
+    color: #f0e6cf; cursor: pointer;
     text-shadow: 0 1px 2px #0009;
   }
 
@@ -250,8 +258,11 @@
      게이지로 쓰면 자리를 하나도 더 안 먹는다 — conic-gradient 가 --hp(0~1)
      만큼 칠하고 나머지는 어둡게 남는다.
      팻말 오른쪽 모서리에 걸치게 둔다. 액자 안(14px)에 넣으면 글자가 안 보인다. */
+  /* 초상화도 줄 높이를 따라간다. 고정 22px 로 두면 줄이 줄어들 때 초상만
+     남아 액자 밖으로 비어져 나온다. */
   .seat .av {
-    position: relative; width: 22px; height: 22px; flex: none; border-radius: 50%;
+    position: relative; width: clamp(16px, 2.2em, 22px); height: clamp(16px, 2.2em, 22px);
+    flex: none; border-radius: 50%;
     margin: -4px -3px -4px 0;
     background: conic-gradient(var(--hc, #5fd68a) calc(var(--hp, 1) * 360deg), #1c130ad9 0);
     box-shadow: 0 0 0 1px #00000080;
@@ -1694,6 +1705,24 @@
      열어 두면 눌러 보고 아무 일도 안 생기는 것을 배우게 된다. */
   #settings .soon { font-size: 9px; color: #8f8069; }
   #settings .mono { font-size: 11px; color: #cbb794; letter-spacing: .5px; }
+  /* 볼륨 손잡이. 숫자를 옆에 적는다 — 막대만 있으면 "지금 얼마"를 눈대중해야
+     하고, 두 줄(효과음·배경음)을 맞추려면 그 눈대중을 두 번 한다. */
+  #settings input.vol {
+    width: 120px; height: 4px; appearance: none; -webkit-appearance: none;
+    background: #2a1f14; box-shadow: inset 0 0 0 1px #ffffff1f; cursor: pointer;
+  }
+  #settings input.vol::-webkit-slider-thumb {
+    appearance: none; -webkit-appearance: none;
+    width: 14px; height: 14px; border-radius: 50%; background: #ffd166;
+    box-shadow: 0 1px 3px #000a;
+  }
+  #settings input.vol::-moz-range-thumb {
+    width: 14px; height: 14px; border: 0; border-radius: 50%; background: #ffd166;
+  }
+  #settings .num {
+    width: 22px; text-align: right; font-size: 10px; color: #cbb794;
+    font-variant-numeric: tabular-nums;
+  }
   /* 켜고 끄는 손잡이. 색만으로 상태를 말하면 색약인 눈에는 같은 그림이라,
      동그라미의 자리도 같이 움직인다. */
   #settings .tg {

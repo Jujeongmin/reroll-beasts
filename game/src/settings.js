@@ -9,6 +9,8 @@
 // PC 에서는 켠다).
 
 const MOTION_KEY = 'rr.motion'
+const SFX_KEY = 'rr.sfx'
+const BGM_KEY = 'rr.bgm'
 
 /** 초기화가 지우는 기기 저장 전부. 한 곳에 모아 둔다 — 흩어 두면 하나가 남는다. */
 export const LOCAL_KEYS = [
@@ -18,6 +20,8 @@ export const LOCAL_KEYS = [
   'rr.tutorial.done',
   'rr.name.ask',
   MOTION_KEY,
+  SFX_KEY,
+  BGM_KEY,
 ]
 
 /**
@@ -36,6 +40,38 @@ export function reduceMotion() {
     // 저장소를 못 읽는 브라우저가 있다. 그때는 기기 설정만 본다.
   }
   return matchMedia?.('(prefers-reduced-motion: reduce)').matches ?? false
+}
+
+/**
+   볼륨 0~100. 저장된 값이 없으면 효과음은 크게, 배경음은 작게 시작한다 —
+   배경음이 처음부터 크면 대부분 그 자리에서 소리를 통째로 꺼 버린다.
+
+   **소리를 내는 코드는 아직 없다**(다음 조각). 값을 지금부터 저장해 두는
+   이유: 오디오가 붙는 날 설정 창을 다시 고치지 않아도 되고, 그때 이미 자기
+   값을 가진 사람은 손대지 않아도 자기 소리로 시작한다.
+*/
+function volume(key, fallback) {
+  try {
+    const raw = localStorage.getItem(key)
+    if (raw != null) {
+      const n = Number(raw)
+      if (Number.isFinite(n)) return Math.max(0, Math.min(100, Math.round(n)))
+    }
+  } catch {
+    // 저장소를 못 읽는 브라우저가 있다. 기본값으로 간다.
+  }
+  return fallback
+}
+
+export const sfxVolume = () => volume(SFX_KEY, 80)
+export const bgmVolume = () => volume(BGM_KEY, 45)
+
+function setVolume(key, v) {
+  try {
+    localStorage.setItem(key, String(Math.max(0, Math.min(100, Math.round(v)))))
+  } catch {
+    // 못 적어도 이번 판에는 적용된다.
+  }
 }
 
 function setReduceMotion(on) {
@@ -78,26 +114,34 @@ export function createSettings({ account, onSurrender, onReset }) {
     if (ev.target === el.root) closeSheet()
   })
 
-  /** 한 줄. 이름 왼쪽, 손잡이 오른쪽. */
+  /**
+   * 한 줄. 이름 왼쪽, 손잡이 오른쪽.
+   *
+   * 설명은 **위험한 줄에만** 붙인다. 모든 줄에 한 마디씩 달면 여섯 줄짜리
+   * 창이 글로 꽉 차서, 정작 손잡이가 어디 있는지 눈이 한 번 더 찾아야 한다.
+   */
   const row = (name, control, note = '') =>
     `<div class="row"><div class="t"><b>${name}</b>${note ? `<span>${note}</span>` : ''}</div>` +
     `<div class="c">${control}</div></div>`
+
+  /** 볼륨 손잡이. 값이 숫자로도 보여야 "지금 얼마"인지 눈이 안 헤맨다. */
+  const slider = (act, v) =>
+    `<input class="vol" type="range" min="0" max="100" step="5" value="${v}" data-act="${act}" />` +
+    `<span class="num">${v}</span>`
 
   function draw() {
     const motion = reduceMotion()
     const tail = String(account?.() ?? '').slice(-4)
     el.body.innerHTML =
-      // 아직 안 붙은 것은 **잠긴 채로** 둔다. 동작 없는 손잡이를 열어 두면
-      // 눌러 보고 아무 일도 안 생기는 것을 배우게 된다.
-      row('소리', '<span class="soon">다음 조각에서 붙는다</span>', '효과음 · 배경음') +
-      row('언어', '<span class="soon">영어는 다음 조각에서 붙는다</span>', '한국어') +
+      row('효과음', slider('sfx', sfxVolume())) +
+      row('배경음', slider('bgm', bgmVolume())) +
+      row('언어', '<span class="soon">한국어</span>') +
       row(
         '움직임 줄이기',
         `<button class="tg${motion ? ' on' : ''}" data-act="motion" type="button">` +
           `<i></i></button>`,
-        '연출을 줄인다 · 전투는 그대로다',
       ) +
-      (tail ? row('내 계정', `<span class="mono">…${tail}</span>`, '문의할 때 쓴다') : '') +
+      (tail ? row('내 계정', `<span class="mono">…${tail}</span>`) : '') +
       (inGame
         ? row(
             '항복',
@@ -105,7 +149,9 @@ export function createSettings({ account, onSurrender, onReset }) {
               ? '<button class="danger go" data-act="surrender-yes" type="button">항복한다</button>' +
                 '<button class="ghost" data-act="cancel" type="button">그만두기</button>'
               : '<button class="danger" data-act="surrender" type="button">항복</button>',
-            asking === 'surrender' ? '이 판이 끝난다 · 순위는 지금 자리로 기록된다' : '판을 끝내고 홈으로',
+            // 되돌릴 수 없는 것에만 설명을 남긴다. 무엇이 일어나는지 모른 채
+            // 누르면 사과할 자리가 없다.
+            asking === 'surrender' ? '이 판이 끝난다 · 순위는 지금 자리로 기록된다' : '',
           )
         : '') +
       row(
@@ -114,12 +160,21 @@ export function createSettings({ account, onSurrender, onReset }) {
           ? '<button class="danger go" data-act="reset-yes" type="button">지운다</button>' +
             '<button class="ghost" data-act="cancel" type="button">그만두기</button>'
           : '<button class="danger" data-act="reset" type="button">초기화</button>',
-        asking === 'reset'
-          ? '전적 · 젬 · 패스 · 산 아바타 · 닉네임이 사라진다 · 되돌릴 수 없다'
-          : '이 기기와 계정을 처음으로',
+        asking === 'reset' ? '전적 · 젬 · 패스 · 산 아바타 · 닉네임이 사라진다 · 되돌릴 수 없다' : '',
       ) +
-      `<div class="ver">Reroll Beasts · 에셋 전량 CC0 (CREDITS.md)</div>`
+      `<div class="ver">Reroll Beasts · 출처는 CREDITS.md</div>`
   }
+
+  el.body.addEventListener('input', (ev) => {
+    const s = ev.target.closest('input.vol')
+    if (!s) return
+    const v = Number(s.value)
+    setVolume(s.dataset.act === 'sfx' ? SFX_KEY : BGM_KEY, v)
+    // 숫자만 고친다. draw() 를 다시 부르면 끌던 손잡이가 새로 그려져 손에서
+    // 놓친다.
+    const num = s.parentElement.querySelector('.num')
+    if (num) num.textContent = String(v)
+  })
 
   el.body.addEventListener('click', async (ev) => {
     const btn = ev.target.closest('[data-act]')
