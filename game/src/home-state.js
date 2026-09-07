@@ -1,6 +1,6 @@
 // 홈이 무엇을 그릴지 정한다. DOM 을 모른다 — 그래야 상태 전이가 브라우저
 // 없이 검사된다. 그리는 일은 home.js 가 한다.
-import { divisionOf, divisionLabel, nextDivisionLabel } from '@sim/rank.js'
+import { divisionOf, divisionLabel, nextDivisionLabel, phaseProgress } from '@sim/rank.js'
 import { t } from './i18n.js'
 
 
@@ -65,7 +65,10 @@ function viewProfile(profile) {
   return {
     head: t('home.record', { games: profile.games, best: profile.best }),
     recent: profile.recent ?? [],
-    tier: divisionLabel(lp),
+    // 배치 중이면 "임시" 를 앞에. 계산은 같고 이름만 다르다.
+    tier: (phaseProgress(profile.rankedGames ?? 0)?.phase === 'placement' ? t('home.provisional') + ' ' : '') + divisionLabel(lp),
+    // 배치 3/5 · 준배치 7/10. 평소면 null — 홈이 안 그린다.
+    phase: phaseProgress(profile.rankedGames ?? 0),
     tierId: d.tier.id,
     lp,
     // 다음 **단계**까지. 티어 한 칸(500 LP)을 눈금으로 쓰면 한 판으로는 막대가

@@ -2,7 +2,7 @@
 // 되는데, 화면에서는 몇 판 지나야 드러난다 — 그래서 여기서 잡는다.
 import { describe, it, expect } from 'vitest'
 import { assignRanks } from '../sim/lobbyRound.js'
-import { divisionOf, divisionLabel, nextDivisionLabel } from '../sim/rank.js'
+import { divisionOf, divisionLabel, nextDivisionLabel, phaseOf, lpDelta, phaseProgress, addLp, lpForRank, PLACEMENT, SOFT } from '../sim/rank.js'
 
 /** 좌석 8개. alive/hp/account 만 순위에 쓰인다. */
 function seats(spec) {
@@ -110,5 +110,42 @@ describe('divisionOf', () => {
 
   it('음수 LP 도 견딘다 — 가장 낮은 칸으로 떨어진다', () => {
     expect(divisionOf(-50).division).toBe(5)
+  })
+})
+
+describe('배치 · 준배치', () => {
+  it('첫 다섯 판은 배치, 다음 열 판은 준배치, 그 뒤는 평소다', () => {
+    expect(phaseOf(0)).toBe('placement')
+    expect(phaseOf(4)).toBe('placement')
+    expect(phaseOf(5)).toBe('soft')
+    expect(phaseOf(14)).toBe('soft')
+    expect(phaseOf(15)).toBe('normal')
+  })
+
+  it('배치 1위 한 판은 브론즈 한 티어(300) 이상이다 — 거의 1티어가 규칙이다', () => {
+    expect(lpDelta(1, 0)).toBeGreaterThanOrEqual(300)
+  })
+
+  it('배치 표는 1위가 가장 크고 단조 감소다', () => {
+    for (let r = 2; r <= 8; r++) expect(PLACEMENT.byRank[r]).toBeLessThan(PLACEMENT.byRank[r - 1])
+    expect(PLACEMENT.byRank).toHaveLength(9)
+  })
+
+  it('준배치는 평소의 배수이고 배율은 1 보다 크다', () => {
+    expect(SOFT.scale).toBeGreaterThan(1)
+    expect(lpDelta(1, 5)).toBe(lpForRank(1) * SOFT.scale)
+    expect(lpDelta(8, 14)).toBe(lpForRank(8) * SOFT.scale)
+  })
+
+  it('어느 구간에서도 LP 는 0 아래로 안 간다', () => {
+    expect(addLp(10, 8, 0)).toBe(0)
+    expect(addLp(10, 8, 5)).toBe(0)
+    expect(addLp(10, 8, 99)).toBe(0)
+  })
+
+  it('몇 판째인지 센다 — 첫 판이 1/5, 여섯째 판이 준배치 1/10', () => {
+    expect(phaseProgress(0)).toEqual({ phase: 'placement', n: 1, of: 5 })
+    expect(phaseProgress(5)).toEqual({ phase: 'soft', n: 1, of: 10 })
+    expect(phaseProgress(15)).toBe(null)
   })
 })

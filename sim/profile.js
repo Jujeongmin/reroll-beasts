@@ -59,7 +59,10 @@ export function applyMatchResult(prev, rank, data, { ranked = true, matchId = nu
     ...mergeProfile(base, rank),
     // LP 는 랭크 방에서만 움직인다. 봇이 섞이는 일반 판이 점수를 좌우하면
     // 티어가 실력을 안 가리킨다.
-    lp: ranked ? addLp(base.lp ?? 0, rank) : (base.lp ?? 0),
+    // 배치·준배치는 이 판을 세기 **전** 판수로 가른다 — 첫 판이 1/5 다.
+    lp: ranked ? addLp(base.lp ?? 0, rank, base.rankedGames ?? 0) : (base.lp ?? 0),
+    // 랭크 판수. 일반 판은 안 센다 — LP 를 안 움직이니 배치 판수도 아니다.
+    rankedGames: (base.rankedGames ?? 0) + (ranked ? 1 : 0),
     pass: { xp: pass.xp, level: pass.level, premium: pass.premium },
     // 패스는 증분만 준다. 잔액을 패스가 계산하면 패스와 지갑이 한 덩어리가 된다.
     gems: (base.gems ?? 0) + pass.earned,

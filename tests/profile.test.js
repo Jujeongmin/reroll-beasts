@@ -2,7 +2,7 @@
 // 때문이다. 그래서 누적 규칙을 순수 함수로 떼어 여기서 못박는다.
 import { describe, it, expect } from 'vitest'
 import { mergeProfile, applyMatchResult, countedMatch } from '../sim/profile.js'
-import { lpForRank } from '../sim/rank.js'
+import { lpForRank, lpDelta, PLACEMENT } from '../sim/rank.js'
 import { loadData } from '../sim/data.js'
 
 describe('mergeProfile', () => {
@@ -81,6 +81,8 @@ describe('applyMatchResult — 판 하나가 프로필에 남기는 것 전부',
     look: { board: 'ember', avatar: 'avatar_fox', boom: 'boom_star' },
     gems: 100,
     lp: 200,
+    // 평소 구간. 배치·준배치는 아래 따로 본다.
+    rankedGames: 20,
     pass: { xp: 40, level: 1, premium: true },
     games: 3,
     wins: 1,
@@ -115,11 +117,32 @@ describe('applyMatchResult — 판 하나가 프로필에 남기는 것 전부',
     expect(casual.pass.xp - owner().pass.xp).toBeLessThan(ranked.pass.xp - owner().pass.xp)
   })
 
-  it('아무것도 없는 계정도 판 하나로 프로필이 선다', () => {
+  it('아무것도 없는 계정도 판 하나로 프로필이 선다 — 첫 판은 배치다', () => {
     const next = applyMatchResult(null, 4, data)
     expect(next.games).toBe(1)
-    expect(next.lp).toBe(lpForRank(4))
+    expect(next.rankedGames).toBe(1)
+    expect(next.lp).toBe(PLACEMENT.byRank[4])
     expect(next.gems).toBe(0)
+  })
+
+  it('배치 1위는 한 티어에 가깝고, 다섯 판이 지나면 준배치, 열다섯 판이 지나면 평소다', () => {
+    let p = null
+    for (let i = 0; i < 5; i++) p = applyMatchResult(p, 1, data)
+    expect(p.rankedGames).toBe(5)
+    expect(p.lp).toBe(PLACEMENT.byRank[1] * 5)
+    const soft = applyMatchResult(p, 1, data)
+    expect(soft.lp - p.lp).toBe(lpForRank(1) * 2)
+    let q = soft
+    for (let i = 0; i < 9; i++) q = applyMatchResult(q, 8, data)
+    expect(q.rankedGames).toBe(15)
+    const normal = applyMatchResult(q, 1, data)
+    expect(normal.lp - q.lp).toBe(lpForRank(1))
+  })
+
+  it('일반 판은 랭크 판수를 안 센다 — 배치 판수도 아니다', () => {
+    const next = applyMatchResult(null, 1, data, { ranked: false })
+    expect(next.rankedGames).toBe(0)
+    expect(lpDelta(1, next.rankedGames)).toBe(PLACEMENT.byRank[1])
   })
 
   it('원본을 안 고친다', () => {

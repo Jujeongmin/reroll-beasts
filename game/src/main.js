@@ -219,6 +219,8 @@ try {
   // 서버가 준 전적. 해금 판정에 쓴다 — 서버가 못 붙으면 비어 있어 잠긴 것은
   // 잠긴 채다. 반대로 두면 접속 실패가 곧 전체 해금이 된다.
   let profileLp = 0
+  // 랭크 판수. 배치(첫 5판)·준배치(다음 10판)를 가른다. lp 와 같이 판 전 값이다.
+  let profileRankedGames = 0
   let profilePassLevel = 1
   let profilePremium = false
   let profileGems = 0
@@ -376,6 +378,7 @@ try {
   /** 서버가 준 전적을 화면과 해금 판정 양쪽에 흘린다. */
   function applyProfile(p) {
     profileLp = p?.lp ?? 0
+    profileRankedGames = p?.rankedGames ?? 0
     profilePassLevel = p?.pass?.level ?? 1
     profilePremium = !!p?.pass?.premium
     profileGems = p?.gems ?? 0
@@ -1113,6 +1116,7 @@ try {
         // 판에 들어가기 전 LP. 서버는 이미 더했지만 화면이 든 값은 아직
         // 전이라, 여기가 "어디에서 어디로" 의 출발점이다.
         lp: profileLp,
+        rankedGames: profileRankedGames,
       })
       return
     }

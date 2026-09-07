@@ -1759,7 +1759,7 @@
   #result-rows { flex: none; display: flex; flex-direction: column; gap: 3px; }
 
   #result .r {
-    flex: none; height: 54px;
+    flex: none; height: 44px;
     display: flex; align-items: center; gap: 9px; padding: 0 8px;
     background: #1a120bb8; border-radius: 3px; box-shadow: inset 0 0 0 1px #ffffff0f;
   }
@@ -1797,7 +1797,7 @@
   }
   #result .r .us::-webkit-scrollbar { display: none; }
   #result .r .u {
-    flex: none; position: relative; height: 44px; aspect-ratio: 1;
+    flex: none; position: relative; height: 36px; aspect-ratio: 1;
     border-radius: 4px; background: #0d0a06;
     box-shadow: inset 0 0 0 1px var(--sc, #d99154);
     overflow: hidden;
@@ -1811,13 +1811,8 @@
   /* 판이 빈 사람. 탈락한 그 라운드에 아무것도 안 남았거나, 아직 정찰이 안 왔다. */
   #result .r .us .empty { font-size: 11px; color: #7e7261; align-self: center; }
 
-  #result .r .lp {
-    flex: none; width: 70px; text-align: right;
-    font-size: 14px; font-weight: 800; font-variant-numeric: tabular-nums;
-  }
-  #result .r .lp.up { color: #8fe3a4; }
-  #result .r .lp.down { color: #ff9a8c; }
-  #result .r .lp.none { color: #7e7261; }
+  /* 줄에는 LP 를 안 적는다. 남의 점수는 남의 구간(배치·준배치)에 달렸고 내
+     화면이 그 사람의 판수를 알 길이 없다 — 내 점수는 위 띠에 있다. */
 
   #result .acts { align-self: center; display: flex; gap: 10px; align-items: center; }
   #result-close { min-width: 160px; }
@@ -1838,7 +1833,7 @@
   #result .me-band {
     flex: none;
     display: flex; flex-direction: column; align-items: center; justify-content: center;
-    gap: 10px; padding: 10px 20px; border-radius: 4px;
+    gap: 8px; padding: 8px 20px; border-radius: 4px;
     background: #241a0dc4; box-shadow: inset 0 0 0 1px #ffd16636;
   }
   #result .me-band[hidden] { display: none; }
@@ -1888,6 +1883,9 @@
   }
   #result .me-band .nums b { color: #f0e6cf; font-size: 14px; }
   #result .me-band .nums .to { margin-left: auto; }
+  /* 왜 이만큼 움직였나. 배치·준배치는 평소와 폭이 달라 이 한 줄이 없으면
+     +300 이 오류로 보인다. */
+  #result .me-band .phase { display: block; margin-top: 4px; font-size: 11px; color: #ffd166; }
   /* 티어 사다리. 지금 칸만 보여 주면 "전체에서 어디쯤인가"에 답이 없다 —
      다섯 칸을 늘어놓고 내가 선 칸만 밝힌다. */
   #result .me-band .ladder {

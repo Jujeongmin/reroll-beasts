@@ -11,7 +11,7 @@
 // 그 자리에는 `–` 를 적는다. 없는 등수를 지어내지 않는다.
 
 import { unitById } from '@sim/data.js'
-import { lpForRank, divisionOf, divisionLabel, nextDivisionLabel, TIERS } from '@sim/rank.js'
+import { lpDelta, phaseProgress, divisionOf, divisionLabel, nextDivisionLabel, TIERS } from '@sim/rank.js'
 import { accountTag, tagDuplicates, joinTag } from '@sim/name.js'
 import { t, textOf, esc } from './i18n.js'
 import { sfx } from './audio.js'
@@ -135,12 +135,10 @@ export function createResult({ data, thumbFor, onClose, onAd = null }) {
       })
       .join('')
 
-    // LP 는 **랭크 판에서, 등수가 확정된 줄에만** 적는다. 일반 판에 0 을 적으면
-    // 움직였는데 0 인 것처럼 읽히고, 등수 없는 줄에 적으면 확정 안 된 것이
-    // 결과처럼 읽힌다.
-    const lp = ranked && seat.rank ? lpForRank(seat.rank) : null
-    const lpText =
-      lp === null ? '' : `<span class="lp ${lp > 0 ? 'up' : lp < 0 ? 'down' : 'none'}">${lp > 0 ? '+' : ''}${lp} LP</span>`
+    // 남의 LP 는 안 적는다. 남의 점수는 남의 구간(배치·준배치)에 달렸고 내
+    // 화면이 그 사람의 판수를 알 길이 없다 — 모르는 수를 적으면 거짓말이다.
+    // 내 점수는 위 띠에 있다.
+    const lpText = ''
 
     d.innerHTML =
       `<span class="no${seat.rank ? '' : ' none'}">${seat.rank ?? '–'}</span>` +
@@ -176,7 +174,7 @@ export function createResult({ data, thumbFor, onClose, onAd = null }) {
    * @param {number} before 판 전 LP
    * @param {number} delta  이 판이 움직인 LP
    */
-  function drawBand(before, delta) {
+  function drawBand(before, delta, progress) {
     const after = Math.max(0, before + delta)
     // 막대는 **끝난 뒤의 단계** 칸에 그린다. 티어 한 칸(골드는 500 LP)을
     // 눈금으로 쓰면 한 판(±30)으로는 막대가 거의 안 움직여, 이겼는데
@@ -197,7 +195,9 @@ export function createResult({ data, thumbFor, onClose, onAd = null }) {
 
     el.band.innerHTML =
       `<span class="head"><span class="badge" style="background-image:${TIER_ART(d.tier.id)}"></span>` +
-      `<span class="tn">${divisionLabel(after)}</span>` +
+      // 배치 중이면 티어 앞에 "임시". 계산은 평소와 같고 이름만 다르다 —
+      // 감추면 다섯 판 동안 점수가 어디로 가는지 모른다.
+      `<span class="tn">${progress?.phase === 'placement' ? t('result.provisional') + ' ' : ''}${divisionLabel(after)}</span>` +
       `<span class="delta ${delta > 0 ? 'up' : delta < 0 ? 'down' : 'none'}">` +
       `${delta > 0 ? '+' : ''}${delta}</span></span>` +
       '<span class="mid">' +
@@ -205,7 +205,11 @@ export function createResult({ data, thumbFor, onClose, onAd = null }) {
       '<span class="nums">' +
       `<b>${after}</b> LP` +
       (next ? `<span class="to">${t('result.toNext', { tier: next, lp: d.need })}</span>` : '') +
-      '</span></span>' +
+      '</span>' +
+      // 왜 이만큼 움직였나. 배치·준배치는 평소와 폭이 달라서 이 한 줄이 없으면
+      // +300 이 오류로 보인다.
+      (progress ? `<span class="phase">${t(progress.phase === 'placement' ? 'result.phasePlacement' : 'result.phaseSoft', { n: progress.n, of: progress.of })}</span>` : '') +
+      '</span>' +
       // 다섯 칸 사다리. 내가 선 칸을 밝히고, 지나온 칸은 색만 남긴다.
       '<span class="ladder">' +
       TIERS.map((x, i) => {
@@ -229,6 +233,7 @@ export function createResult({ data, thumbFor, onClose, onAd = null }) {
      * @param {boolean} o.ranked 랭크 판인가 — LP 가 움직였나
      * @param {boolean} o.won 내가 1등인가
      * @param {number} o.lp 판에 들어가기 전 내 LP
+     * @param {number} o.rankedGames 판에 들어가기 전 내 랭크 판수 — 배치·준배치를 가른다
      */
     open(args) {
       shown = args
@@ -250,7 +255,7 @@ export function createResult({ data, thumbFor, onClose, onAd = null }) {
     },
   }
 
-  function draw({ seats, mySeatId, ranked = false, won = false, lp = 0 }) {
+  function draw({ seats, mySeatId, ranked = false, won = false, lp = 0, rankedGames = 0 }) {
       const rows = order(seats ?? [])
       const me = rows.find((s) => s.id === mySeatId)
       // 이름은 겹칠 수 있다. 같은 목록에 같은 이름이 둘이면 그 줄들에만 꼬리.
@@ -268,7 +273,7 @@ export function createResult({ data, thumbFor, onClose, onAd = null }) {
       el.sub.textContent = ranked ? t('result.ranked') : t('result.casual')
       // 띠는 랭크 판에서, 내 등수가 확정된 뒤에만 그린다. 일반 판에서 0 을
       // 그리면 움직였는데 0 인 것처럼 읽힌다.
-      if (ranked && me?.rank) drawBand(lp, lpForRank(me.rank))
+      if (ranked && me?.rank) drawBand(lp, lpDelta(me.rank, rankedGames), phaseProgress(rankedGames))
       else el.band.hidden = true
 
       el.rows.replaceChildren(

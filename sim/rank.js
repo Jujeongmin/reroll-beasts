@@ -33,8 +33,60 @@ export function lpForRank(rank) {
  * LP 를 더한다. 0 아래로는 안 내려간다 — 음수 LP 는 "얼마나 못하는가"를
  * 재는 값이 되는데, 그건 이 게임이 하려는 말이 아니다.
  */
-export function addLp(lp, rank) {
-  return Math.max(0, (lp ?? 0) + lpForRank(rank))
+/**
+ * 배치. 랭크 첫 다섯 판은 크게 움직여 대략의 자리를 잡는다.
+ *
+ * 1위 한 판이 브론즈 한 티어(300)다 — "1등하면 거의 1티어". 지는 쪽은 평소보다
+ * 조금만 더 깎는다: 배치는 올려 보내는 장치이지 떨어뜨리는 장치가 아니다.
+ * 다섯 판 다 8위여도 -300 이고 LP 는 0 아래로 안 간다.
+ */
+export const PLACEMENT = { games: 5, byRank: [0, 300, 200, 120, 60, 20, -20, -40, -60] }
+
+/** 준배치. 배치 뒤 열 판은 평소의 두 배 — 다섯 판이 못 가른 것을 다듬는다. */
+export const SOFT = { games: 10, scale: 2 }
+
+/**
+ * 랭크 판수로 구간을 가른다. 판수는 **이 판을 세기 전** 값이다.
+ * @returns {"placement"|"soft"|"normal"}
+ */
+export function phaseOf(rankedGames) {
+  const n = Math.max(0, rankedGames ?? 0)
+  if (n < PLACEMENT.games) return 'placement'
+  if (n < PLACEMENT.games + SOFT.games) return 'soft'
+  return 'normal'
+}
+
+/**
+ * 구간에 맞는 LP 증감. 서버가 매기는 값과 결과판이 그리는 값이 같은 셈을
+ * 타야 하므로 여기 하나뿐이다.
+ */
+export function lpDelta(rank, rankedGames) {
+  const phase = phaseOf(rankedGames)
+  if (phase === 'placement') return PLACEMENT.byRank[rank] ?? 0
+  if (phase === 'soft') return lpForRank(rank) * SOFT.scale
+  return lpForRank(rank)
+}
+
+/**
+ * 구간 안에서 몇 판째인가. 화면이 "배치 3/5" 로 적는다. 평소면 null.
+ * @returns {{phase: string, n: number, of: number}|null}
+ */
+export function phaseProgress(rankedGames) {
+  const n = Math.max(0, rankedGames ?? 0)
+  const phase = phaseOf(n)
+  if (phase === 'placement') return { phase, n: n + 1, of: PLACEMENT.games }
+  if (phase === 'soft') return { phase, n: n - PLACEMENT.games + 1, of: SOFT.games }
+  return null
+}
+
+/**
+ * LP 를 더한다. 0 아래로는 안 내려간다 — 음수 LP 는 "얼마나 못하는가"를
+ * 재는 값이 되는데, 그건 이 게임이 하려는 말이 아니다.
+ *
+ * rankedGames 는 이 판을 세기 전 랭크 판수. 안 주면 평소 구간이다.
+ */
+export function addLp(lp, rank, rankedGames = Infinity) {
+  return Math.max(0, (lp ?? 0) + lpDelta(rank, rankedGames))
 }
 
 /** 그 LP 의 티어. */

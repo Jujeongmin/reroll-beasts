@@ -77,7 +77,7 @@ describe('튜토리얼 버튼', () => {
 describe('프로필 티어', () => {
   const withLp = (lp) => homeView({
     ...base,
-    profile: { games: 9, wins: 1, best: 2, recent: [2], lp },
+    profile: { games: 9, wins: 1, best: 2, recent: [2], lp, rankedGames: 20 },
   }).profile
 
   it('LP 에서 티어와 단계를 만든다 — 서버에 저장하지 않는다', () => {
@@ -97,6 +97,18 @@ describe('프로필 티어', () => {
 
   it('맨 위 칸이면 다음이 없다 — 막대를 안 그린다', () => {
     expect(withLp(2400).next).toBe(null)
+  })
+
+  it('배치 중이면 티어 앞에 임시가 붙고 몇 판째인지 준다', () => {
+    const v = homeView({ ...base, profile: { games: 2, wins: 0, best: 3, recent: [3], lp: 400, rankedGames: 2 } }).profile
+    expect(v.tier).toBe('임시 실버 4')
+    expect(v.phase).toEqual({ phase: 'placement', n: 3, of: 5 })
+  })
+
+  it('준배치는 임시가 아니다 — 폭만 두 배다', () => {
+    const v = homeView({ ...base, profile: { games: 8, wins: 0, best: 3, recent: [3], lp: 400, rankedGames: 8 } }).profile
+    expect(v.tier).toBe('실버 4')
+    expect(v.phase).toEqual({ phase: 'soft', n: 4, of: 10 })
   })
 
   it('LP 가 없던 전적은 0 으로 읽는다 — 예전 기록에는 lp 가 없다', () => {
