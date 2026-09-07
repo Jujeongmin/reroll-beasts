@@ -482,10 +482,16 @@ export function createHome({
       : `자물쇠 칸은 프리미엄 패스를 사야 열린다 · ${freeCount}칸은 그냥 받는다`
     el.passRows.innerHTML = track
       .map((t) => {
+        // 칸은 셋 중 하나다: **받았다 · 아직이다 · 잠겼다.**
+        // 받은 것과 아직인 것이 똑같이 보이면 "내가 저걸 받았던가"를 트랙에서
+        // 알 수 없고, 그러면 진행도 화면이 진행도를 말하지 않는다.
         const shut = !t.free && !bought
+        const done = t.reached && !shut
         return (
-          `<div class="step${t.reached ? ' got' : ''}${shut ? ' shut' : ''}${t.free ? ' open' : ''}">` +
+          `<div class="step${t.reached ? ' got' : ''}${shut ? ' shut' : ''}` +
+          `${t.free ? ' open' : ''}${done ? ' done' : ''}">` +
           `<div class="lv">${t.level}</div>${cell(t)}` +
+          (done ? '<i class="check" title="받았다"></i>' : '') +
           (shut ? '<i class="lock" title="프리미엄 패스를 사야 열린다"></i>' : '') +
           '</div>'
         )
