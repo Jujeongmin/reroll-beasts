@@ -8,6 +8,8 @@
 // 필요하고, 볼륨·움직임은 기기마다 달라도 되는 값이다(폰에서는 소리를 끄고
 // PC 에서는 켠다).
 
+import { t, lang, setLang } from './i18n.js'
+
 const MOTION_KEY = 'rr.motion'
 const SFX_KEY = 'rr.sfx'
 const BGM_KEY = 'rr.bgm'
@@ -88,7 +90,7 @@ function setReduceMotion(on) {
  * @param {() => Promise<any>} o.onSurrender  인게임에서 항복을 눌렀다
  * @param {() => Promise<any>} o.onReset      계정을 지운다
  */
-export function createSettings({ account, onSurrender, onReset }) {
+export function createSettings({ account, onSurrender, onReset, onLang }) {
   const el = {
     root: document.getElementById('settings'),
     body: document.getElementById('settings-body'),
@@ -132,37 +134,43 @@ export function createSettings({ account, onSurrender, onReset }) {
   function draw() {
     const motion = reduceMotion()
     const tail = String(account?.() ?? '').slice(-4)
+    const cancel = `<button class="ghost" data-act="cancel" type="button">${t('settings.cancel')}</button>`
     el.body.innerHTML =
-      row('효과음', slider('sfx', sfxVolume())) +
-      row('배경음', slider('bgm', bgmVolume())) +
-      row('언어', '<span class="soon">한국어</span>') +
+      row(t('settings.sfx'), slider('sfx', sfxVolume())) +
+      row(t('settings.bgm'), slider('bgm', bgmVolume())) +
+      // 둘 중 하나를 고르는 손잡이. 토글(켜고 끄기)과 모양이 달라야 무엇을
+      // 하는 손잡이인지 안 헷갈린다.
       row(
-        '화면 효과 줄이기',
+        t('settings.language'),
+        `<button class="seg${lang() === 'ko' ? ' on' : ''}" data-act="lang-ko" type="button">한국어</button>` +
+          `<button class="seg${lang() === 'en' ? ' on' : ''}" data-act="lang-en" type="button">English</button>`,
+      ) +
+      row(
+        t('settings.motion'),
         `<button class="tg${motion ? ' on' : ''}" data-act="motion" type="button">` +
           `<i></i></button>`,
       ) +
-      (tail ? row('내 계정', `<span class="mono">…${tail}</span>`) : '') +
+      (tail ? row(t('settings.account'), `<span class="mono">…${tail}</span>`) : '') +
       (inGame
         ? row(
-            '항복',
+            t('settings.surrender'),
             asking === 'surrender'
-              ? '<button class="danger go" data-act="surrender-yes" type="button">항복한다</button>' +
-                '<button class="ghost" data-act="cancel" type="button">그만두기</button>'
-              : '<button class="danger" data-act="surrender" type="button">항복</button>',
+              ? `<button class="danger go" data-act="surrender-yes" type="button">${t('settings.surrenderGo')}</button>` +
+                cancel
+              : `<button class="danger" data-act="surrender" type="button">${t('settings.surrender')}</button>`,
             // 되돌릴 수 없는 것에만 설명을 남긴다. 무엇이 일어나는지 모른 채
             // 누르면 사과할 자리가 없다.
-            asking === 'surrender' ? '이 판이 끝난다 · 순위는 지금 자리로 기록된다' : '',
+            asking === 'surrender' ? t('settings.surrenderWarn') : '',
           )
         : '') +
       row(
-        '데이터 초기화',
+        t('settings.reset'),
         asking === 'reset'
-          ? '<button class="danger go" data-act="reset-yes" type="button">지운다</button>' +
-            '<button class="ghost" data-act="cancel" type="button">그만두기</button>'
-          : '<button class="danger" data-act="reset" type="button">초기화</button>',
-        asking === 'reset' ? '전적 · 젬 · 패스 · 산 아바타 · 닉네임이 사라진다 · 되돌릴 수 없다' : '',
+          ? `<button class="danger go" data-act="reset-yes" type="button">${t('settings.resetGo')}</button>` + cancel
+          : `<button class="danger" data-act="reset" type="button">${t('settings.reset')}</button>`,
+        asking === 'reset' ? t('settings.resetWarn') : '',
       ) +
-      `<div class="ver">Reroll Beasts · 출처는 CREDITS.md</div>`
+      `<div class="ver">${t('settings.credits')}</div>`
   }
 
   el.body.addEventListener('input', (ev) => {
@@ -181,6 +189,14 @@ export function createSettings({ account, onSurrender, onReset }) {
     if (!btn) return
     const act = btn.dataset.act
 
+    if (act === 'lang-ko' || act === 'lang-en') {
+      setLang(act === 'lang-ko' ? 'ko' : 'en')
+      // 창 안만 다시 그리면 뒤에 깔린 홈이 옛 언어로 남는다 — 바깥도 같이
+      // 그리라고 알린다.
+      onLang?.()
+      draw()
+      return
+    }
     if (act === 'motion') {
       setReduceMotion(!reduceMotion())
       draw()

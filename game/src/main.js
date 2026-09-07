@@ -35,6 +35,7 @@ import { createHeroView } from './heroView.js'
 import { createAvatar } from './avatarView.js'
 import { createJoystick } from './joystick.js'
 import { createSettings, reduceMotion } from './settings.js'
+import { applyStatic } from './i18n.js'
 import { createServerMatchmaker, connectServer, startQueue } from './serverMatchmaker.js'
 import { createPrep } from './prep.js'
 import { createBattle } from './battle.js'
@@ -537,6 +538,12 @@ try {
       // 이유가 없다. 화면을 다시 띄우는 편이 남은 상태를 손으로 되돌리는 것보다
       // 확실하다(튜토리얼을 끝냈을 때 쓰는 방식과 같다).
       location.reload()
+    },
+    // 언어가 갈렸다. 창 안만 그리면 뒤에 깔린 홈과 판이 옛 언어로 남는다.
+    onLang: () => {
+      applyStatic()
+      home.redraw?.()
+      prep?.refresh?.()
     },
     onReset: async () => {
       try {

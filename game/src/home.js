@@ -794,6 +794,10 @@ export function createHome({
   return {
     /** 밖에서 이름 창을 연다. 튜토리얼을 막 끝낸 사람에게 쓴다. */
     openName,
+    /** 밖에서 다시 그린다. 언어가 바뀐 자리에서 홈이 따라와야 한다. */
+    redraw() {
+      render()
+    },
     setStatus(status) {
       state = { ...state, status }
       render()
