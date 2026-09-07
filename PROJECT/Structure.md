@@ -43,6 +43,8 @@
   `tutorialMatchmaker.js` 는 같은 모양으로 **서버 없이** 준다
 - `src/tutorial.js` — 코치. 대본(`@sim/tutorial.js`)을 말풍선·불빛으로 옮긴다
 - `src/vxshop.js` — 플랫폼 결제 껍데기. 결제창은 호스트가 연다
+- `src/i18n.js` — 문자열 표 · `t()` · `textOf()`. 없는 키는 키를 그대로 그린다
+- `src/settings.js` — 설정 창 한 벌(홈·인게임 공용) · 화면 효과 · 볼륨 저장
 - `src/unit-info.js` `trait-info.js` — 수치에서 설명문 생성
 - `src/thumbs.js` — 유닛 초상화를 모델에서 오프스크린 렌더
 
