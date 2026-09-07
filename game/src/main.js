@@ -23,7 +23,13 @@ import {
 } from '@sim/cosmetics.js'
 import { createHome } from './home.js'
 import { createStore } from './vxshop.js'
-import { createCoach, isTutorialDone, markTutorialDone } from './tutorial.js'
+import {
+  createCoach,
+  isTutorialDone,
+  markTutorialDone,
+  askNameLater,
+  takeNameAsk,
+} from './tutorial.js'
 import { createTutorialMatchmaker } from './tutorialMatchmaker.js'
 import { createHeroView } from './heroView.js'
 import { createAvatar } from './avatarView.js'
@@ -659,6 +665,9 @@ try {
   /** 튜토리얼을 닫고 홈으로 돌린다. 한 번 끝냈으면 다시 자동으로 안 뜬다. */
   function endTutorial() {
     markTutorialDone()
+    // 홈에 나가 서버에 붙으면 이름을 묻는다. 여기서 못 묻는 이유: 이름은
+    // 서버가 저장하는데 튜토리얼은 서버 없이 돈다.
+    askNameLater()
     coach?.hide()
     coach = null
     location.reload()
@@ -680,6 +689,12 @@ try {
     try {
       const p = await server.remoteFunction("getProfile", [])
       applyProfile(p)
+      // 튜토리얼을 막 끝냈고 아직 이름이 없으면 지금 묻는다. **여기가 자연스러운
+      // 자리다** — 방금 한 판을 끝냈고, 다음은 남과 붙는 판이라 남의 화면에 뜰
+      // 이름이 처음으로 필요해진다. 이미 이름이 있으면 안 묻는다.
+      if (takeNameAsk() && !p?.name) {
+        home.openName({ why: '순위표와 남의 화면에 뜰 이름이다. 나중에 바꿔도 된다.' })
+      }
     } catch {
       home.setProfile(null)
     }

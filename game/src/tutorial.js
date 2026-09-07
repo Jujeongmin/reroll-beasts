@@ -18,6 +18,35 @@ export function isTutorialDone() {
   }
 }
 
+/**
+ * "튜토리얼을 막 끝냈다" 는 쪽지.
+ *
+ * 이름은 **서버가 있어야** 정할 수 있는데(setName), 튜토리얼은 서버 없이
+ * 돈다. 그래서 그 자리에서 못 묻고, 홈으로 나가 서버에 붙은 뒤에 묻는다.
+ * 쪽지를 저장소에 남기는 이유: 튜토리얼을 끝내면 화면을 다시 띄우기 때문에
+ * (location.reload) 메모리에 든 값은 살아남지 못한다.
+ */
+const ASK_NAME_KEY = 'rr.name.ask'
+
+export function askNameLater() {
+  try {
+    localStorage.setItem(ASK_NAME_KEY, '1')
+  } catch {
+    // 못 적으면 안 묻는다. 이름은 홈에서 언제든 누를 수 있다.
+  }
+}
+
+/** 쪽지를 집어 든다. **한 번만** 묻는다 — 매번 뜨면 잔소리가 된다. */
+export function takeNameAsk() {
+  try {
+    const on = localStorage.getItem(ASK_NAME_KEY) === '1'
+    localStorage.removeItem(ASK_NAME_KEY)
+    return on
+  } catch {
+    return false
+  }
+}
+
 export function markTutorialDone() {
   try {
     localStorage.setItem(DONE_KEY, '1')

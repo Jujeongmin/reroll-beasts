@@ -148,14 +148,19 @@ export function createHome({
   el.shop.addEventListener('click', backdrop(el.shop))
   el.nameBox.addEventListener('click', backdrop(el.nameBox))
   el.nameClose.addEventListener('click', () => closeSheet(el.nameBox))
-  el.nameBtn.addEventListener('click', () => {
+  /**
+   * 이름 창을 연다. why 를 주면 왜 지금 뜨는지 한 줄로 말한다 —
+   * 아무 설명 없이 뜨는 입력창은 광고처럼 읽혀서 그냥 닫힌다.
+   */
+  function openName({ why = '' } = {}) {
     el.nameBox.classList.remove('closing')
     el.nameBox.hidden = false
-    el.nameWhy.textContent = ''
+    el.nameWhy.textContent = why
     // 지금 이름을 채워 둔다 — 빈 칸이면 뭘 바꾸는지 모른 채 새로 지어야 한다.
     el.nameInput.value = state.profile?.name ?? ''
     el.nameInput.focus()
-  })
+  }
+  el.nameBtn.addEventListener('click', () => openName())
   // 규칙은 클라와 서버가 **같은 함수**를 본다. 여기서 미리 알려 주는 것은
   // 편의고, 막는 것은 서버다.
   el.nameInput.addEventListener('input', () => {
@@ -581,6 +586,8 @@ export function createHome({
   render()
 
   return {
+    /** 밖에서 이름 창을 연다. 튜토리얼을 막 끝낸 사람에게 쓴다. */
+    openName,
     setStatus(status) {
       state = { ...state, status }
       render()
