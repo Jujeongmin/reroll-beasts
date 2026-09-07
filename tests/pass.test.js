@@ -10,6 +10,7 @@ import {
   passProgress,
   gemsAt,
   gemsBetween,
+  addPassXp,
   advancePass,
   passTrack,
 } from '../sim/pass.js'
@@ -151,5 +152,41 @@ describe('passTrack', () => {
       expect(a.passLevel).toBeLessThanOrEqual(data.pass.maxLevel)
       expect(a.passLevel).toBeGreaterThanOrEqual(1)
     }
+  })
+})
+
+describe('addPassXp — 경험치를 직접 더한다', () => {
+  // 미션 보상은 순위가 아니라 정해진 경험치다. advancePass 는 순위를 받으므로
+  // 그대로는 못 쓴다. 단계가 오를 때 젬을 주는 셈을 두 곳에 적으면, 미션으로
+  // 오른 단계만 젬을 안 주는 일이 생긴다 — 그래서 한 함수로 모은다.
+  it('경험치가 오르고 단계가 따라 오른다', () => {
+    const r = addPassXp({ xp: 90, level: 1, premium: false }, 30, data)
+    expect(r.xp).toBe(120)
+    expect(r.level).toBe(2)
+  })
+
+  it('단계가 오르면 젬도 같이 나온다', () => {
+    const r = addPassXp({ xp: 0, level: 1, premium: true }, data.pass.xpPerLevel * 5, data)
+    expect(r.earned).toBeGreaterThan(0)
+  })
+
+  it('최고 단계를 넘겨 쌓이지 않는다', () => {
+    const r = addPassXp({ xp: 0, level: 1, premium: false }, 999999, data)
+    expect(r.level).toBe(data.pass.maxLevel)
+    expect(r.xp).toBe(xpCap(data))
+  })
+
+  it('프리미엄은 그대로 넘어간다', () => {
+    expect(addPassXp({ xp: 0, level: 1, premium: true }, 10, data).premium).toBe(true)
+  })
+
+  it('없는 패스에도 얹힌다 — 한 판도 안 한 사람이 미션부터 받을 수 있다', () => {
+    const r = addPassXp(null, 50, data)
+    expect(r.xp).toBe(50)
+    expect(r.level).toBe(1)
+  })
+
+  it('음수는 안 깎는다 — 미션이 경험치를 빼앗는 길은 없다', () => {
+    expect(addPassXp({ xp: 100, level: 2, premium: false }, -50, data).xp).toBe(100)
   })
 })

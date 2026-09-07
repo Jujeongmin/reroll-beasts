@@ -89,8 +89,22 @@ export function gemsBetween(from, to, premium, data) {
  * 한 덩어리가 된다.
  */
 export function advancePass(prev, rank, data, opts = {}) {
+  return addPassXp(prev, xpForRank(rank, data, opts), data)
+}
+
+/**
+ * 패스에 경험치를 **직접** 얹는다.
+ *
+ * 순위가 아니라 경험치를 받는 이유: 미션 보상은 정해진 값이라 advancePass 로는
+ * 못 얹는다. 단계가 오를 때 젬을 주는 셈(gemsBetween)을 두 곳에 적으면 미션으로
+ * 오른 단계만 젬을 안 주는 일이 생긴다 — 그래서 두 경로가 여기 하나로 모인다.
+ *
+ * 음수는 안 받는다. 경험치를 빼앗는 길을 열어 두면, 어딘가에서 부호 하나 틀린
+ * 값이 들어왔을 때 진행도가 조용히 되감긴다.
+ */
+export function addPassXp(prev, gain, data) {
   const before = { ...EMPTY_PASS, ...(prev ?? {}) }
-  const xp = Math.min(xpCap(data), before.xp + xpForRank(rank, data, opts))
+  const xp = Math.min(xpCap(data), before.xp + Math.max(0, gain ?? 0))
   const level = passLevelOf(xp, data)
   return {
     xp,
