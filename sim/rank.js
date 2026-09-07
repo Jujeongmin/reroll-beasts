@@ -98,6 +98,15 @@ export function rankOf(rows, account) {
 const DIVISIONS = 5
 
 /**
+ * 최고 티어의 폭. 위 문턱이 없어 다섯으로 나눌 자를 여기서 준다.
+ *
+ * 아래 티어들과 비슷한 폭(플래티넘이 600)으로 둔다 — 최고 티어만 유독 넓거나
+ * 좁으면 사다리 한 칸의 무게가 거기서만 달라진다. 이 폭을 넘어서면 계속
+ * 1 단계다: 그 위를 또 나누면 끝이 없고, 최고 칸은 끝이라는 뜻이어야 한다.
+ */
+const TOP_SPAN = 600
+
+/**
  * 지금 몇 티어 몇 단계인가.
  *
  * 단계는 **5 가 가장 낮고 1 이 가장 높다** — 롤을 해 본 사람에게 익숙한
@@ -114,28 +123,31 @@ export function divisionOf(lp) {
   const tier = tierOf(value)
   const i = TIERS.findIndex((t) => t.id === tier.id)
   const next = TIERS[i + 1]
-  if (!next) {
-    return { tier, division: null, from: tier.at, to: null, need: null, ratio: 1 }
-  }
-  const step = (next.at - tier.at) / DIVISIONS
+  // 최고 티어도 나눈다. 다만 위가 안 막혀 있어, 정해 둔 폭(TOP_SPAN)을
+  // 자로 쓰고 그 위는 전부 1 단계로 둔다.
+  const width = next ? next.at - tier.at : TOP_SPAN
+  const step = width / DIVISIONS
   // 티어 문턱 바로 아래에서 마지막 칸을 넘어가지 않게 묶는다.
   const idx = Math.min(DIVISIONS - 1, Math.floor((value - tier.at) / step))
   const from = tier.at + step * idx
   const to = from + step
+  // 마지막 칸의 마지막 티어에는 갈 곳이 없다. to 를 null 로 둬서 화면이
+  // "다음 칸까지 얼마" 를 안 적게 한다 — 없는 목표를 적으면 거짓말이 된다.
+  const top = !next && idx === DIVISIONS - 1
   return {
     tier,
     division: DIVISIONS - idx,
     from,
-    to,
-    need: Math.ceil(to - value),
-    ratio: Math.max(0, Math.min(1, (value - from) / step)),
+    to: top ? null : to,
+    need: top ? null : Math.ceil(to - value),
+    ratio: top ? 1 : Math.max(0, Math.min(1, (value - from) / step)),
   }
 }
 
-/** 화면에 적을 이름. "골드 3", 최고 티어는 "다이아". */
+/** 화면에 적을 이름. "골드 3", "다이아 1". */
 export function divisionLabel(lp) {
   const d = divisionOf(lp)
-  return d.division ? `${d.tier.name} ${d.division}` : d.tier.name
+  return `${d.tier.name} ${d.division}`
 }
 
 /**
@@ -149,6 +161,6 @@ export function nextDivisionLabel(lp) {
   return d.to === null ? null : divisionLabel(d.to)
 }
 
-export { DIVISIONS }
+export { DIVISIONS, TOP_SPAN }
 
 export { TIERS }

@@ -1720,9 +1720,13 @@
      여덟 줄이 좁은 칸에 눌려, 정작 보러 온 유닛이 콩알만 해진다. */
   #result .sheet {
     animation: sheetin .42s cubic-bezier(.16,1,.3,1);
-    width: 100%; height: 100%; display: flex; flex-direction: column; gap: 8px;
+    width: 100%; height: 100%;
+    display: flex; flex-direction: column; justify-content: center; gap: 10px;
     padding: 14px 18px 16px;
   }
+  /* 제목은 맨 위에 남는다 — 가운데 덩어리와 같이 움직이면 "무슨 화면인가"가
+     화면 한복판에서 시작한다. */
+  #result .bhead { position: absolute; top: 18px; left: 30px; }
   #result .bhead { display: flex; align-items: baseline; gap: 8px; }
   #result .bhead b { font-size: 20px; color: #ffd98a; text-shadow: 0 2px 0 #6b4a2a; }
   #result .bhead span { font-size: 12px; color: #a99a86; }
@@ -1731,7 +1735,7 @@
   #result-rows { flex: none; display: flex; flex-direction: column; gap: 3px; }
 
   #result .r {
-    flex: none; height: 38px;
+    flex: none; height: 54px;
     display: flex; align-items: center; gap: 9px; padding: 0 8px;
     background: #1a120bb8; border-radius: 3px; box-shadow: inset 0 0 0 1px #ffffff0f;
   }
@@ -1741,14 +1745,14 @@
   /* 등수. 자리를 고정해야 유닛 줄이 세로로 안 어긋난다. */
   #result .r .no {
     flex: none; width: 30px; text-align: center;
-    font-size: 16px; font-weight: 800; color: #ffd98a; font-variant-numeric: tabular-nums;
+    font-size: 18px; font-weight: 800; color: #ffd98a; font-variant-numeric: tabular-nums;
   }
   #result .r.top .no { color: #ffe9b0; text-shadow: 0 0 6px #ffb04d99; }
   /* 등수가 아직 없는 줄. 없는 등수를 지어내지 않는다. */
   #result .r .no.none { color: #7e7261; }
   #result .r .who { flex: none; width: 112px; min-width: 0; }
   #result .r .who .n {
-    display: block; font-size: 12px; font-weight: 800; color: #f0e6cf;
+    display: block; font-size: 13px; font-weight: 800; color: #f0e6cf;
     overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
   }
   #result .r .who .tg { font-size: .85em; font-weight: 700; opacity: .5; }
@@ -1764,7 +1768,7 @@
   /* 줄 높이에 맞춰 자란다 — 화면이 커지면 유닛도 같이 커져야 보러 온 것이
      보인다. 정사각을 지키려고 너비를 높이로 잡는다. */
   #result .r .u {
-    flex: none; position: relative; height: 30px; aspect-ratio: 1;
+    flex: none; position: relative; height: 44px; aspect-ratio: 1;
     border-radius: 4px; background: #0d0a06;
     box-shadow: inset 0 0 0 1px var(--sc, #d99154);
     overflow: hidden;
@@ -1779,8 +1783,8 @@
   #result .r .us .empty { font-size: 11px; color: #7e7261; align-self: center; }
 
   #result .r .lp {
-    flex: none; width: 64px; text-align: right;
-    font-size: 13px; font-weight: 800; font-variant-numeric: tabular-nums;
+    flex: none; width: 70px; text-align: right;
+    font-size: 14px; font-weight: 800; font-variant-numeric: tabular-nums;
   }
   #result .r .lp.up { color: #8fe3a4; }
   #result .r .lp.down { color: #ff9a8c; }
@@ -1793,19 +1797,19 @@
      사람만 안다. 막대 위에서 **움직인 구간을 칠하면** 어디에서 어디로 갔는지가
      한눈에 보인다. 랭크 판에서만 그린다 — 일반 판은 점수가 안 움직인다. */
   #result .me-band {
-    flex: 1; min-height: 0;
+    flex: none;
     display: flex; flex-direction: column; align-items: center; justify-content: center;
-    gap: 18px; padding: 16px 20px; border-radius: 4px;
+    gap: 10px; padding: 10px 20px; border-radius: 4px;
     background: #241a0dc4; box-shadow: inset 0 0 0 1px #ffd16636;
   }
   /* 티어 이름 줄. 배지와 이름이 한 덩어리로 읽혀야 "지금 골드 3" 이 한 번에
      들어온다. */
-  #result .me-band .head { display: flex; align-items: center; gap: 16px; }
+  #result .me-band .head { display: flex; align-items: center; gap: 12px; }
   #result .me-band[hidden] { display: none; }
   /* 티어 배지. 홈과 같은 색이어야 같은 것으로 읽힌다. */
   #result .me-band .badge {
-    width: 74px; height: 74px; flex: none; border-radius: 12px;
-    transform: rotate(45deg); box-shadow: inset 0 0 0 5px #00000055, 0 0 28px #ffb04d66;
+    width: 38px; height: 38px; flex: none; border-radius: 7px;
+    transform: rotate(45deg); box-shadow: inset 0 0 0 3px #00000055, 0 0 18px #ffb04d5c;
   }
   #result .me-band .badge.bronze { background: linear-gradient(#d08a4e, #8a5527); }
   #result .me-band .badge.silver { background: linear-gradient(#dfe6ef, #9aa6b6); }
@@ -1813,14 +1817,14 @@
   #result .me-band .badge.platinum { background: linear-gradient(#a8f0e2, #3f9f8e); }
   #result .me-band .badge.diamond { background: linear-gradient(#bfe2ff, #5a8fe0); }
   #result .me-band .tn {
-    flex: none; font-size: 52px; font-weight: 900; color: #ffe1a0;
+    flex: none; font-size: 28px; font-weight: 900; color: #ffe1a0;
     text-shadow: 0 2px 0 #6b4a2a, 0 0 18px #ffb04d59;
   }
-  #result .me-band .mid { width: 100%; max-width: 760px; }
+  #result .me-band .mid { width: 100%; max-width: 660px; }
   /* 막대. 이번 판이 움직인 만큼만 색이 다르다 — 나머지는 원래 갖고 있던 것이다. */
   /* span 이라 display 를 못 물려받는다 — 안 적으면 인라인이라 높이가 0 이 된다. */
   #result .me-band .bar {
-    display: block; position: relative; height: 32px; border-radius: 16px; overflow: hidden;
+    display: block; position: relative; height: 18px; border-radius: 9px; overflow: hidden;
     background: #00000073; box-shadow: inset 0 0 0 1px #ffffff1a;
   }
   #result .me-band .bar i {
@@ -1844,29 +1848,29 @@
   @keyframes lpgrow { from { transform: scaleX(0); transform-origin: left } to { transform: scaleX(1) } }
   #result .me-band .nums {
     display: flex; align-items: baseline; gap: 6px; margin-top: 6px;
-    font-size: 15px; color: #c9b088; font-variant-numeric: tabular-nums;
+    font-size: 12px; color: #c9b088; font-variant-numeric: tabular-nums;
   }
-  #result .me-band .nums b { color: #f0e6cf; font-size: 18px; }
+  #result .me-band .nums b { color: #f0e6cf; font-size: 14px; }
   #result .me-band .nums .to { margin-left: auto; }
   /* 티어 사다리. 지금 칸만 보여 주면 "전체에서 어디쯤인가"에 답이 없다 —
      다섯 칸을 늘어놓고 내가 선 칸만 밝힌다. */
   #result .me-band .ladder {
     display: flex; align-items: center; gap: 4px;
-    width: 100%; max-width: 760px;
+    width: 100%; max-width: 660px;
   }
   #result .me-band .ladder .step {
-    flex: 1; display: flex; flex-direction: column; align-items: center; gap: 5px;
+    flex: 1; display: flex; flex-direction: column; align-items: center; gap: 3px;
     opacity: .32; filter: grayscale(.7);
   }
   #result .me-band .ladder .step.on { opacity: 1; filter: none; }
   /* 지나온 칸. 흐리게 두되 회색은 벗긴다 — 여기까지는 왔다는 뜻이다. */
   #result .me-band .ladder .step.past { opacity: .62; filter: none; }
   #result .me-band .ladder .step i {
-    width: 16px; height: 16px; border-radius: 3px; transform: rotate(45deg);
+    width: 12px; height: 12px; border-radius: 3px; transform: rotate(45deg);
     box-shadow: inset 0 0 0 2px #00000055;
   }
   #result .me-band .ladder .step.on i { box-shadow: inset 0 0 0 2px #00000055, 0 0 10px #ffe1a0a6; }
-  #result .me-band .ladder .step b { font-size: 10px; font-weight: 800; color: #c9b088; }
+  #result .me-band .ladder .step b { font-size: 9px; font-weight: 800; color: #c9b088; }
   #result .me-band .ladder .step.on b { color: #ffe1a0; }
   #result .me-band .ladder .step i.bronze { background: linear-gradient(#d08a4e, #8a5527); }
   #result .me-band .ladder .step i.silver { background: linear-gradient(#dfe6ef, #9aa6b6); }
@@ -1876,7 +1880,7 @@
   /* 증감. 띠에서 제일 큰 글자다 — 보러 온 숫자가 이것이다. */
   /* 이 화면에서 제일 큰 숫자. 보러 온 것이 이것이다. */
   #result .me-band .delta {
-    flex: none; font-size: 56px; font-weight: 900; font-variant-numeric: tabular-nums;
+    flex: none; font-size: 32px; font-weight: 900; font-variant-numeric: tabular-nums;
     text-shadow: 0 2px 0 #00000059;
   }
   #result .me-band .delta.up { color: #8fe3a4; }

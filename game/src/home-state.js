@@ -63,6 +63,9 @@ function viewProfile(profile) {
     // 다음 **단계**까지. 티어 한 칸(500 LP)을 눈금으로 쓰면 한 판으로는 막대가
     // 거의 안 움직여 이겼는데 아무것도 안 변한 것처럼 보인다.
     // 최고 티어는 위가 안 막혀 있어 남은 게 없다 — 막대도 안 그린다.
-    next: d.division ? { name: nextDivisionLabel(lp), need: d.need, ratio: d.ratio } : null,
+    // 맨 위 칸에는 갈 곳이 없다(d.to 가 null) — 없는 목표로 막대를 그리면
+    // 영영 안 차는 막대가 된다. **division 이 아니라 to 를 본다**: 이제 모든
+    // 티어에 1~5 단계가 있어 division 은 늘 값이 있다.
+    next: d.to === null ? null : { name: nextDivisionLabel(lp), need: d.need, ratio: d.ratio },
   }
 }

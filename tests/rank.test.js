@@ -86,16 +86,26 @@ describe('divisionOf', () => {
     expect(divisionLabel(1200)).toBe('플래티넘 5')
   })
 
-  it('최고 티어는 칸이 없다 — 위가 안 막혀 있어 나눌 눈금이 없다', () => {
-    expect(divisionOf(1800).division).toBe(null)
+  it('최고 티어도 다섯 칸이다 — 정해 둔 폭을 자로 쓴다', () => {
+    expect(divisionLabel(1800)).toBe('다이아 5')
+    expect(divisionLabel(1920)).toBe('다이아 4')
+    expect(divisionLabel(2280)).toBe('다이아 1')
+  })
+
+  it('최고 칸 위로는 계속 1 단계다 — 그 위를 또 나누면 끝이 없다', () => {
+    expect(divisionLabel(9999)).toBe('다이아 1')
+    // 갈 곳이 없으니 "다음 칸까지 얼마" 도 없다. 없는 목표를 적으면 거짓말이다.
     expect(divisionOf(9999).to).toBe(null)
-    expect(divisionLabel(2500)).toBe('다이아')
+    expect(divisionOf(9999).need).toBe(null)
+    expect(divisionOf(9999).ratio).toBe(1)
   })
 
   it('바로 위 칸의 이름은 티어를 넘어서도 이어진다', () => {
     expect(nextDivisionLabel(1199)).toBe('플래티넘 5')
-    expect(nextDivisionLabel(1750)).toBe('다이아')
-    expect(nextDivisionLabel(1800)).toBe(null)
+    expect(nextDivisionLabel(1750)).toBe('다이아 5')
+    expect(nextDivisionLabel(1800)).toBe('다이아 4')
+    // 마지막 칸에는 위가 없다.
+    expect(nextDivisionLabel(2280)).toBe(null)
   })
 
   it('음수 LP 도 견딘다 — 가장 낮은 칸으로 떨어진다', () => {
