@@ -832,7 +832,7 @@ export async function createPrep({
       `<div class="sub">${t('info.items')}</div></div>` +
       '</div>' +
       `<div class="items"><span><em>${itemEffectText(it)}</em></span></div>` +
-      `<div class="sell">${t('info.itemHint', { n: data.items.slotsPerUnit })}</div>`
+      `<div class="sell">${t('info.itemHint')}</div>`
     el.info.hidden = false
     // 사거리 표시는 말의 것이다. 아이템 카드를 열 때 지우지 않으면 방금 본
     // 말의 사거리가 판에 그대로 남아 아이템이 그린 것처럼 읽힌다.
