@@ -15,6 +15,7 @@
 | 홈 배경 그림 1장 | AI 생성 (프로젝트 소유자 제공) | — | 저장소 소유 |
 | 전투 이펙트 (고리·폭발·잔상·불꽃) | [Particle Pack](https://kenney.nl/assets/particle-pack) | Kenney | CC0 1.0 |
 | 자물쇠 · 시계 아이콘 | 이 저장소 (`tools/make-icons.mjs`) | — | CC0 1.0 |
+| 티어 문장 5종 | 이 저장소 (`tools/tier-icons.mjs`) | — | CC0 1.0 |
 | 시너지 아이콘 11종 | 이 저장소 (`tools/trait-icons.mjs`) | — | CC0 1.0 |
 | 조작음 (누르기·열기·거절·놓기) | [Interface Sounds](https://kenney.nl/assets/interface-sounds) | Kenney | CC0 1.0 |
 | 전투음 (타격·죽음·폭발) · 구매·승급 종소리 | [Impact Sounds](https://kenney.nl/assets/impact-sounds) | Kenney | CC0 1.0 |

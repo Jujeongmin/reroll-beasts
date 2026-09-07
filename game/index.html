@@ -1023,17 +1023,17 @@
   #home .record .tierline { display: flex; align-items: center; gap: 6px; font-size: 13px; }
   #home .record .tierline b { color: #ffe1a0; font-weight: 900; }
   #home .record .tierline span { margin-left: auto; font-size: 11px; color: #c9b088; }
-  /* 티어 배지. 색만으로 단계를 말한다 — 아이콘 다섯 장을 새로 그리면 그림이
-     티어 수치와 어긋날 자리가 하나 더 생긴다. */
+  /* 티어 문장. 결과판과 같은 그림을 쓴다(tools/tier-icons.mjs) — 홈에서만
+     다른 모양이면 같은 티어가 두 화면에서 다른 것으로 읽힌다. */
   #home .record .badge {
-    width: 14px; height: 14px; flex: none; border-radius: 3px;
-    transform: rotate(45deg); box-shadow: inset 0 0 0 2px #00000055;
+    width: 16px; height: 16px; flex: none;
+    background: center/contain no-repeat; image-rendering: pixelated;
   }
-  #home .record .badge.bronze { background: linear-gradient(#d08a4e, #8a5527); }
-  #home .record .badge.silver { background: linear-gradient(#dfe6ef, #9aa6b6); }
-  #home .record .badge.gold { background: linear-gradient(#ffd977, #c99326); }
-  #home .record .badge.platinum { background: linear-gradient(#a8f0e2, #3f9f8e); }
-  #home .record .badge.diamond { background: linear-gradient(#bfe2ff, #5a8fe0); }
+  #home .record .badge.bronze { background-image: url('/assets/ui/tier_bronze.png'); }
+  #home .record .badge.silver { background-image: url('/assets/ui/tier_silver.png'); }
+  #home .record .badge.gold { background-image: url('/assets/ui/tier_gold.png'); }
+  #home .record .badge.platinum { background-image: url('/assets/ui/tier_platinum.png'); }
+  #home .record .badge.diamond { background-image: url('/assets/ui/tier_diamond.png'); }
   /* 다음 티어까지. 숫자만 있으면 "많이 남았나"를 매번 계산해야 한다. */
   #home .record .bar {
     height: 4px; margin: 6px 0 5px; border-radius: 2px; overflow: hidden;
@@ -1716,22 +1716,32 @@
   }
   #result[hidden] { display: none; }
   #result.closing { animation: veilout .24s ease-in forwards; }
-  /* 판 하나를 통째로 돌아보는 화면이라 **화면을 다 쓴다.** 작은 창으로 띄우면
-     여덟 줄이 좁은 칸에 눌려, 정작 보러 온 유닛이 콩알만 해진다. */
   #result .sheet {
     animation: sheetin .42s cubic-bezier(.16,1,.3,1);
     width: 100%; height: 100%;
     display: flex; flex-direction: column; justify-content: center; gap: 10px;
     padding: 14px 18px 16px;
   }
-  /* 제목은 맨 위에 남는다 — 가운데 덩어리와 같이 움직이면 "무슨 화면인가"가
-     화면 한복판에서 시작한다. */
-  #result .bhead { position: absolute; top: 18px; left: 30px; }
-  #result .bhead { display: flex; align-items: baseline; gap: 8px; }
-  #result .bhead b { font-size: 20px; color: #ffd98a; text-shadow: 0 2px 0 #6b4a2a; }
-  #result .bhead span { font-size: 12px; color: #a99a86; }
-  /* 여덟 줄이 남는 높이를 고르게 나눠 갖는다 — 줄을 고정 높이로 두면 화면이
-     크든 작든 아래가 비거나 스크롤이 생긴다. */
+
+  /* 머리. 등수가 이 화면의 첫 문장이다 — 작게 적으면 여덟 줄을 다 훑고 나서야
+     내가 몇 등인지 안다. */
+  #result .bhead {
+    display: flex; align-items: center; gap: 14px;
+    padding: 0 4px 8px; box-shadow: inset 0 -1px 0 #ffffff14;
+  }
+  #result .bhead .place {
+    display: flex; align-items: baseline; gap: 3px;
+    font-weight: 900; color: #ffe1a0; text-shadow: 0 3px 0 #6b4a2a, 0 0 22px #ffb04d4d;
+  }
+  #result .bhead .place b { font-size: 46px; line-height: 1; font-variant-numeric: tabular-nums; }
+  #result .bhead .place i { font-style: normal; font-size: 18px; }
+  #result .bhead .who { flex: 1; min-width: 0; }
+  #result .bhead .who b {
+    display: block; font-size: 16px; font-weight: 800; color: #f0e6cf;
+    overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
+  }
+  #result .bhead .who span { font-size: 11px; color: #a99a86; }
+
   #result-rows { flex: none; display: flex; flex-direction: column; gap: 3px; }
 
   #result .r {
@@ -1742,14 +1752,21 @@
   /* 내 줄. 여덟 줄 중 어느 것이 나인지 찾게 하지 않는다. */
   #result .r.me { background: #3a2a0fd9; box-shadow: inset 0 0 0 1px #ffd16659; }
   #result .r.out { opacity: .62; }
-  /* 등수. 자리를 고정해야 유닛 줄이 세로로 안 어긋난다. */
+
+  /* 등수 표. 1·2·3 만 색이 다르다 — 시상대가 있는 게임에서 그 셋은 다른
+     이야기다. 나머지는 같은 회색이라 눈이 거기서 안 멈춘다. */
   #result .r .no {
-    flex: none; width: 30px; text-align: center;
-    font-size: 18px; font-weight: 800; color: #ffd98a; font-variant-numeric: tabular-nums;
+    flex: none; width: 26px; height: 26px; border-radius: 4px;
+    display: grid; place-items: center;
+    font-size: 14px; font-weight: 900; font-variant-numeric: tabular-nums;
+    color: #0e0a06; background: #6b6157; box-shadow: inset 0 -2px 0 #00000038;
   }
-  #result .r.top .no { color: #ffe9b0; text-shadow: 0 0 6px #ffb04d99; }
+  #result .r.p1 .no { background: linear-gradient(#ffe08a, #d9a12c); }
+  #result .r.p2 .no { background: linear-gradient(#e8eef5, #a2adba); }
+  #result .r.p3 .no { background: linear-gradient(#e0a06a, #a2632c); }
   /* 등수가 아직 없는 줄. 없는 등수를 지어내지 않는다. */
-  #result .r .no.none { color: #7e7261; }
+  #result .r .no.none { background: #2a231c; color: #7e7261; box-shadow: none; }
+
   #result .r .who { flex: none; width: 112px; min-width: 0; }
   #result .r .who .n {
     display: block; font-size: 13px; font-weight: 800; color: #f0e6cf;
@@ -1765,8 +1782,6 @@
     display: flex; gap: 5px; overflow-x: auto; scrollbar-width: none;
   }
   #result .r .us::-webkit-scrollbar { display: none; }
-  /* 줄 높이에 맞춰 자란다 — 화면이 커지면 유닛도 같이 커져야 보러 온 것이
-     보인다. 정사각을 지키려고 너비를 높이로 잡는다. */
   #result .r .u {
     flex: none; position: relative; height: 44px; aspect-ratio: 1;
     border-radius: 4px; background: #0d0a06;
@@ -1794,7 +1809,7 @@
 
   /* ── 내 티어 띠 ────────────────────────────────────────
      "몇 점 올랐나"를 숫자로만 적으면 그게 많은지 적은지는 티어 문턱을 외운
-     사람만 안다. 막대 위에서 **움직인 구간을 칠하면** 어디에서 어디로 갔는지가
+     사람만 안다. 막대 위에서 움직인 구간을 칠하면 어디에서 어디로 갔는지가
      한눈에 보인다. 랭크 판에서만 그린다 — 일반 판은 점수가 안 움직인다. */
   #result .me-band {
     flex: none;
@@ -1802,34 +1817,31 @@
     gap: 10px; padding: 10px 20px; border-radius: 4px;
     background: #241a0dc4; box-shadow: inset 0 0 0 1px #ffd16636;
   }
-  /* 티어 이름 줄. 배지와 이름이 한 덩어리로 읽혀야 "지금 골드 3" 이 한 번에
+  #result .me-band[hidden] { display: none; }
+  /* 티어 이름 줄. 문장과 이름이 한 덩어리로 읽혀야 "지금 골드 3" 이 한 번에
      들어온다. */
   #result .me-band .head { display: flex; align-items: center; gap: 12px; }
-  #result .me-band[hidden] { display: none; }
-  /* 티어 배지. 홈과 같은 색이어야 같은 것으로 읽힌다. */
+  /* 티어 문장. 색만 다른 마름모였을 때는 색을 못 가르는 사람에게 다섯이
+     하나였고, 사다리의 작은 자리에서는 옆 칸과 구별이 안 됐다. 방패에 그은
+     줄이 티어 수만큼 늘고 최고 티어만 보석이다(tools/tier-icons.mjs). */
   #result .me-band .badge {
-    width: 38px; height: 38px; flex: none; border-radius: 7px;
-    transform: rotate(45deg); box-shadow: inset 0 0 0 3px #00000055, 0 0 18px #ffb04d5c;
+    width: 40px; height: 40px; flex: none;
+    background: center/contain no-repeat;
+    image-rendering: pixelated;
+    filter: drop-shadow(0 0 10px #ffb04d59);
   }
-  #result .me-band .badge.bronze { background: linear-gradient(#d08a4e, #8a5527); }
-  #result .me-band .badge.silver { background: linear-gradient(#dfe6ef, #9aa6b6); }
-  #result .me-band .badge.gold { background: linear-gradient(#ffd977, #c99326); }
-  #result .me-band .badge.platinum { background: linear-gradient(#a8f0e2, #3f9f8e); }
-  #result .me-band .badge.diamond { background: linear-gradient(#bfe2ff, #5a8fe0); }
   #result .me-band .tn {
     flex: none; font-size: 28px; font-weight: 900; color: #ffe1a0;
     text-shadow: 0 2px 0 #6b4a2a, 0 0 18px #ffb04d59;
   }
   #result .me-band .mid { width: 100%; max-width: 660px; }
-  /* 막대. 이번 판이 움직인 만큼만 색이 다르다 — 나머지는 원래 갖고 있던 것이다. */
-  /* span 이라 display 를 못 물려받는다 — 안 적으면 인라인이라 높이가 0 이 된다. */
+  /* 막대. 이번 판이 움직인 만큼만 색이 다르다 — 나머지는 원래 갖고 있던 것이다.
+     span 이라 display 를 못 물려받는다: 안 적으면 인라인이라 높이가 0 이 된다. */
   #result .me-band .bar {
     display: block; position: relative; height: 18px; border-radius: 9px; overflow: hidden;
     background: #00000073; box-shadow: inset 0 0 0 1px #ffffff1a;
   }
-  #result .me-band .bar i {
-    position: absolute; top: 0; bottom: 0; display: block;
-  }
+  #result .me-band .bar i { position: absolute; top: 0; bottom: 0; display: block; }
   #result .me-band .bar .kept { left: 0; background: linear-gradient(#ffd977, #c99326); }
   /* 칸 안의 눈금 넷. 막대만 있으면 "얼마나 왔나"가 눈대중이 된다. */
   #result .me-band .bar::after {
@@ -1860,24 +1872,18 @@
   }
   #result .me-band .ladder .step {
     flex: 1; display: flex; flex-direction: column; align-items: center; gap: 3px;
-    opacity: .32; filter: grayscale(.7);
+    opacity: .3; filter: grayscale(.8);
   }
   #result .me-band .ladder .step.on { opacity: 1; filter: none; }
   /* 지나온 칸. 흐리게 두되 회색은 벗긴다 — 여기까지는 왔다는 뜻이다. */
-  #result .me-band .ladder .step.past { opacity: .62; filter: none; }
+  #result .me-band .ladder .step.past { opacity: .6; filter: none; }
   #result .me-band .ladder .step i {
-    width: 12px; height: 12px; border-radius: 3px; transform: rotate(45deg);
-    box-shadow: inset 0 0 0 2px #00000055;
+    width: 16px; height: 16px;
+    background: center/contain no-repeat; image-rendering: pixelated;
   }
-  #result .me-band .ladder .step.on i { box-shadow: inset 0 0 0 2px #00000055, 0 0 10px #ffe1a0a6; }
+  #result .me-band .ladder .step.on i { filter: drop-shadow(0 0 6px #ffe1a0a6); }
   #result .me-band .ladder .step b { font-size: 9px; font-weight: 800; color: #c9b088; }
   #result .me-band .ladder .step.on b { color: #ffe1a0; }
-  #result .me-band .ladder .step i.bronze { background: linear-gradient(#d08a4e, #8a5527); }
-  #result .me-band .ladder .step i.silver { background: linear-gradient(#dfe6ef, #9aa6b6); }
-  #result .me-band .ladder .step i.gold { background: linear-gradient(#ffd977, #c99326); }
-  #result .me-band .ladder .step i.platinum { background: linear-gradient(#a8f0e2, #3f9f8e); }
-  #result .me-band .ladder .step i.diamond { background: linear-gradient(#bfe2ff, #5a8fe0); }
-  /* 증감. 띠에서 제일 큰 글자다 — 보러 온 숫자가 이것이다. */
   /* 이 화면에서 제일 큰 숫자. 보러 온 것이 이것이다. */
   #result .me-band .delta {
     flex: none; font-size: 32px; font-weight: 900; font-variant-numeric: tabular-nums;
@@ -2305,7 +2311,10 @@
        같이 사라지는데, 이 화면은 바로 그 판 안에서 떠야 한다. -->
   <div id="result" hidden>
     <div class="sheet">
-      <div class="bhead"><b id="result-title">결과</b><span id="result-sub"></span></div>
+      <div class="bhead">
+        <span class="place" id="result-place"></span>
+        <span class="who"><b id="result-title">결과</b><span id="result-sub"></span></span>
+      </div>
       <div class="me-band" id="result-band" hidden></div>
       <div id="result-rows"></div>
       <button id="result-close" data-i18n="result.leave">나가기</button>

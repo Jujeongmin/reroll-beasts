@@ -12,13 +12,16 @@
 
 import { unitById } from '@sim/data.js'
 import { lpForRank, divisionOf, divisionLabel, nextDivisionLabel, TIERS } from '@sim/rank.js'
-import { accountTag, tagDuplicates } from '@sim/name.js'
+import { accountTag, tagDuplicates, joinTag } from '@sim/name.js'
 import { t, textOf } from './i18n.js'
 import { sfx } from './audio.js'
 
 const STAR = ['', '★', '★★', '★★★']
 // 성급 색. prep·scene3d 와 같은 값이어야 화면끼리 안 어긋난다.
 const STAR_COLOR = ['#d99154', '#e6edf5', '#ffd166']
+
+/** 티어 문장. tools/tier-icons.mjs 가 찍는다. */
+const TIER_ART = (id) => `url('/assets/ui/tier_${id}.png')`
 
 /**
  * @param {object} o
@@ -31,6 +34,7 @@ export function createResult({ data, thumbFor, onClose }) {
     root: document.getElementById('result'),
     title: document.getElementById('result-title'),
     sub: document.getElementById('result-sub'),
+    place: document.getElementById('result-place'),
     band: document.getElementById('result-band'),
     rows: document.getElementById('result-rows'),
     close: document.getElementById('result-close'),
@@ -70,7 +74,9 @@ export function createResult({ data, thumbFor, onClose }) {
 
   function rowFor(seat, label, mine, ranked) {
     const d = document.createElement('div')
-    d.className = 'r' + (mine ? ' me' : '') + (seat.rank ? '' : ' out') + (seat.rank === 1 ? ' top' : '')
+    // 1·2·3 만 색이 다르다 — 시상대가 있는 게임에서 그 셋은 다른 이야기다.
+    const podium = seat.rank >= 1 && seat.rank <= 3 ? ` p${seat.rank}` : ''
+    d.className = 'r' + (mine ? ' me' : '') + (seat.rank ? '' : ' out') + podium
 
     const units = unitsOf(seat)
     const art = units
@@ -147,7 +153,7 @@ export function createResult({ data, thumbFor, onClose }) {
         : `<i class="${delta > 0 ? 'gain' : 'loss'}" style="left:${lo}%;width:${hi - lo}%"></i>`
 
     el.band.innerHTML =
-      `<span class="head"><span class="badge ${d.tier.id}"></span>` +
+      `<span class="head"><span class="badge" style="background-image:${TIER_ART(d.tier.id)}"></span>` +
       `<span class="tn">${divisionLabel(after)}</span>` +
       `<span class="delta ${delta > 0 ? 'up' : delta < 0 ? 'down' : 'none'}">` +
       `${delta > 0 ? '+' : ''}${delta}</span></span>` +
@@ -162,7 +168,7 @@ export function createResult({ data, thumbFor, onClose }) {
       TIERS.map((x, i) => {
         const at = TIERS.findIndex((y) => y.id === d.tier.id)
         const cls = i === at ? ' on' : i < at ? ' past' : ''
-        return `<span class="step${cls}"><i class="${x.id}"></i><b>${x.name}</b></span>`
+        return `<span class="step${cls}"><i style="background-image:${TIER_ART(x.id)}"></i><b>${x.name}</b></span>`
       }).join('') +
       '</span>'
     el.band.hidden = false
@@ -185,7 +191,13 @@ export function createResult({ data, thumbFor, onClose }) {
         rows.map((s) => ({ text: textOf(s.name), tag: accountTag(s.account) })),
       )
 
-      el.title.textContent = me?.rank ? t('result.rank', { rank: me.rank }) : t('result.title')
+      // 등수를 크게 세운다. 작게 적으면 여덟 줄을 다 훑고 나서야 내가 몇
+      // 등인지 안다. 아직 안 정해졌으면 자리를 비운다 — 없는 등수를
+      // 지어내지 않는다.
+      el.place.innerHTML = me?.rank ? `<b>${me.rank}</b><i>${t('result.placeUnit')}</i>` : ''
+      // 이름은 등수 옆에 둔다. 여덟 줄 중 내 줄을 찾지 않아도 되게.
+      const myLabel = me ? labels[rows.indexOf(me)] : null
+      el.title.textContent = myLabel ? joinTag(myLabel) : t('result.title')
       el.sub.textContent = ranked ? t('result.ranked') : t('result.casual')
       // 띠는 랭크 판에서, 내 등수가 확정된 뒤에만 그린다. 일반 판에서 0 을
       // 그리면 움직였는데 0 인 것처럼 읽힌다.
