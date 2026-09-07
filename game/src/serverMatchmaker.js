@@ -21,6 +21,17 @@ import { createRng } from '@sim/rng.js'
 // 내 판을 보는 눈에는 즉시로 읽힌다. 더 촘촘히 보내도 사람은 구분 못 한다.
 const SCOUT_MS = 250
 
+/** 같은 매치 안에서도 계정마다 다른 상점 난수열을 만든다. */
+export function shopSeedFor(matchSeed, account) {
+  const text = `${matchSeed >>> 0}|${String(account ?? '').toLowerCase()}`
+  let h = 2166136261
+  for (let i = 0; i < text.length; i++) {
+    h ^= text.charCodeAt(i)
+    h = Math.imul(h, 16777619)
+  }
+  return h >>> 0
+}
+
 /**
  * 서버 로비에 붙는다. 접속·입장까지 끝난 매치메이커를 돌려준다.
  *
@@ -228,6 +239,10 @@ export async function createServerMatchmaker({ data, server, roomId = null, time
 
   return {
     seats,
+
+    // 전투 시드는 방 전체가 공유하지만 상점 시드는 계정별로 갈라야 한다.
+    // 모두가 같은 방 시드만 쓰면 최초 상점과 이후 무료 갱신까지 똑같아진다.
+    shopSeed: shopSeedFor(state.seed, server.account),
 
     /** 내 전투의 시드. 서버가 판정에 쓰는 값과 같은 식으로 만든다. */
     roundSeed(n) {

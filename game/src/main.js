@@ -856,6 +856,18 @@ try {
   function enterGame(matchmaker, mode = null) {
     mm = matchmaker
     run.mode = mode
+    // 서버 매치는 방 시드와 계정을 섞은 개인 상점 스트림을 쓴다. 부팅 때 만든
+    // 고정 시드 상태를 그대로 쓰면 방 안의 모든 사람에게 같은 카드가 뜬다.
+    // 튜토리얼에는 shopSeed 가 없으므로 대본이 만든 상점을 그대로 유지한다.
+    if (Number.isInteger(mm.shopSeed)) {
+      run.rng = createRng(mm.shopSeed)
+      const fresh = startRun(data, run.rng)
+      run.state = fresh.state
+      run.pool = fresh.pool
+      run.seed = mm.shopSeed
+      run.index = 1
+      run.round = roundAt(1, data.rounds).label
+    }
     run.lobby = mm.seats
     drawRound()
     home.hide()

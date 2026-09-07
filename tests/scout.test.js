@@ -11,14 +11,25 @@ import { describe, it, expect, beforeAll, afterEach, vi } from 'vitest'
 import { loadData } from '@sim/data.js'
 
 let createServerMatchmaker
+let shopSeedFor
 let data
 
 beforeAll(async () => {
   // SDK 는 import 시점에 localStorage 를 읽는다 — 브라우저 전제 모듈이라
   // 노드에선 그 줄에서 바로 터진다. 매치메이커가 그 SDK 를 끌고 온다.
   globalThis.localStorage ??= { getItem: () => null, setItem: () => {}, removeItem: () => {} }
-  ;({ createServerMatchmaker } = await import('../game/src/serverMatchmaker.js'))
+  ;({ createServerMatchmaker, shopSeedFor } = await import('../game/src/serverMatchmaker.js'))
   data = await loadData()
+})
+
+describe('개인 상점 시드', () => {
+  it('같은 방에서도 계정이 다르면 상점 난수열이 다르다', () => {
+    expect(shopSeedFor(1234, 'alice')).not.toBe(shopSeedFor(1234, 'bob'))
+  })
+
+  it('같은 방과 계정은 재접속해도 같은 시드를 얻는다', () => {
+    expect(shopSeedFor(1234, 'Alice')).toBe(shopSeedFor(1234, 'alice'))
+  })
 })
 
 afterEach(() => {
