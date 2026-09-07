@@ -476,10 +476,9 @@ export function createHome({
     // 프리미엄을 샀으면 자물쇠를 안 그린다 — 이미 열린 칸에 자물쇠가 남아
     // 있으면 산 것이 화면에 안 남는다.
     const bought = !!p.premium
-    const freeCount = track.filter((t) => t.free).length
     el.passNote.textContent = bought
       ? '프리미엄 패스를 갖고 있다 — 모든 칸이 열린다'
-      : `자물쇠 칸은 프리미엄 패스를 사야 열린다 · ${freeCount}칸은 그냥 받는다`
+      : '자물쇠 칸은 프리미엄 패스를 사야 열린다'
     el.passRows.innerHTML = track
       .map((t) => {
         // 칸은 셋 중 하나다: **받았다 · 아직이다 · 잠겼다.**
@@ -491,7 +490,6 @@ export function createHome({
           `<div class="step${t.reached ? ' got' : ''}${shut ? ' shut' : ''}` +
           `${t.free ? ' open' : ''}${done ? ' done' : ''}">` +
           `<div class="lv">${t.level}</div>${cell(t)}` +
-          (done ? '<i class="check" title="받았다"></i>' : '') +
           (shut ? '<i class="lock" title="프리미엄 패스를 사야 열린다"></i>' : '') +
           '</div>'
         )
