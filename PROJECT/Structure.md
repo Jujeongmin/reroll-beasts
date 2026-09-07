@@ -21,6 +21,7 @@
 | `lobbyRound.js` | 실시간 로비 라운드 진행·탈락 순위. 시각을 인자로 받는다 |
 | `rank.js` `profile.js` | 순위 → LP → 티어 · 전적 누적 |
 | `cosmetics.js` `pass.js` `season.js` | 보유·해금 · 패스 경험치 · 시즌 구간 |
+| `missions.js` | 일일 미션 추첨·진행·수령 판정 |
 | `store.js` | 결제 productId → 계정에 들어갈 것 |
 | `avatar.js` `name.js` | 홈 아바타 이동 · 닉네임 규칙 |
 | `tutorial.js` | 튜토리얼 대본. 어느 단계인지는 상태에서 나온다 |
