@@ -7,17 +7,20 @@
 import { unitById } from '@sim/data.js'
 import { resolveStats } from '@sim/stats.js'
 import { applyItems } from '@sim/items.js'
+import { t } from './i18n.js'
 
 const TICK_RATE = 30
 const sec = (ticks) => (ticks / TICK_RATE).toFixed(1).replace(/\.0$/, '')
 
-const STAT_LABEL = {
-  def: '방어력',
-  atkPct: '공격력',
-  damageTakenPct: '받는 피해',
-  shield: '보호막',
-  shieldAndDef: '보호막·방어력',
-  dot: '지속 피해',
+// 이름표는 **키만** 든다. 문장은 t() 가 만든다 — 여기에 한국어를 박으면
+// 영어 화면에서도 한국어가 뜬다.
+const STAT_KEY = {
+  def: 'stat.def',
+  atkPct: 'stat.atkPct',
+  damageTakenPct: 'stat.damageTakenPct',
+  shield: 'stat.shield',
+  shieldAndDef: 'stat.shieldAndDef',
+  dot: 'stat.dot',
 }
 
 /** 스킬 파라미터 → 한 문장. 타입마다 읽는 값이 다르다. */
@@ -25,32 +28,32 @@ export function skillText(unit) {
   const { type, params: p } = unit.skill
   switch (type) {
     case 'single': {
-      const hits = p.hits > 1 ? ` ×${p.hits}회` : ''
+      const hits = p.hits > 1 ? t('skill.hits', { n: p.hits }) : ''
       const pierce = p.pierceCount
-        ? ` 뒤쪽 ${p.pierceCount}명에게 ${p.piercePct}% 관통.`
+        ? t('skill.pierce', { n: p.pierceCount, pct: p.piercePct })
         : ''
-      return `대상에게 주문력의 ${p.dmgPct}% 피해${hits}.${pierce}`
+      return t('skill.single', { pct: p.dmgPct, hits, pierce })
     }
     case 'aoe': {
-      const burst = p.dmgPct ? `반경 ${p.radius} 에 주문력의 ${p.dmgPct}% 피해.` : ''
+      const burst = p.dmgPct ? t('skill.aoeBurst', { r: p.radius, pct: p.dmgPct }) : ''
       const dot = p.tickDamagePct
-        ? `반경 ${p.radius} 에 ${sec(p.durationTicks)}초간 초당 주문력의 ${p.tickDamagePct}% 피해.`
+        ? t('skill.aoeDot', { r: p.radius, sec: sec(p.durationTicks), pct: p.tickDamagePct })
         : ''
       return [burst, dot].filter(Boolean).join(' ')
     }
     case 'buff': {
-      const who = p.target === 'self' ? '자신' : '아군 전체'
+      const who = t(p.target === 'self' ? 'target.self' : 'target.allies')
       const parts = []
-      if (p.amountPctMaxHp) parts.push(`최대 체력의 ${p.amountPctMaxHp}% 보호막`)
+      if (p.amountPctMaxHp) parts.push(t('skill.shield', { pct: p.amountPctMaxHp }))
       if (p.amount) {
-        const label = STAT_LABEL[p.stat] ?? p.stat
+        const label = t(STAT_KEY[p.stat] ?? p.stat)
         const sign = p.amount > 0 ? '+' : ''
         parts.push(`${label} ${sign}${p.amount}${p.stat.endsWith('Pct') ? '%' : ''}`)
       }
-      return `${who}에게 ${sec(p.durationTicks)}초간 ${parts.join(', ')}.`
+      return t('skill.buff', { who, sec: sec(p.durationTicks), what: parts.join(', ') })
     }
     case 'summon':
-      return `죽을 때 ${p.count}기를 최대 체력 ${p.hpPct}% 로 소환.`
+      return t('skill.summon', { n: p.count, pct: p.hpPct })
     default:
       return ''
   }
@@ -59,18 +62,18 @@ export function skillText(unit) {
 // 아이템 12종 효과를 사람이 읽는 한 줄로. items.json 의 effect 키에서
 // 직접 뽑는다 — 아이템마다 문장을 따로 박아 두면 수치를 고칠 때 여기가
 // 안 맞아진다(카드에 적힌 효과와 실제 전투 수치가 갈린다).
-const ITEM_STAT_LABEL = {
-  hp: '최대 체력',
-  def: '방어력',
-  mr: '마법저항',
-  power: '주문력',
-  manaStart: '시작 마나',
-  atkPct: '공격력',
-  attackSpeedPct: '공격속도',
-  critChancePct: '치명타 확률',
-  thornsPct: '반사 피해',
-  lifestealPct: '흡혈',
-  auraAtkPct: '인접 아군 공격력',
+const ITEM_STAT_KEY = {
+  hp: 'stat.hp',
+  def: 'stat.def',
+  mr: 'stat.mr',
+  power: 'stat.ap',
+  manaStart: 'stat.mana',
+  atkPct: 'stat.atkPct',
+  attackSpeedPct: 'stat.as',
+  critChancePct: 'stat.crit',
+  thornsPct: 'stat.thorns',
+  lifestealPct: 'stat.lifesteal',
+  auraAtkPct: 'stat.aura',
 }
 // 퍼센트로 보여줄 키. 나머지(hp·def·mr·power·manaStart)는 고정값이다.
 const ITEM_PCT_KEYS = new Set([
@@ -88,12 +91,12 @@ export function itemEffectText(item) {
   const parts = []
   // 관통 두 키(pierceCount·piercePct)는 한 아이템의 한 효과라 묶어 적는다 —
   // 따로 적으면 "1명" 과 "40%" 가 무슨 관계인지 안 읽힌다.
-  if (e.pierceCount) parts.push(`관통 ${e.pierceCount}명 · ${e.piercePct ?? 0}%`)
-  for (const [key, label] of Object.entries(ITEM_STAT_LABEL)) {
+  if (e.pierceCount) parts.push(t('item.pierce', { n: e.pierceCount, pct: e.piercePct ?? 0 }))
+  for (const [key, labelKey] of Object.entries(ITEM_STAT_KEY)) {
     if (!(key in e)) continue
     const v = e[key]
     const sign = v > 0 ? '+' : ''
-    parts.push(`${label} ${sign}${v}${ITEM_PCT_KEYS.has(key) ? '%' : ''}`)
+    parts.push(`${t(labelKey)} ${sign}${v}${ITEM_PCT_KEYS.has(key) ? '%' : ''}`)
   }
   return parts.join(' · ')
 }

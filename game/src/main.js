@@ -35,7 +35,7 @@ import { createHeroView } from './heroView.js'
 import { createAvatar } from './avatarView.js'
 import { createJoystick } from './joystick.js'
 import { createSettings, reduceMotion } from './settings.js'
-import { applyStatic } from './i18n.js'
+import { applyStatic, t } from './i18n.js'
 import { createServerMatchmaker, connectServer, startQueue } from './serverMatchmaker.js'
 import { createPrep } from './prep.js'
 import { createBattle } from './battle.js'
@@ -582,7 +582,7 @@ try {
         // 서버가 그 함수를 아직 모를 수 있다(배포가 화면보다 늦는 경우).
         // 던지면 버튼이 눌린 채로 굳는다 — 실패로 돌려 다시 누르게 둔다.
         console.warn('미션 수령 실패:', err?.message)
-        return { ok: false, why: '지금은 못 받는다' }
+        return { ok: false, why: 'now_locked' }
       }
     },
     onPickedAvatar: () => resolveAvatar(pickedAvatar(), data, ownedNow()),
@@ -609,13 +609,13 @@ try {
      * 수 있고, 그때는 서버 말이 맞다.
      */
     onSetName: async (name) => {
-      if (!server) return { ok: false, why: '서버에 안 붙었다' }
+      if (!server) return { ok: false, why: 'offline' }
       try {
         const res = await server.remoteFunction('setName', [name])
         if (res?.profile) applyProfile(res.profile)
         return res
       } catch {
-        return { ok: false, why: '이름을 못 보냈다' }
+        return { ok: false, why: 'send_failed' }
       }
     },
     onStoreItems: () => vxshop.items(),
@@ -625,13 +625,13 @@ try {
      */
     onBuyPack: (productId) => vxshop.buy(productId),
     onBuyAvatar: async (id) => {
-      if (!server) return { ok: false, why: '서버에 안 붙었다' }
+      if (!server) return { ok: false, why: 'offline' }
       try {
         const res = await server.remoteFunction('buyAvatar', [id])
         if (res?.profile) applyProfile(res.profile)
         return res
       } catch {
-        return { ok: false, why: '구매를 못 보냈다' }
+        return { ok: false, why: 'send_failed' }
       }
     },
     /**
@@ -762,7 +762,7 @@ try {
       // 자리다** — 방금 한 판을 끝냈고, 다음은 남과 붙는 판이라 남의 화면에 뜰
       // 이름이 처음으로 필요해진다. 이미 이름이 있으면 안 묻는다.
       if (takeNameAsk() && !p?.name) {
-        home.openName({ why: '순위표와 남의 화면에 뜰 이름이다. 나중에 바꿔도 된다.' })
+        home.openName({ why: t('name.askAfterTutorial') })
       }
     } catch {
       home.setProfile(null)
@@ -1003,7 +1003,7 @@ try {
     }
 
     if (s.hp <= 0 || run.index >= totalRounds(data.rounds)) {
-      alert(s.hp <= 0 ? `탈락 — 라운드 ${info.label}` : '런 완주')
+      alert(s.hp <= 0 ? t('run.out', { round: info.label }) : t('run.finished'))
       location.reload()
       return
     }
@@ -1020,6 +1020,6 @@ try {
 } catch (err) {
   // boot 는 부팅 성공 직후 지워진다. 여기서 무조건 건드리면 부팅 뒤에 난
   // 진짜 오류가 "textContent of null" 로 덮여 원인이 사라진다.
-  if (boot.isConnected) boot.textContent = `시작할 수 없다: ${err.message}`
+  if (boot.isConnected) boot.textContent = t('boot.failed', { why: err.message })
   throw err
 }

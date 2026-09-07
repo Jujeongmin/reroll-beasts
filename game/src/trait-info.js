@@ -4,6 +4,8 @@
 
 const TICK_RATE = 30
 const sec = (t) => (t / TICK_RATE).toFixed(1).replace(/\.0$/, '')
+import { t } from './i18n.js'
+
 const signed = (n) => (n > 0 ? `+${n}` : `${n}`)
 
 /**
@@ -13,33 +15,31 @@ const signed = (n) => (n > 0 ? `+${n}` : `${n}`)
  * 사라지는데, 그걸 막으려고 tests 가 모든 시너지의 모든 단계를 훑는다.
  */
 const RENDER = {
-  hp: (v) => `체력 ${signed(v)}`,
-  def: (v) => `방어력 ${signed(v)}`,
-  power: (v) => `주문력 ${signed(v)}`,
-  atkPct: (v) => `공격력 ${signed(v)}%`,
-  attackSpeedPct: (v) => `공격 속도 ${signed(v)}%`,
-  range: (v) => `사거리 ${signed(v)}`,
-  manaStart: (v) => `시작 마나 ${signed(v)}`,
-  manaOnKill: (v) => `처치 시 마나 ${signed(v)}`,
-  manaCostPct: (v) => `마나 소모 ${signed(v)}%`,
-  critChancePct: (v) => `치명타 확률 ${signed(v)}%`,
-  critDamagePct: (v) => `치명타 피해 ${signed(v)}%`,
-  critTakenPct: (v) => `받는 치명타 피해 ${signed(v)}%`,
+  hp: (v) => t('trait.hp', { v: signed(v) }),
+  def: (v) => t('trait.def', { v: signed(v) }),
+  power: (v) => t('trait.ap', { v: signed(v) }),
+  atkPct: (v) => t('trait.atk', { v: signed(v) }),
+  attackSpeedPct: (v) => t('trait.as', { v: signed(v) }),
+  range: (v) => t('trait.range', { v: signed(v) }),
+  manaStart: (v) => t('trait.startMana', { v: signed(v) }),
+  manaOnKill: (v) => t('trait.killMana', { v: signed(v) }),
+  manaCostPct: (v) => t('trait.mana', { v: signed(v) }),
+  critChancePct: (v) => t('trait.crit', { v: signed(v) }),
+  critDamagePct: (v) => t('trait.critDmg', { v: signed(v) }),
+  critTakenPct: (v) => t('trait.critTaken', { v: signed(v) }),
   dodgePct: (v, e) =>
-    `회피 ${v}%${e.dodgeTicks ? ` (${sec(e.dodgeTicks)}초)` : ''}`,
-  regenPctPer5s: (v) => `5초마다 최대 체력의 ${v}% 회복`,
+    t('trait.dodge', { v }) + (e.dodgeTicks ? t('trait.forSec', { sec: sec(e.dodgeTicks) }) : ''),
+  regenPctPer5s: (v) => t('trait.regen', { v }),
   shieldPctMaxHp: (v, e) =>
-    `최대 체력의 ${v}% 보호막${e.shieldTicks ? ` (${sec(e.shieldTicks)}초)` : ''}`,
-  doubleStrikeChance: (v) => `${v}% 확률로 두 번 때림`,
-  splashOnSkillPct: (v) => `스킬이 주변에 ${v}% 만큼 튐`,
-  deathBlastPct: (v, e) =>
-    `죽을 때 반경 ${e.deathBlastRadius ?? 1} 에 주문력의 ${v}% 폭발`,
-  pierceCount: (v, e) => `뒤쪽 ${v}명에게 ${e.piercePct ?? 100}% 관통`,
-  aoeRadius: (v) => `스킬 범위 ${signed(v)}`,
-  leapToBackline: () => '전투 시작 시 상대 뒷줄로 도약',
-  revive: (v) =>
-    `죽으면 체력 ${v.hpPct}% 로 부활 (라운드당 ${v.perRound}회)`,
-  allyDef: (v) => `아군 전체 방어력 ${signed(v)}`,
+    t('skill.shield', { pct: v }) + (e.shieldTicks ? t('trait.forSec', { sec: sec(e.shieldTicks) }) : ''),
+  doubleStrikeChance: (v) => t('trait.doubleHit', { v }),
+  splashOnSkillPct: (v) => t('trait.splash', { v }),
+  deathBlastPct: (v, e) => t('trait.deathBlast', { r: e.deathBlastRadius ?? 1, v }),
+  pierceCount: (v, e) => t('trait.pierce', { v, pct: e.piercePct ?? 100 }),
+  aoeRadius: (v) => t('trait.skillRadius', { v: signed(v) }),
+  leapToBackline: () => t('trait.leap'),
+  revive: (v) => t('trait.revive', { pct: v.hpPct, n: v.perRound }),
+  allyDef: (v) => t('trait.teamDef', { v: signed(v) }),
 }
 
 // 다른 키의 꼬리표라 따로 문장을 만들지 않는다

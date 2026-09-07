@@ -4,6 +4,7 @@
 // 결과를 말풍선과 불빛으로 바꿀 뿐이다. 판정을 화면에 두면 테스트가 못 덮는다.
 
 import { TUTORIAL_STEPS, tutorialStep } from '@sim/tutorial.js'
+import { t } from './i18n.js'
 
 /** 완료 표시. 지운 사람은 다시 본다 — 그게 맞다. */
 const DONE_KEY = 'rr.tutorial.done'
@@ -119,8 +120,8 @@ export function createCoach({ run, onFight, onSkip }) {
       finished = true
       el.root.hidden = false
       el.text.textContent = won
-        ? '이겼다. 배운 대로 두면 된다 — 이제 진짜 판으로 가자.'
-        : '졌지만 규칙은 익혔다. 진짜 판에서는 더 많이 사고 더 많이 놓으면 된다.'
+        ? t('coach.won')
+        : t('coach.lost')
       el.fight.hidden = true
       el.home.hidden = false
       el.skip.hidden = true

@@ -34,6 +34,7 @@ import { standings } from '@sim/lobby.js'
 import { createScene } from './scene3d.js'
 import { createThumbnailer } from './thumbs.js'
 import { reduceMotion } from './settings.js'
+import { t, textOf } from './i18n.js'
 
 const TIER_COLOR = ['var(--t1)', 'var(--t2)', 'var(--t3)', 'var(--t4)', 'var(--t5)']
 const STAR = ['', '★', '★★', '★★★']
@@ -507,9 +508,9 @@ export async function createPrep({
           `<span class="av"><b>${seat.name.slice(0, 1)}</b></span>`
         const run3 = seat.lastWon === true && (seat.streak ?? 0) >= 3
         d.title =
-          `${seat.name} · 체력 ${seat.hp}` +
-          (run3 ? ` · ${seat.streak}연승 중` : '') +
-          (seat.hp <= 0 ? ' (탈락)' : '')
+          t('seat.tip', { name: seat.name, hp: seat.hp }) +
+          (run3 ? t('seat.streak', { n: seat.streak }) : '') +
+          (seat.hp <= 0 ? t('seat.out') : '')
         d.addEventListener('click', () => {
           // 전투 중에는 그 사람 전투를 관전한다. 배치 중에는 진형을 들여다본다.
           if (!running) return onWatch?.(seat.id)
@@ -545,7 +546,7 @@ export async function createPrep({
         if (n < info.roundInStage) dot.classList.add('done')
         if (n === info.roundInStage) dot.classList.add('now')
         // 모양만으로는 마름모가 뭔지 알 수 없다.
-        dot.title = `${info.stageIndex + 1}-${n} · ${pve ? '몬스터' : '대결'}`
+        dot.title = t('round.label', { stage: info.stageIndex + 1, n, kind: t(pve ? 'round.pve' : 'round.pvp') })
         return dot
       }),
     )
@@ -578,7 +579,7 @@ export async function createPrep({
     el.lock.classList.toggle('on', s.shopLocked)
     // 글자는 뺐다 — 자물쇠 모양과 버튼 색이 이미 상태를 말한다.
     // 다만 눈으로만 알 수 있으면 안 되므로 이름표는 남긴다.
-    el.lock.title = s.shopLocked ? '상점 잠금 켜짐 — 다음 라운드에도 유지' : '상점 잠금 꺼짐'
+    el.lock.title = s.shopLocked ? t('shop.lockOn') : t('shop.lockOff')
     el.lock.setAttribute('aria-pressed', String(s.shopLocked))
   }
 
@@ -595,7 +596,7 @@ export async function createPrep({
       return
     }
     el.streak.innerHTML =
-      `<b>${n}</b><span>${run.lastWon ? '연승' : '연패'}</span>` +
+      `<b>${n}</b><span>${t(run.lastWon ? 'streak.win' : 'streak.lose')}</span>` +
       (bonus > 0 ? `<span class="bn">+${bonus}</span>` : '')
   }
 
@@ -612,7 +613,7 @@ export async function createPrep({
         d.innerHTML = `<i></i><b>${pct}%</b>`
         d.style.setProperty('--oc', TIER_COLOR[i])
         if (pct === 0) d.classList.add('zero')
-        d.title = `${i + 1}티어 ${pct}%`
+        d.title = t('shop.tier', { n: i + 1, pct })
         return d
       }),
     )
@@ -813,11 +814,10 @@ export async function createPrep({
       '<div class="hd">' +
       `<img class="itemart" src="/assets/ui/item_${itemId}.png" alt="" />` +
       `<div class="t"><div class="nm">${it.name.ko}</div>` +
-      '<div class="sub">아이템</div></div>' +
+      `<div class="sub">${t('info.items')}</div></div>` +
       '</div>' +
       `<div class="items"><span><em>${itemEffectText(it)}</em></span></div>` +
-      '<div class="sell">말 위로 끌면 장착 · 유닛당 ' +
-      `${data.items.slotsPerUnit}칸</div>`
+      `<div class="sell">${t('info.itemHint', { n: data.items.slotsPerUnit })}</div>`
     el.info.hidden = false
     // 사거리 표시는 말의 것이다. 아이템 카드를 열 때 지우지 않으면 방금 본
     // 말의 사거리가 판에 그대로 남아 아이템이 그린 것처럼 읽힌다.
@@ -838,16 +838,16 @@ export async function createPrep({
       `<div class="st">${STAR[star]}</div>` +
       '</div>' +
       '<div class="grid">' +
-      `<span>체력<b>${i.stats.hp}</b></span>` +
-      `<span>공격력<b>${i.stats.atk}</b></span>` +
-      `<span>방어력<b>${i.stats.def}</b></span>` +
-      `<span>마법저항<b>${i.stats.mr}</b></span>` +
-      `<span>주문력<b>${i.stats.power}</b></span>` +
-      `<span>사거리<b>${i.stats.range}</b></span>` +
-      `<span>공속<b>${i.attacksPerSec}/s</b></span>` +
-      `<span>치명<b>${Math.round(i.stats.critChance * 100)}%</b></span>` +
+      `<span>${t('info.hp')}<b>${i.stats.hp}</b></span>` +
+      `<span>${t('info.atk')}<b>${i.stats.atk}</b></span>` +
+      `<span>${t('info.def')}<b>${i.stats.def}</b></span>` +
+      `<span>${t('info.mr')}<b>${i.stats.mr}</b></span>` +
+      `<span>${t('info.power')}<b>${i.stats.power}</b></span>` +
+      `<span>${t('info.range')}<b>${i.stats.range}</b></span>` +
+      `<span>${t('info.as')}<b>${i.attacksPerSec}/s</b></span>` +
+      `<span>${t('info.crit')}<b>${Math.round(i.stats.critChance * 100)}%</b></span>` +
       '</div>' +
-      `<div class="sk"><em>스킬</em> ${i.skill}</div>` +
+      `<div class="sk"><em>${t('info.skill')}</em> ${i.skill}</div>` +
       (worn.length > 0
         ? '<div class="items">' +
           worn
@@ -864,8 +864,8 @@ export async function createPrep({
           '</div>'
         : '') +
       (cell
-        ? `<div class="sell">판매 <b>+${sellValue(unitId, star, data)}골드</b> · 상점 바로 끌기</div>`
-        : `<div class="sell">${team === 'A' ? '내' : '상대'} 진영 · 전투 중</div>`)
+        ? `<div class="sell">${t('info.sell', { gold: sellValue(unitId, star, data) })}</div>`
+        : `<div class="sell">${t('info.inBattle', { side: t(team === 'A' ? 'side.mine' : 'side.foe') })}</div>`)
     el.info.hidden = false
     scene.setRange(cell ? rangeTiles(cell.uid, i.stats.range) : null)
     const url = await thumbFor(unitId, star)
@@ -1031,12 +1031,12 @@ export async function createPrep({
     if (!at) return
     if (at.where === 'board') {
       const slot = run.state.bench.findIndex((c) => !c)
-      if (slot < 0) return hint('대기석이 가득 찼다')
+      if (slot < 0) return hint(t('hint.benchFull'))
       const r = moveTo(run.state, found.uid, { where: 'bench', index: slot }, data)
       if (!r.ok) return hint(r.reason)
     } else {
       const slot = firstFreeBoardSlot()
-      if (slot < 0) return hint(`배치 인원이 꽉 찼다 (레벨 ${run.state.level})`)
+      if (slot < 0) return hint(t('hint.boardFull', { lv: run.state.level }))
       const r = moveTo(run.state, found.uid, { where: 'board', index: slot }, data)
       if (!r.ok) return hint(r.reason)
     }
@@ -1053,11 +1053,11 @@ export async function createPrep({
   /** 가리키는 말을 판다. */
   function sellPointed() {
     const found = unitAtPointer(ptr.x, ptr.y)
-    if (!found) return hint('가리키는 말이 없다')
-    if (!canTouch(found.uid)) return hint('싸우는 중인 말은 못 판다')
+    if (!found) return hint(t('hint.noUnit'))
+    if (!canTouch(found.uid)) return hint(t('hint.fighting'))
     const value = sellValue(found.unit.unitId, found.unit.star, data)
     const r = sell(run.state, run.pool, found.uid, data)
-    hint(r.ok ? `판매 +${value}골드` : r.reason)
+    hint(r.ok ? t('hint.sold', { gold: value }) : r.reason)
     refresh()
   }
 
@@ -1195,7 +1195,7 @@ export async function createPrep({
       // 판이 **비었을 때만**이 아니라 자리가 남을 때마다 채운다. 넷을 놓을 수
       // 있는데 둘만 놓고 시간이 가면 그냥 손해다 — 대기석 왼쪽부터 올린다.
       if (autoPlaceFromBench() > 0) {
-        hint('대기석에서 자동 배치')
+        hint(t('hint.autoPlace'))
         refresh()
       }
       // 판이 그래도 비었으면(살아 있는 말이 하나도 없으면) 시작할 수 없다.
@@ -1425,10 +1425,10 @@ export async function createPrep({
       if (!found) return
       // moveTo 와 같은 잠금이다 — 전투 중엔 판 위 말이 리플레이 스냅샷과
       // 묶여 있다. 벤치는 리플레이와 무관하니 그대로 둔다.
-      if (!canTouch(found.uid)) return hint('싸우는 중인 말에는 못 낀다')
+      if (!canTouch(found.uid)) return hint(t('hint.noEquipInBattle'))
       const r = equipItem(run.state, found.uid, held.item.invIndex, data)
       if (!r.ok) hint(r.reason)
-      else hint(`${itemById(data.items, held.item.id).name.ko} 장착`)
+      else hint(t('hint.equipped', { item: textOf(itemById(data.items, held.item.id).name) }))
       refresh()
       return
     }
@@ -1445,11 +1445,11 @@ export async function createPrep({
       return
     }
     if (!target) return
-    if (!running && target.where === 'board') return hint('전투 중에는 판을 못 바꾼다')
+    if (!running && target.where === 'board') return hint(t('hint.frozenBoard'))
     if (target.where === 'sell') {
       const value = sellValue(held.unit.unitId, held.unit.star, data)
       const r = sell(run.state, run.pool, held.uid, data)
-      if (r.ok) hint(`판매 +${value}골드`)
+      if (r.ok) hint(t('hint.sold', { gold: value }))
       else hint(r.reason)
     } else {
       const r = moveTo(run.state, held.uid, target, data)
@@ -1553,7 +1553,7 @@ export async function createPrep({
       running = true
       boardFrozen = false
       // 전투 중에는 판을 낀 합성을 미뤄 뒀다. 여기서 제한 없이 한 번 돌린다.
-      if (resolveMerges(run.state, data) > 0) hint('합성 완료')
+      if (resolveMerges(run.state, data) > 0) hint(t('hint.merged'))
       resetTimer()
       last = performance.now()
       scene.resize()

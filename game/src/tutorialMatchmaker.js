@@ -7,6 +7,7 @@
 // 모양은 serverMatchmaker 와 같다. main.js 는 어느 쪽이 꽂혔는지 모른다.
 
 import { simulate } from '@sim/combat.js'
+import { t } from './i18n.js'
 
 /** 상대 편성. 1티어 하나 — 배운 대로 두면 이긴다. */
 const FOE_BOARD = [{ unitId: 'frog', star: 1, tile: 0, items: [] }]
@@ -20,7 +21,7 @@ export function createTutorialMatchmaker({ data }) {
   const seats = [
     {
       id: 0,
-      name: '나',
+      name: t('seat.me'),
       account: 'tutorial',
       isBot: false,
       isPlayer: true,
@@ -33,7 +34,7 @@ export function createTutorialMatchmaker({ data }) {
     },
     {
       id: 1,
-      name: '허수아비',
+      name: t('seat.dummy'),
       account: null,
       isBot: true,
       isPlayer: false,

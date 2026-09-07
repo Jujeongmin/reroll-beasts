@@ -1,6 +1,7 @@
 // 홈이 무엇을 그릴지 정한다. DOM 을 모른다 — 그래야 상태 전이가 브라우저
 // 없이 검사된다. 그리는 일은 home.js 가 한다.
 import { tierOf, tierProgress } from '@sim/rank.js'
+import { t } from './i18n.js'
 
 
 /**
@@ -12,19 +13,19 @@ import { tierOf, tierProgress } from '@sim/rank.js'
  */
 export function homeView({ status, hasAuth, profile, queue, data }) {
   if (queue) {
-    const label = queue.mode === 'ranked' ? '랭크' : '일반'
+    const label = t(queue.mode === 'ranked' ? 'queue.ranked' : 'queue.normal')
     const sec = Math.floor((queue.waitedMs ?? 0) / 1000)
     return {
       menu: 'hidden',
       tutorial: 'hidden',
       notice: null,
       profile: viewProfile(profile),
-      queue: { text: `${label} 대기 ${queue.queued}/${data.lobby.size} · ${sec}초` },
+      queue: { text: t('queue.waiting', { mode: label, n: queue.queued, size: data.lobby.size, sec }) },
     }
   }
 
   if (status === 'connecting') {
-    return { menu: 'disabled', tutorial: 'enabled', notice: '서버에 붙는 중…', profile: null, queue: null }
+    return { menu: 'disabled', tutorial: 'enabled', notice: t('conn.connecting'), profile: null, queue: null }
   }
   // 튜토리얼은 서버가 없어도 돈다. 접속 실패에 같이 잠기면 처음 온 사람이
   // 아무 데도 못 간다 — 배울 곳조차 없어진다.
@@ -33,8 +34,8 @@ export function homeView({ status, hasAuth, profile, queue, data }) {
       menu: 'disabled',
       tutorial: 'enabled',
       notice: hasAuth
-        ? '서버에 못 붙었다 — 다시 시도'
-        : '로컬 실행 — 인증이 없어 서버에 못 붙는다',
+        ? t('conn.failed')
+        : t('conn.local'),
       profile: null,
       queue: null,
     }
@@ -55,7 +56,7 @@ function viewProfile(profile) {
   const tier = tierOf(lp)
   const p = tierProgress(lp)
   return {
-    head: `전적 ${profile.games}판 · 최고 ${profile.best}위`,
+    head: t('home.record', { games: profile.games, best: profile.best }),
     recent: profile.recent ?? [],
     tier: tier.name,
     tierId: tier.id,
