@@ -234,3 +234,28 @@ describe('markMine — 내 좌석 찾기', () => {
     expect(markMine(seats(), null).some((s) => s.isPlayer)).toBe(false)
   })
 })
+
+describe('seat.wins — 라운드 승수', () => {
+  // 승수는 순위로는 안 나온다. 4위로 끝나도 라운드는 다섯 번 이겼을 수 있다.
+  // 미션("한 판에서 라운드 3승")이 이 값을 읽는다.
+  it('새 좌석은 0 에서 시작한다', () => {
+    const s = fresh(1)
+    expect(s.seats.every((x) => x.wins === 0)).toBe(true)
+  })
+
+  it('이긴 좌석만 오른다', () => {
+    const s = fresh(20260907)
+    resolveRound(s, past(s), data)
+    for (const seat of s.seats) {
+      expect(seat.wins).toBe(seat.lastWon ? 1 : 0)
+    }
+  })
+
+  it('여러 라운드에 걸쳐 쌓인다', () => {
+    const s = fresh(777)
+    for (let i = 0; i < 3 && s.phase === 'prep'; i++) resolveRound(s, past(s), data)
+    expect(s.seats.reduce((n, x) => n + x.wins, 0)).toBeGreaterThan(0)
+    // 한 판에 한 좌석이 이길 수 있는 최대는 돈 라운드 수다.
+    expect(Math.max(...s.seats.map((x) => x.wins))).toBeLessThanOrEqual(3)
+  })
+})

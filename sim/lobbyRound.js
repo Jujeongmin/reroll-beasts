@@ -111,6 +111,8 @@ export function resolveRound(state, now, data, { early = false } = {}) {
       // 연속 횟수는 승패 방향과 무관하게 센다 — 연승도 연패도 같은 표를 쓴다.
       seat.streak = seat.lastWon === won ? seat.streak + 1 : 1
       seat.lastWon = won
+      // ?? 0 인 이유: 이 코드가 나가기 전에 만들어진 방 상태에는 이 칸이 없다.
+      if (won) seat.wins = (seat.wins ?? 0) + 1
       if (seat.hp <= 0) seat.alive = false
     }
   }
@@ -154,6 +156,9 @@ export function createLobbyState({ seed, account, accounts, now, data }) {
       board: [],
       alive: true,
       streak: 0,
+      // 이 판에서 이긴 라운드 수. 순위로는 안 나오는 값이라 따로 센다 —
+      // 4위로 끝나도 라운드는 다섯 번 이겼을 수 있다(미션이 이걸 읽는다).
+      wins: 0,
       lastWon: null,
       // 무대 스킨. **좌석에 붙는다** — 남의 판을 구경 가면 그 사람 무대가
       // 보여야 한다. 스킨을 각자 화면에만 두면 산 사람만 자기 판에서 보고,
