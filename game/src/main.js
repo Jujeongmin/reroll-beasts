@@ -879,6 +879,13 @@ try {
   }
 
   async function startFight(entries) {
+    // 판 밖에서 불리면 할 일이 없다. 매치메이커가 상대·시드·판정을 다 쥐고
+    // 있어서, 없으면 여기서 멈추는 것이 맞다 — 계속 가면 mm.roundSeed 에서
+    // null 을 읽고 화면이 통째로 죽는다.
+    if (!mm) {
+      console.warn('판 밖에서 전투를 시작하려 했다 — 무시한다')
+      return
+    }
     const info = roundAt(run.index, data.rounds)
     // 전투 시드를 라운드마다 다르게 준다. 같은 시드를 재사용하면
     // 치명타·타겟 순서가 매판 똑같아진다.
