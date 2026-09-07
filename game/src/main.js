@@ -480,10 +480,14 @@ try {
   // 리소스를 전부 받고 나서 연다.
   const bootBar = boot.querySelector('.bar i')
   const bootPct = boot.querySelector('.pct')
+  const bootWalker = boot.querySelector('#boot-walker')
   await prep.preload((t) => {
     const pct = Math.round(t * 100)
     if (bootBar) bootBar.style.width = `${pct}%`
     if (bootPct) bootPct.textContent = `${pct}%`
+    // 말이 채워진 끝을 밟고 간다. 진행도와 따로 걸으면 걷는 시늉만 하는
+    // 장식이 되고, 그러면 얼마나 남았는지를 두 번 봐야 한다.
+    if (bootWalker) bootWalker.style.left = `${pct}%`
   })
 
   boot.remove()

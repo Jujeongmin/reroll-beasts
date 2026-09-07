@@ -1515,11 +1515,27 @@
   #home .conn button { font-size: 10px; color: #ffd98a; text-decoration: underline; }
   #home .conn button[hidden] { display: none; }
 
+  /* 로딩 화면. 여기가 **게임의 첫인상**이다 — 회색 막대 하나만 있으면 무엇을
+     기다리는지 알 수 없고, 잘못 들어온 페이지처럼 읽힌다. 이름을 먼저 보여
+     주고, 그 아래에서 말 한 마리가 막대를 걸어간다. */
   #boot {
     position: fixed; inset: 0; z-index: 80;
     display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 12px;
     background: var(--bg); color: var(--dim);
   }
+  /* 홈의 제목과 같은 치장이다. 두 화면이 다른 글씨면 같은 게임으로 안 읽힌다. */
+  #boot .logo {
+    font-size: 34px; font-weight: 900; letter-spacing: 3px; line-height: 1.1;
+    text-align: center; color: #ffe1a0;
+    text-shadow: 0 2px 0 #7a4a1e, 0 4px 0 #4a2a10, 0 0 22px #ff9a3c66, 0 8px 24px #000c;
+  }
+  #boot .logo::after {
+    content: ''; display: block; width: 190px; height: 2px; margin: 8px auto 0;
+    background: linear-gradient(90deg, #ffd16600, #ffd166aa, #ffd16600);
+  }
+  /* 막대와 걷는 말을 한 상자에 넣는다 — 말이 진행도를 따라가야 하므로 둘의
+     좌표계가 같아야 한다. */
+  #boot .track { position: relative; width: 220px; padding-top: 26px; }
   #boot .bar {
     width: 220px; height: 10px; border-radius: 5px; overflow: hidden;
     background: #00000070; box-shadow: inset 0 0 0 1px #ffffff20;
@@ -1528,6 +1544,50 @@
     display: block; height: 100%; width: 0;
     background: linear-gradient(90deg, #3aa0d8, #7ee0c0);
     transition: width .12s linear;
+  }
+  /* 걷는 말. 그림 파일을 안 쓴다 — 로딩 화면이 제 그림을 기다리느라 더 늦게
+     뜨면 앞뒤가 바뀐다. 이 게임의 슬라임을 CSS 로 그린다. */
+  #boot .walker {
+    position: absolute; left: 0; bottom: 12px; width: 22px; height: 22px;
+    transform: translateX(-50%);
+    transition: left .12s linear;
+  }
+  #boot .walker .body {
+    position: absolute; inset: 0; border-radius: 44% 44% 38% 38%;
+    background: linear-gradient(180deg, #8ef0c8, #35b78a);
+    box-shadow: inset 0 -3px 0 #1d7a5b, 0 2px 0 #00000055;
+    animation: bootHop .5s ease-in-out infinite;
+  }
+  /* 눈 둘. 걷는 방향(오른쪽)으로 몰아 둔다 — 가운데에 두면 정면을 보고
+     제자리걸음 하는 것처럼 보인다. */
+  #boot .walker .body::before,
+  #boot .walker .body::after {
+    content: ''; position: absolute; top: 7px; width: 3px; height: 4px;
+    border-radius: 2px; background: #123;
+  }
+  #boot .walker .body::before { left: 9px; }
+  #boot .walker .body::after { left: 15px; }
+  /* 발 둘이 번갈아 뜬다. 몸만 오르내리면 미끄러지는 것으로 보인다. */
+  #boot .walker .foot {
+    position: absolute; bottom: -3px; width: 7px; height: 4px; border-radius: 3px;
+    background: #2a9c76;
+  }
+  #boot .walker .foot.l { left: 2px; animation: bootStep .5s ease-in-out infinite; }
+  #boot .walker .foot.r { right: 2px; animation: bootStep .5s ease-in-out infinite .25s; }
+  @keyframes bootHop {
+    0%, 100% { transform: translateY(0) scaleY(1); }
+    45% { transform: translateY(-4px) scaleY(1.06); }
+    70% { transform: translateY(0) scaleY(.94); }
+  }
+  @keyframes bootStep {
+    0%, 100% { transform: translateY(0); }
+    50% { transform: translateY(-4px); }
+  }
+  /* 움직임을 줄여 달라고 한 사람에게는 걷지 않는다. 로딩 화면은 시선을 둘
+     곳이 없어서, 흔들리는 것 하나가 그대로 멀미가 된다. */
+  @media (prefers-reduced-motion: reduce) {
+    #boot .walker .body,
+    #boot .walker .foot { animation: none; }
   }
   #boot .pct { font-variant-numeric: tabular-nums; font-size: 12px; }
 </style>
@@ -1741,8 +1801,17 @@
   <div id="ghost"><img alt="" /></div>
   <div id="rotate">가로로 돌려주세요</div>
   <div id="boot">
+    <!-- 이름을 먼저 보여 준다. 로딩은 이 게임을 처음 보는 순간이기도 하다. -->
+    <div class="logo">REROLL BEASTS</div>
     <div class="msg">불러오는 중…</div>
-    <div class="bar"><i></i></div>
+    <div class="track">
+      <!-- 진행도를 따라 걷는다. 퍼센트 숫자만으로는 멈춘 건지 도는 건지
+           모르는데, 걸음이 있으면 살아 있다는 것이 보인다. -->
+      <div class="walker" id="boot-walker">
+        <i class="foot l"></i><i class="foot r"></i><i class="body"></i>
+      </div>
+      <div class="bar"><i></i></div>
+    </div>
     <div class="pct">0%</div>
   </div>
 
