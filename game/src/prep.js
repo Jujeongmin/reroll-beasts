@@ -43,6 +43,13 @@ const STAR = ['', '★', '★★', '★★★']
 // 성급 색. scene3d 의 STAR_COLOR 와 같은 값이어야 배지와 패널이 안 어긋난다.
 const STAR_COLOR = ['#d99154', '#e6edf5', '#ffd166']
 
+/** :root 의 길이 변수를 픽셀 수로. 못 읽으면 기본값. */
+function cssPx(name, fallback) {
+  const v = getComputedStyle(document.documentElement).getPropertyValue(name)
+  const n = Number.parseFloat(v)
+  return Number.isFinite(n) ? n : fallback
+}
+
 export async function createPrep({
   data,
   run,
@@ -93,10 +100,11 @@ export async function createPrep({
     boardCfg: data.combat.board,
     pitchDeg: 46,
     benchSlots: data.economy.benchSlots,
-    // 정보 줄 높이(32) + 여유. 이만큼 아래를 비워야 대기석이 그 밑에 안 깔린다.
-    bottomInset: 42,
-    // 상단 띠(28) + 여유. 이만큼 위를 비워야 상대 대기석이 띠 뒤로 안 들어간다.
-    topInset: 40,
+    // 비워 둘 위아래 띠. **CSS 가 정한 높이를 읽는다** — 여기에 숫자를 박아
+    // 두면 손가락 기기에서 바를 줄여도 카메라는 옛 여백으로 프레이밍해서,
+    // 줄여 놓은 만큼이 그냥 빈 띠로 남는다.
+    bottomInset: cssPx("--hudH", 32) + 10,
+    topInset: cssPx("--topH", 28) + 12,
     scaleOf: (id) => data.combat.classScale[unitById(data.units, id)?.class] ?? 1,
   })
   const thumbs = createThumbnailer()

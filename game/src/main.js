@@ -890,7 +890,7 @@ try {
       data,
       onUpdate(r) {
         if (r.status === 'error') return
-        home.setQueue({ mode, queued: r.queued, waitedMs: r.waitedMs ?? 0, botInMs: r.botInMs ?? null })
+        home.setQueue({ mode, queued: r.queued, waitedMs: r.waitedMs ?? 0 })
       },
       async onMatched(roomId) {
         queue = null

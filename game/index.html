@@ -33,9 +33,21 @@
     --plate: #12101ce8;
     --edge: #ffffff1c;
 
+    /* 화면에서 판이 아닌 것들의 높이. 한 곳에 모아 두는 이유: 3D 카메라가
+       이 값만큼 위아래를 비워 두고 프레이밍한다(prep.js 의 topInset·bottomInset).
+       CSS 만 줄이면 판이 상단 띠 뒤로 들어가고, JS 만 줄이면 빈 띠가 남는다. */
     --shopH: 100px;
+    --topH: 28px;
+    --hudH: 32px;
     /* 비스듬한 판의 기울기. 한 곳에서 정해야 좌우가 대칭으로 보인다. */
     --skew: 9px;
+  }
+  /* 손가락으로 하는 기기는 화면이 물리적으로 작다. 상점 바와 HUD 에서 세로를
+     빼서 판에 돌려준다 — 844×390 에서 판이 담기는 띠가 208 에서 258 로 는다
+     (약 4분의 1 더 크다). 화면 크기가 아니라 입력 방식으로 가른다: 창을 줄인
+     데스크톱은 여전히 데스크톱이다. */
+  @media (pointer: coarse) {
+    :root { --shopH: 70px; --topH: 22px; --hudH: 24px; }
   }
   * { box-sizing: border-box; margin: 0; padding: 0; }
   html, body { height: 100%; overflow: hidden; }
@@ -122,7 +134,7 @@
 
   #topbar {
     min-width: 0;
-    display: flex; align-items: center; gap: 9px; height: 28px; padding: 0 3px;
+    display: flex; align-items: center; gap: 9px; height: var(--topH); padding: 0 3px;
     border-style: solid; border-width: 6px; border-image-slice: 6;
     border-image-repeat: repeat; border-image-source: url('/assets/ui/panel_wood.png');
     background: #c58747;
@@ -480,7 +492,7 @@
      바로 뒤에 있는 대기석을 가린다. 값 넷을 앉히자고 판을 잘라 먹는 셈이다.
      바탕은 투명, 글자만 뜬다 — 아래쪽에 옅은 그늘만 깔아 3D 위에서도 읽히게. */
   #hudbar {
-    position: absolute; left: 6px; right: 6px; bottom: 0; height: 32px; z-index: 6;
+    position: absolute; left: 6px; right: 6px; bottom: 0; height: var(--hudH); z-index: 6;
     display: grid; grid-template-columns: 1fr auto 1fr; align-items: center; gap: 8px;
     pointer-events: none;
   }

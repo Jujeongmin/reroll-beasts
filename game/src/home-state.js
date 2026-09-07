@@ -15,22 +15,17 @@ export function homeView({ status, hasAuth, profile, queue, data }) {
   if (queue) {
     const label = t(queue.mode === 'ranked' ? 'queue.ranked' : 'queue.normal')
     const sec = Math.floor((queue.waitedMs ?? 0) / 1000)
-    // 봇이 채우기까지 남은 시간. 서버가 **큐 전체** 기준으로 준다 — 나중에
-    // 들어와도 먼저 기다린 사람의 시간이 차면 같이 시작하므로, 내 대기 시간으로
-    // 세면 화면이 실제보다 오래 남은 것처럼 말한다.
-    const botIn = queue.botInMs == null ? null : Math.ceil(queue.botInMs / 1000)
     return {
       menu: 'hidden',
       tutorial: 'hidden',
       notice: null,
       profile: viewProfile(profile),
       queue: {
-        text:
-          botIn == null
-            ? t('queue.waiting', { mode: label, n: queue.queued, size: data.lobby.size, sec })
-            : t('queue.waitingBot', { mode: label, n: queue.queued, size: data.lobby.size, sec: botIn }),
-        // 일반 매치는 위 줄이 이미 "봇 매칭까지 N초" 라고 말한다 — 같은 말을
-        // 두 번 적지 않는다. 랭크는 기다림의 끝이 시간이 아니라 사람 수다.
+        text: t('queue.waiting', { mode: label, n: queue.queued, size: data.lobby.size, sec }),
+        // 일반 매치에는 설명을 안 붙인다. 언제 봇이 채우는지는 큐에 있는
+        // 사람마다 다른 값이라(먼저 기다린 사람의 시간이 찬다) 한 줄로 옳게
+        // 적을 수가 없다 — 못 적을 말은 안 적는다. 랭크는 기다림의 끝이
+        // 시간이 아니라 사람 수라 적을 수 있다.
         note: queue.mode === 'ranked' ? t('queue.rankedNote', { size: data.lobby.size }) : '',
       },
     }

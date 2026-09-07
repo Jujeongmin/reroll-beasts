@@ -653,16 +653,7 @@ export class Server {
       const timedOut =
         mode === 'normal' && Date.now() - me.at >= DATA.lobby.matching.normalWaitMs
       if (!full && !timedOut) {
-        // 봇이 채우기까지 남은 시간은 **큐 전체의 것**이다. 시간이 찬 사람의
-        // 폴링이 방을 만들면서 큐에 있는 사람을 다 데려가므로(picked), 나중에
-        // 들어온 사람도 그 순간 같이 들어간다. 내 대기 시간으로 세면 20초째
-        // 사람 뒤에 붙은 사람 화면에 30초가 뜨는데 실제로는 10초 뒤에 시작한다.
-        const oldest = queued[0]?.at ?? me.at
-        const botInMs =
-          mode === 'normal'
-            ? Math.max(0, DATA.lobby.matching.normalWaitMs - (Date.now() - oldest))
-            : null
-        return { status: 'waiting', queued: queued.length, waitedMs: Date.now() - me.at, botInMs }
+        return { status: 'waiting', queued: queued.length, waitedMs: Date.now() - me.at }
       }
 
       // 방을 만든다 — 정원이 찼거나, 일반 매치의 대기 시간이 찼거나.
