@@ -25,6 +25,7 @@ export const STRINGS = {
     'skins.board': '무대',
     'skins.boom': '승리',
     'name.title': '이름 바꾸기',
+    'name.hint': '한글·영문·숫자 2~8자',
     'name.note': '순위표와 남의 화면에 이 이름이 뜬다',
     'name.save': '저장',
     'board.title': '순위표',
@@ -357,6 +358,7 @@ export const STRINGS = {
     'skins.board': 'Arena',
     'skins.boom': 'Win FX',
     'name.title': 'Change name',
+    'name.hint': '2-8 letters or digits',
     'name.note': 'Shown on the leaderboard and to others',
     'name.save': 'Save',
     'board.title': 'Leaderboard',
@@ -483,5 +485,10 @@ export function applyStatic(root = document) {
   }
   for (const el of root.querySelectorAll('[data-i18n-aria]')) {
     el.setAttribute('aria-label', t(el.dataset.i18nAria))
+  }
+  // 입력칸 안내는 textContent 가 아니라 속성이다. HTML 에 적힌 한국어를 두면
+  // 영어로 보는 사람 눈에는 그것만 한국어로 남는다.
+  for (const el of root.querySelectorAll('[data-i18n-ph]')) {
+    el.setAttribute('placeholder', t(el.dataset.i18nPh))
   }
 }

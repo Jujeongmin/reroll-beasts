@@ -26,6 +26,8 @@ describe('checkName', () => {
     expect(checkName('가').ok).toBe(false)
     expect(checkName('가'.repeat(NAME_MAX)).ok).toBe(true)
     expect(checkName('가'.repeat(NAME_MAX + 1)).ok).toBe(false)
+    // 칸이 정한 값이다 — 여기가 늘면 좌석 이름이 잘린다.
+    expect(NAME_MAX).toBe(8)
   })
 
   it('기호와 보이지 않는 문자를 막는다 — 남의 화면을 망가뜨릴 수 있다', () => {
@@ -92,7 +94,7 @@ describe('낱자 이름', () => {
 describe('tagDuplicates', () => {
   it('겹치지 않으면 아무것도 안 붙는다', () => {
     expect(tagDuplicates([{ text: '고수', tag: '1234' }, { text: '하수', tag: 'abcd' }]))
-      .toEqual(['고수', '하수'])
+      .toEqual([{ name: '고수', tag: '' }, { name: '하수', tag: '' }])
   })
 
   it('같은 이름이 둘이면 그 둘에만 꼬리가 붙는다', () => {
@@ -102,11 +104,15 @@ describe('tagDuplicates', () => {
         { text: '하수', tag: 'abcd' },
         { text: '고수', tag: 'ef01' },
       ]),
-    ).toEqual(['고수#1234', '하수', '고수#ef01'])
+    ).toEqual([
+      { name: '고수', tag: '1234' },
+      { name: '하수', tag: '' },
+      { name: '고수', tag: 'ef01' },
+    ])
   })
 
   it('꼬리가 없으면 안 붙인다 — 봇에게는 계정이 없다', () => {
-    expect(tagDuplicates([{ text: '봇1' }, { text: '봇1' }])).toEqual(['봇1', '봇1'])
+    expect(tagDuplicates([{ text: '봇1' }, { text: '봇1' }])).toEqual([{ name: '봇1', tag: '' }, { name: '봇1', tag: '' }])
   })
 
   it('빈 목록도 견딘다', () => {

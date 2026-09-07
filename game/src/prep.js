@@ -31,7 +31,7 @@ import { itemById } from '@sim/items.js'
 import { unitInfo, itemEffectText } from './unit-info.js'
 import { traitDetail } from './trait-info.js'
 import { standings } from '@sim/lobby.js'
-import { accountTag, tagDuplicates } from '@sim/name.js'
+import { accountTag, tagDuplicates, joinTag } from '@sim/name.js'
 import { createScene } from './scene3d.js'
 import { createThumbnailer } from './thumbs.js'
 import { reduceMotion } from './settings.js'
@@ -512,15 +512,18 @@ export async function createPrep({
         const ratio = Math.max(0, Math.min(1, seat.hp / maxHp))
         d.style.setProperty('--hp', String(ratio))
         d.style.setProperty('--hc', hpColor(ratio))
+        // 이름과 꼬리를 따로 놓는다. 하나로 붙이면 칸이 좁을 때 말줄임이
+        // 꼬리부터 먹는다 — 가르려고 붙인 것이 제일 먼저 사라진다.
         d.innerHTML =
-          `<span class="n">${shown[i]}</span>` +
+          `<span class="n">${shown[i].name}</span>` +
+          (shown[i].tag ? `<span class="tg">#${shown[i].tag}</span>` : '') +
           `<span class="h">${seat.hp}</span>` +
           // 첫 글자는 **푼 이름**에서 뗀다. seat.name 은 봇이면 { ko, en }
           // 객체라 여기에 slice 를 걸면 그 자리에서 터진다.
-          `<span class="av"><b>${shown[i].slice(0, 1)}</b></span>`
+          `<span class="av"><b>${shown[i].name.slice(0, 1)}</b></span>`
         const run3 = seat.lastWon === true && (seat.streak ?? 0) >= 3
         d.title =
-          t('seat.tip', { name: shown[i], hp: seat.hp }) +
+          t('seat.tip', { name: joinTag(shown[i]), hp: seat.hp }) +
           (run3 ? t('seat.streak', { n: seat.streak }) : '') +
           (seat.hp <= 0 ? t('seat.out') : '')
         d.addEventListener('click', () => {

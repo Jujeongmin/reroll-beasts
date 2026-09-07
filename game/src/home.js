@@ -702,7 +702,9 @@ export function createHome({
       .map(
         (r, i) =>
           `<div class="row${r.mine ? ' mine' : ''}"><span class="no">${r.rank}</span>` +
-          `<span class="nm">${shown[i]}</span><span class="lp">${r.lp} LP</span></div>`,
+          `<span class="nm">${shown[i].name}` +
+          (shown[i].tag ? `<span class="tg">#${shown[i].tag}</span>` : '') +
+          `</span><span class="lp">${r.lp} LP</span></div>`,
       )
       .join('')
   }

@@ -280,6 +280,15 @@
     min-width: 0; line-height: 13px; font-weight: 700;
     overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
   }
+  /* 동명이인 꼬리. 안 줄어든다(flex: none) — 이름이 길면 이름 쪽이 말줄임으로
+     줄고 꼬리는 남는다. 가르려고 붙인 것이 먼저 사라지면 붙인 뜻이 없다.
+     이름보다 흐리게 둔다: 이름의 일부가 아니라 구분표라는 것이 보여야 한다. */
+  .seat .tg {
+    flex: none; margin-left: -2px; font-size: .85em; font-weight: 700;
+    color: #f0e6cf99; letter-spacing: -.02em;
+  }
+  .seat.me .tg { display: none; }
+
   .seat .h {
     flex: none; font-variant-numeric: tabular-nums; font-weight: 800;
     font-size: 11px; line-height: 14px; color: var(--hc, #5fd68a);
@@ -1400,6 +1409,8 @@
   #board .row.mine { background: #ffd1661f; box-shadow: inset 0 0 0 1px #ffd16659; }
   #board .row .no { width: 22px; color: #c9b088; font-variant-numeric: tabular-nums; }
   #board .row .nm { flex: 1; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  /* 동명이인 꼬리. 이름의 일부가 아니라 구분표라 흐리게 둔다. */
+  #board .row .nm .tg { font-size: .85em; font-weight: 700; opacity: .55; }
   #board .row .lp { color: #ffd166; font-variant-numeric: tabular-nums; }
   #board .empty { font-size: 11px; color: #a99a86; padding: 10px 4px; }
   #board #board-close {
@@ -2009,7 +2020,7 @@
     <div id="namebox" hidden>
       <div class="sheet">
         <div class="bhead"><b data-i18n="name.title">이름 바꾸기</b><span data-i18n="name.note">순위표와 남의 화면에 이 이름이 뜬다</span></div>
-        <input id="name-input" maxlength="10" placeholder="한글·영문·숫자 2~10자" />
+        <input id="name-input" maxlength="8" data-i18n-ph="name.hint" placeholder="한글·영문·숫자 2~8자" />
         <div class="why" id="name-why"></div>
         <div class="foot">
           <button class="act" id="name-save" data-i18n="name.save">저장</button>

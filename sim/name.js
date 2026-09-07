@@ -8,9 +8,16 @@
 // 아니다. 동명이인은 **허용하고 보이는 자리에서 가른다**: 같은 목록에 같은
 // 이름이 둘 이상이면 그 줄들에만 계정 꼬리를 붙인다(tagDuplicates).
 
-/** 화면에 들어가는 칸 기준. 이보다 길면 좌석 이름이 줄바꿈된다. */
+/**
+ * 화면에 들어가는 칸 기준.
+ *
+ * 8 인 이유: 우측 좌석 칸이 이름에 93px 를 준다. 한글 열 자는 그것만으로
+ * 이미 넘치고, 동명이인이면 꼬리(#1234)가 더 붙는다 — 잘린 이름은 누구인지
+ * 알려 주는 일을 못 한다. 여덟 자가 칸에 꼭 맞는 최대다(87px).
+ * 동명이인이라 꼬리가 붙으면 그때는 이름 쪽이 말줄임으로 줄고 꼬리가 남는다.
+ */
 export const NAME_MIN = 2
-export const NAME_MAX = 10
+export const NAME_MAX = 8
 
 // 기본 이름이 쓰는 말. 남이 기본 이름인 척하는 것을 막는다 — "유저1234" 는
 // 계정에서 자동으로 나오는 이름이라 아무나 쓰면 누가 누군지 흐려진다.
@@ -89,8 +96,12 @@ export function accountTag(account) {
  * 유일성 자체는 여기서 못 본다(전체 목록을 봐야 안다) — 이름은 겹치게 두고
  * 보이는 자리에서만 가른다.
  *
+ * 붙인 문자열이 아니라 **둘로 나눠** 준다. 좌석 칸은 이름이 길면 말줄임으로
+ * 자르는데, 하나로 붙여 보내면 잘리는 쪽이 꼬리다 — 가르려고 붙인 것이
+ * 제일 먼저 사라진다. 나눠 주면 화면이 이름만 줄이고 꼬리는 남긴다.
+ *
  * @param {{text: string, tag?: string}[]} rows 이미 화면 글자로 푼 이름과 꼬리
- * @returns {string[]} rows 와 같은 순서의 표시용 이름
+ * @returns {{name: string, tag: string}[]} tag 는 안 겹치면 빈 문자열
  */
 export function tagDuplicates(rows) {
   const seen = new Map()
@@ -99,9 +110,12 @@ export function tagDuplicates(rows) {
     seen.set(k, (seen.get(k) ?? 0) + 1)
   }
   return (rows ?? []).map((r) => {
-    const text = String(r?.text ?? '')
+    const name = String(r?.text ?? '')
     const tag = String(r?.tag ?? '')
     // 꼬리가 없으면 붙일 것이 없다 — 봇에게는 계정이 없다.
-    return tag && seen.get(text) > 1 ? `${text}#${tag}` : text
+    return { name, tag: tag && seen.get(name) > 1 ? tag : '' }
   })
 }
+
+/** 한 줄짜리 글(title 속성 등)에 쓸 때. 화면 칸이 없는 자리다. */
+export const joinTag = (r) => (r?.tag ? `${r.name}#${r.tag}` : (r?.name ?? ''))
