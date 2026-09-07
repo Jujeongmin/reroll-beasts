@@ -660,11 +660,13 @@ export function createHome({
       // 이름이 이미 "젬 1,000" 이라 젬 수를 또 적으면 같은 말이 두 번이다.
       // 설명만 적되, 패스는 무엇인지 한 마디를 앞에 붙인다.
       const what = p.premium ? t('shop.passWhat') : ''
+      const name = textOf(item?.name) || textOf(p.name)
+      const desc = textOf(p.desc)
       return (
         `<div class="pack${item ? '' : ' off'}" data-pack="${item ? p.id : ''}">` +
         `<img alt="" src="/assets/store/${p.icon ?? `store_${p.id}.png`}" />` +
-        `<div class="t"><div class="n">${item?.name || textOf(p.name)}</div>` +
-        `<div class="d">${what}${p.desc}</div>` +
+        `<div class="t"><div class="n">${esc(name)}</div>` +
+        `<div class="d">${esc(what + desc)}</div>` +
         `${p.bonus ? `<div class="b">${p.bonus}</div>` : ''}</div>` +
         price +
         '</div>'

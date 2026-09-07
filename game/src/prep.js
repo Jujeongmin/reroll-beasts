@@ -797,7 +797,7 @@ export async function createPrep({
     const from = localToField[at.index]
     const out = new Set()
     for (let tile = 0; tile < simBoard.tileCount; tile++) {
-      const d = simBoard.dist[from][t]
+      const d = simBoard.dist[from][tile]
       // 자기 칸은 뺀다 — "닿는 범위" 를 보여주는 것이지 서 있는 자리가 아니다
       if (d > 0 && d <= range) out.add(tile)
     }
