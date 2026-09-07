@@ -30,7 +30,7 @@
     {
       "id": "pass_premium_s1",
       "name": "시즌 1 프리미엄 패스",
-      "desc": "단계마다 젬을 더 받는다. 끝까지 올리면 960 젬",
+      "desc": "단계마다 젬 40. 끝까지 올리면 1,000 젬",
       "premium": true,
       "usd": 4.99,
       "icon": "store_pass_premium.png"

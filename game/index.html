@@ -1118,13 +1118,49 @@
   }
   /* 승리 이펙트 견본. 실제로는 판 위에 터지는 물건이라 카드에 담을 그림이
      없다 — 그 이펙트의 색으로 빛나는 고리를 그려 색만이라도 맞춰 보여 준다. */
+  /* 승리 이펙트 그림.
+     원 하나로 그리면 어느 이펙트나 똑같은 점이라 "무엇이 터지는가"를 아무것도
+     안 말한다. **실제로 터질 때 쓰는 그 스프라이트**를 그 색으로 물들여 보여
+     준다 — 고리형·폭발형·불티형이 눈에 바로 갈린다.
+     mask 를 쓰는 이유: 원본이 흰 스프라이트라 색을 입히려면 도형만 떠내야 한다.
+     color 가 그 이펙트 색이고, --burst/--ring 이 스프라이트 두 장이다. */
+  /* 통째로 한 번 더 빛낸다 — 마스크로 떠낸 도형은 납작해서, 빛이 없으면
+     "터지는 것"이 아니라 아이콘으로 읽힌다. */
+  /* 통째로 한 번 더 빛낸다 — 마스크로 떠낸 도형은 납작해서, 빛이 없으면
+     "터지는 것"이 아니라 아이콘으로 읽힌다. 뒤에 옅은 빛무리를 깔아 부피를 준다.
+     currentColor 를 그대로 못 쓰는 자리라 color-mix 로 투명도를 섞는다. */
+  .fxart {
+    position: relative; display: block;
+    filter: drop-shadow(0 0 6px currentColor);
+    background: radial-gradient(
+      circle at 50% 50%,
+      color-mix(in srgb, currentColor 55%, transparent) 0%,
+      color-mix(in srgb, currentColor 18%, transparent) 42%,
+      transparent 68%
+    );
+  }
+  .fxart::before,
+  .fxart::after {
+    content: ''; position: absolute; inset: 0; background: currentColor;
+    -webkit-mask-repeat: no-repeat; mask-repeat: no-repeat;
+    -webkit-mask-position: center; mask-position: center;
+    -webkit-mask-size: contain; mask-size: contain;
+  }
+  /* 뒤에 깔리는 고리. 옅게 둔다 — 둘 다 진하면 서로를 지운다. */
+  .fxart::before {
+    -webkit-mask-image: var(--ring); mask-image: var(--ring);
+    opacity: .55;
+  }
+  /* 폭발 쪽을 크게 둔다. 작게 두면 고리 안에 점 하나가 찍힌 것처럼 보인다. */
+  .fxart::after {
+    -webkit-mask-image: var(--burst); mask-image: var(--burst);
+    transform: scale(.82);
+  }
+
   #skins .boomart {
     width: 100%; height: 100%; display: flex; align-items: center; justify-content: center;
   }
-  #skins .boomart i {
-    width: 64px; height: 64px; border-radius: 50%;
-    box-shadow: inset 0 0 0 3px currentColor, 0 0 18px currentColor, 0 0 40px currentColor;
-  }
+  #skins .boomart i { width: 68px; height: 68px; }
 
   /* 무대 견본. 3D 판을 여기서 그릴 수는 없으니 색 세 겹으로 보여 준다 —
      바깥 잔디, 판 돌, 내 칸 테두리. 실제로 바뀌는 것이 이 셋이다. */
@@ -1266,9 +1302,11 @@
   }
   /* 젬 충전 줄. 아바타 목록과 같은 칸으로 그리면 "이것도 아바타"로 읽힌다 —
      가로 띠로 눕혀 다른 종류임을 모양으로 가른다. */
-  #gemshop .packs { flex: none; display: flex; gap: 6px; }
+  /* 상품 줄을 세로로 쌓는다 — 넷을 가로로 붙이면 이름이 잘려 무엇을 파는지
+     안 읽힌다. 무엇이 들어오는지(젬 수·패스)를 이름 아래 한 줄로 적는다. */
+  #gemshop .packs { flex: none; display: flex; flex-direction: column; gap: 5px; }
   #gemshop .pack {
-    flex: 1; min-width: 0; display: flex; align-items: center; gap: 6px; padding: 5px 7px;
+    flex: 1; min-width: 0; display: flex; align-items: center; gap: 8px; padding: 5px 7px;
     background: linear-gradient(180deg, #2f2338, #1a1424);
     box-shadow: inset 0 0 0 1px #ffffff14; cursor: pointer;
   }
@@ -1280,7 +1318,17 @@
     font-size: 11px; font-weight: 800; color: #e6dcff;
     overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
   }
+  #gemshop .pack .d {
+    font-size: 9px; color: #b9aec9;
+    overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
+  }
   #gemshop .pack .b { font-size: 9px; color: #7fe6a8; }
+  /* 못 사는 줄. 눌러도 아무 일이 없다는 것이 색으로 읽혀야 한다 —
+     목록은 보여 주되 살 수 있는 척은 하지 않는다. */
+  #gemshop .pack.off { cursor: default; filter: grayscale(.35) brightness(.85); }
+  #gemshop .pack.off:hover { background: linear-gradient(180deg, #2f2338, #1a1424); }
+  #gemshop .pack.off:active { transform: none; }
+  #gemshop .pack .p.off { color: #a99a86; font-weight: 400; }
   #gemshop .pack .p { flex: none; font-size: 11px; font-weight: 800; color: #ffd166; }
   /* 상점을 못 불러온 자리. 빈 줄을 남기면 "곧 뜨겠지"로 읽혀 계속 기다린다. */
   #gemshop .packs .none { font-size: 10px; color: #a99a86; padding: 4px 2px; }
@@ -1439,8 +1487,26 @@
     border-style: solid; border-width: 6px; border-image-slice: 6 fill;
     border-image-source: url('/assets/ui/panel_parch.png');
   }
+  /* 아바타가 아닌 보상. 액자는 같고 안쪽만 갈린다. */
+  #home .pass .next > div {
+    position: absolute; inset: 0; box-sizing: border-box;
+    border-style: solid; border-width: 6px; border-image-slice: 6 fill;
+    border-image-source: url('/assets/ui/panel_parch.png');
+    display: flex; align-items: center; justify-content: center;
+  }
+  #home .pass .next > div[hidden] { display: none; }
+  #home .pass .next .fxart { width: 28px; height: 28px; }
+  #home .pass .next .strip { display: flex; width: 100%; height: 100%; }
+  #home .pass .next .strip i { flex: 1; }
+  #home .pass .next img.shot {
+    position: absolute; inset: 0; width: 100%; height: 100%; object-fit: cover;
+  }
+  #home .pass .next img.shot:not([src]) { display: none; }
+  /* 단계와 이름을 같이 적는다. 카드가 186px 이라 길면 줄지 않고 잘리게 둔다 —
+     줄이면 액자를 덮어 무엇의 그림인지가 흐려진다. */
   #home .pass .next span {
-    position: absolute; left: 50%; bottom: -5px; transform: translateX(-50%);
+    position: absolute; left: 50%; bottom: -6px; transform: translateX(-50%);
+    max-width: 150px; overflow: hidden; text-overflow: ellipsis;
     padding: 0 4px; background: #1b1208e6; box-shadow: inset 0 0 0 1px #ffd16659;
     font-size: 9px; font-weight: 800; color: #ffd166; white-space: nowrap;
   }
@@ -1513,14 +1579,15 @@
     box-shadow: inset 0 0 0 1px #00000066;
   }
   #passtrack .rw.sk i { flex: 1; }
+  /* 찍어 온 판. 색 띠 위에 덮는다 — 오기 전까지는 아래 색이 자리를 지킨다. */
+  #passtrack .rw.sk img.shot {
+    position: absolute; inset: 0; width: 100%; height: 100%; object-fit: cover;
+  }
+  #passtrack .rw.sk img.shot:not([src]) { display: none; }
   /* 이펙트 보상. 그 색의 원 하나 — 스물다섯 칸이 동시에 움직이면 어디를
      봐야 할지 모른다. */
   #passtrack .rw.bm { position: relative; }
-  #passtrack .rw.bm::before {
-    content: ''; width: 26px; height: 26px; border-radius: 50%;
-    background: radial-gradient(circle at 50% 45%, #ffffffcc 0%, var(--bc) 45%, #00000000 72%);
-    box-shadow: 0 0 8px var(--bc);
-  }
+  #passtrack .rw.bm .fxart { width: 42px; height: 42px; }
   #passtrack .lv {
     width: 100%; text-align: center; font-size: 10px; font-weight: 800; color: #8f8069;
     background: #00000059; border-radius: 3px; padding: 1px 0;
@@ -1833,7 +1900,9 @@
       <div class="ttl">시즌 패스</div>
       <!-- 다음에 받을 것. 진행도 숫자만으로는 계속할 이유가 안 생긴다 —
            무엇이 기다리는지 그림으로 보여야 한다. -->
-      <div class="next"><img id="pass-next" alt="" /><span id="pass-next-lv"></span></div>
+      <!-- 다음 보상. 아바타면 초상을, 무대·이펙트면 그 물건다운 그림을 그린다 —
+           색 한 칸으로 때우면 "불러오다 만 그림"으로 읽힌다. -->
+      <div class="next"><img id="pass-next" alt="" /><div id="pass-next-art" hidden></div><span id="pass-next-lv"></span></div>
       <div class="meter">
         <div class="lv" id="pass-lv">1단계</div>
         <div class="bar" id="pass-bar"><i></i></div>

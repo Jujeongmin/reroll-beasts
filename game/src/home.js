@@ -92,6 +92,7 @@ export function createHome({
     passLv: document.getElementById('pass-lv'),
     passGems: document.getElementById('pass-gems'),
     passNext: document.getElementById('pass-next'),
+    passNextArt: document.getElementById('pass-next-art'),
     passNextLv: document.getElementById('pass-next-lv'),
     passBar: document.querySelector('#pass-bar i'),
     passSheet: document.getElementById('passtrack'),
@@ -236,6 +237,24 @@ export function createHome({
     drawSkins()
   }
 
+  /**
+   * 승리 이펙트 그림 한 조각.
+   *
+   * 색 원 하나로 그리면 어느 이펙트나 같은 점이라, 무엇이 터지는지를 아무것도
+   * 안 말한다 — **실제로 터질 때 쓰는 스프라이트**를 그 색으로 물들여 쓴다.
+   * 꾸미기 창과 패스 트랙이 같은 그림을 쓴다: 트랙에서 본 것과 고르는 곳에서
+   * 본 것이 다르면 같은 물건인 줄 모른다.
+   */
+  const fxArt = (fx, cls = '') => {
+    const color = fx?.color ?? '#ffd166'
+    const burst = fx?.burst ?? 'burst'
+    const ring = fx?.ring ?? 'ring'
+    return (
+      `<i class="fxart ${cls}" style="color:${color};` +
+      `--burst:url('/assets/fx/${burst}.webp');--ring:url('/assets/fx/${ring}.webp')"></i>`
+    )
+  }
+
   /** 지금 탭의 목록. 아바타든 무대든 같은 모양으로 그린다. */
   function skinList() {
     const owned = ownedNow()
@@ -269,7 +288,7 @@ export function createHome({
           return (
             `<div class="card${c.unlocked ? '' : ' locked'}${c.id === cur ? ' on' : ''}` +
             `${c.id === skinPick ? ' sel' : ''}" data-skin="${c.id}">` +
-            `<span class="boomart" style="color:${c.fx?.color ?? '#ffd166'}"><i></i></span>` +
+            `<span class="boomart">${fxArt(c.fx)}</span>` +
             `<span class="nm">${c.name}</span>` +
             `<span class="why">${c.unlocked ? '' : c.reason}</span></div>`
           )
@@ -437,16 +456,20 @@ export function createHome({
         return `<div class="rw av"><img alt="" data-file="${it.file}" title="${it.name}" />${gem}</div>`
       }
       if (it.kind === 'board') {
+        // **진짜 판을 찍어** 보여 준다 — 색 띠만으로는 그 무대가 어떻게 보이는지
+        // 알 수 없다. 색 띠는 그림이 오기 전까지 자리를 지킨다(꾸미기 창과 같은
+        // 방식이다). 찍은 것은 main 이 캐시하므로 같은 무대를 다시 안 그린다.
         const c = it.colors ?? {}
         return (
           `<div class="rw sk" title="${it.name}">` +
           `<i style="background:${c.floor ?? '#888'}"></i>` +
           `<i style="background:${c.ground ?? '#666'}"></i>` +
           `<i style="background:${c.base ?? '#333'}"></i>` +
-          `<i style="background:${c.ring ?? '#fff'}"></i>${gem}</div>`
+          `<i style="background:${c.ring ?? '#fff'}"></i>` +
+          `<img class="shot" alt="" data-board="${it.id}" />${gem}</div>`
         )
       }
-      return `<div class="rw bm" title="${it.name}" style="--bc:${it.fx?.color ?? '#ffd166'}">${gem}</div>`
+      return `<div class="rw bm" title="${it.name}">${fxArt(it.fx)}${gem}</div>`
     }
 
     el.passRows.innerHTML = track
@@ -457,6 +480,14 @@ export function createHome({
           `<div class="prem">${cell(t.premium)}</div></div>`,
       )
       .join('')
+    // 무대는 진짜 판을 찍어 덮는다. 오기 전까지는 아래 색 띠가 자리를 지킨다.
+    for (const img of el.passRows.querySelectorAll('img[data-board]')) {
+      onBoardPortrait?.(img.dataset.board)
+        .then((url) => {
+          img.src = url
+        })
+        .catch(() => {})
+    }
     // 아바타 그림은 아바타 목록과 같은 방식으로 찍어 온다.
     for (const img of el.passRows.querySelectorAll('img[data-file]')) {
       onAvatarPortrait?.(img.dataset.file)
@@ -489,15 +520,38 @@ export function createHome({
     // 못 불러왔다"로 읽힌다.
     el.passNext.parentElement.hidden = !next
     if (!next) return
-    el.passNextLv.textContent = `${next.passLevel}단계`
-    // 아바타가 아니면 찍을 그림이 없다 — 그 물건의 색 한 칸으로 대신한다.
+    // **이름을 같이 적는다.** 단계 숫자만 적으면 "4단계가 뭔데?"가 되고, 그
+    // 답이 화면에 없으면 미리보기가 미리보기 노릇을 못 한다.
+    el.passNextLv.textContent = `${next.passLevel}단계 · ${next.name}`
+    el.passNext.parentElement.title = `${next.passLevel}단계 보상: ${next.name}`
+    // 아바타가 아니면 찍을 그림이 없다. 색 한 칸으로 때우면 빈 상자로 읽히므로,
+    // 무대는 색 띠로 이펙트는 그 스프라이트로 — 트랙에서 쓰는 그 그림이다.
     if (!next.file) {
       nextShown = null
-      el.passNext.removeAttribute('src')
-      el.passNext.style.background = next.colors?.floor ?? next.fx?.color ?? '#ffd166'
+      el.passNext.hidden = true
+      el.passNextArt.hidden = false
+      if (next.fx) {
+        el.passNextArt.innerHTML = fxArt(next.fx, 'big')
+        return
+      }
+      // 무대는 색 띠를 먼저 깔고 그 위에 진짜 판을 덮는다 — 색만 보여 주면
+      // "무슨 색인지"는 알아도 "어떻게 보이는지"는 모른다.
+      el.passNextArt.innerHTML =
+        '<span class="strip">' +
+        [next.colors?.floor, next.colors?.ground, next.colors?.base, next.colors?.ring]
+          .map((c) => `<i style="background:${c ?? '#888'}"></i>`)
+          .join('') +
+        '</span><img class="shot" alt="" />'
+      const shot = el.passNextArt.querySelector('img.shot')
+      onBoardPortrait?.(next.id)
+        .then((url) => {
+          shot.src = url
+        })
+        .catch(() => {})
       return
     }
-    el.passNext.style.background = ''
+    el.passNext.hidden = false
+    el.passNextArt.hidden = true
     if (next.file === nextShown) return
     nextShown = next.file
     onAvatarPortrait?.(next.file)
@@ -540,28 +594,40 @@ export function createHome({
   async function drawPacks() {
     el.shopPacks.innerHTML = '<div class="none">상품을 불러오는 중…</div>'
     const live = await onStoreItems?.()
-    if (!live) {
-      el.shopPacks.innerHTML = '<div class="none">결제는 Verse8 에서 실행할 때만 열린다</div>'
-      return
-    }
     const known = storeProducts(data)
-    const rows = known
-      .map((p) => ({ p, item: live.find((x) => x.productId === p.id) }))
-      .filter((r) => r.item)
-    if (!rows.length) {
-      el.shopPacks.innerHTML = '<div class="none">등록된 상품이 없다</div>'
-      return
-    }
-    el.shopPacks.innerHTML = rows
-      .map(
-        ({ p, item }) =>
-          `<div class="pack" data-pack="${p.id}">` +
-          `<img alt="" src="/assets/store/store_${p.id.replace(/^gems_/, 'gems_')}.png" />` +
-          `<div class="t"><div class="n">${item.name || p.name}</div>` +
-          `${p.bonus ? `<div class="b">${p.bonus}</div>` : ''}</div>` +
-          `<div class="p">${item.price}</div></div>`,
+
+    /**
+     * 상품 한 줄.
+     *
+     * **목록은 결제가 안 열려도 그린다.** 전에는 플랫폼을 못 붙으면 "결제는
+     * Verse8 에서만 열린다" 한 줄만 남아서, 무엇을 파는 가게인지조차 알 수
+     * 없었다 — 값을 볼 수 없는 것과 물건을 볼 수 없는 것은 다른 일이다.
+     *
+     * 값은 **플랫폼이 준 것**을 쓴다. store.json 의 usd 는 참고값이고 대시보드가
+     * 값을 쥐므로, 우리 파일 값을 진짜처럼 그리면 결제창과 다른 숫자가 뜬다.
+     * 못 받았으면 값 자리에 "$0.99 쯤" 이라고 적어 참고값임을 밝힌다.
+     */
+    const row = (p, item) => {
+      const price = item ? `<div class="p">${item.price}</div>` : `<div class="p off">약 $${p.usd}</div>`
+      // 이름이 이미 "젬 1,000" 이라 젬 수를 또 적으면 같은 말이 두 번이다.
+      // 설명만 적되, 패스는 무엇인지 한 마디를 앞에 붙인다.
+      const what = p.premium ? '시즌 패스 · ' : ''
+      return (
+        `<div class="pack${item ? '' : ' off'}" data-pack="${item ? p.id : ''}">` +
+        `<img alt="" src="/assets/store/${p.icon ?? `store_${p.id}.png`}" />` +
+        `<div class="t"><div class="n">${item?.name || p.name}</div>` +
+        `<div class="d">${what}${p.desc}</div>` +
+        `${p.bonus ? `<div class="b">${p.bonus}</div>` : ''}</div>` +
+        price +
+        '</div>'
       )
-      .join('')
+    }
+
+    el.shopPacks.innerHTML =
+      (live
+        ? ''
+        : '<div class="none">결제는 Verse8 에서 실행할 때만 열린다 — 값은 참고값이다</div>') +
+      known.map((p) => row(p, live?.find((x) => x.productId === p.id))).join('')
   }
 
   el.shopPacks.addEventListener('click', (ev) => {
