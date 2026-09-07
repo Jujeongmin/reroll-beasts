@@ -11,7 +11,7 @@
 // 그 자리에는 `–` 를 적는다. 없는 등수를 지어내지 않는다.
 
 import { unitById } from '@sim/data.js'
-import { lpForRank, tierOf, tierProgress } from '@sim/rank.js'
+import { lpForRank, divisionOf, divisionLabel, nextDivisionLabel, TIERS } from '@sim/rank.js'
 import { accountTag, tagDuplicates } from '@sim/name.js'
 import { t, textOf } from './i18n.js'
 import { sfx } from './audio.js'
@@ -129,17 +129,17 @@ export function createResult({ data, thumbFor, onClose }) {
    */
   function drawBand(before, delta) {
     const after = Math.max(0, before + delta)
-    // 막대는 **끝난 뒤의 티어** 구간에 그린다. 티어가 갈리면 새 칸에서
-    // 어디쯤인지가 알고 싶은 것이다.
-    const tier = tierOf(after)
-    const prog = tierProgress(after)
-    const from = tier.at
-    // 최고 티어는 다음 문턱이 없다. 그때는 이 티어에 든 뒤로 얼마나 왔는지를
-    // 눈금으로 삼는다 — 0 으로 나누지 않게 최소 1 을 둔다.
-    const span = Math.max(1, prog ? prog.next.at - from : Math.max(after - from, 1))
-    const pos = (lp) => Math.max(0, Math.min(1, (lp - from) / span)) * 100
+    // 막대는 **끝난 뒤의 단계** 칸에 그린다. 티어 한 칸(골드는 500 LP)을
+    // 눈금으로 쓰면 한 판(±30)으로는 막대가 거의 안 움직여, 이겼는데
+    // 아무것도 안 변한 것처럼 보인다. 단계 한 칸은 100 이라 한 판이 보인다.
+    const d = divisionOf(after)
+    const span = Math.max(1, (d.to ?? after + 1) - d.from)
+    const pos = (lp) => Math.max(0, Math.min(1, (lp - d.from) / span)) * 100
     const lo = pos(Math.min(before, after))
     const hi = pos(Math.max(before, after))
+    // 칸을 넘어왔으면 이번 판이 이 칸을 처음부터 채운 것으로 보인다 — 실제로
+    // 그랬다. 아래 칸에 남은 몫은 그 칸에서 이미 지나갔다.
+    const next = nextDivisionLabel(after)
 
     const moved =
       delta === 0
@@ -147,16 +147,24 @@ export function createResult({ data, thumbFor, onClose }) {
         : `<i class="${delta > 0 ? 'gain' : 'loss'}" style="left:${lo}%;width:${hi - lo}%"></i>`
 
     el.band.innerHTML =
-      `<span class="badge ${tier.id}"></span>` +
-      `<span class="tn">${tier.name}</span>` +
+      `<span class="head"><span class="badge ${d.tier.id}"></span>` +
+      `<span class="tn">${divisionLabel(after)}</span>` +
+      `<span class="delta ${delta > 0 ? 'up' : delta < 0 ? 'down' : 'none'}">` +
+      `${delta > 0 ? '+' : ''}${delta}</span></span>` +
       '<span class="mid">' +
       `<span class="bar"><i class="kept" style="width:${lo}%"></i>${moved}</span>` +
       '<span class="nums">' +
       `<b>${after}</b> LP` +
-      (prog ? `<span class="to">${t('result.toNext', { tier: prog.next.name, lp: prog.need })}</span>` : '') +
+      (next ? `<span class="to">${t('result.toNext', { tier: next, lp: d.need })}</span>` : '') +
       '</span></span>' +
-      `<span class="delta ${delta > 0 ? 'up' : delta < 0 ? 'down' : 'none'}">` +
-      `${delta > 0 ? '+' : ''}${delta}</span>`
+      // 다섯 칸 사다리. 내가 선 칸을 밝히고, 지나온 칸은 색만 남긴다.
+      '<span class="ladder">' +
+      TIERS.map((x, i) => {
+        const at = TIERS.findIndex((y) => y.id === d.tier.id)
+        const cls = i === at ? ' on' : i < at ? ' past' : ''
+        return `<span class="step${cls}"><i class="${x.id}"></i><b>${x.name}</b></span>`
+      }).join('') +
+      '</span>'
     el.band.hidden = false
   }
 

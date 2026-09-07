@@ -88,4 +88,67 @@ export function rankOf(rows, account) {
   return i < 0 ? null : i + 1
 }
 
+/**
+ * 한 티어를 몇 칸으로 나누나.
+ *
+ * 나누는 이유는 눈금이다. 골드 한 칸이 500 LP 라 한 판(±30)으로는 막대가
+ * 거의 안 움직인다 — 이겼는데 아무것도 안 변한 것처럼 보인다. 다섯으로
+ * 나누면 한 칸이 100 이라 한 판이 눈에 보이고, 올라갈 자리도 자주 온다.
+ */
+const DIVISIONS = 5
+
+/**
+ * 지금 몇 티어 몇 단계인가.
+ *
+ * 단계는 **5 가 가장 낮고 1 이 가장 높다** — 롤을 해 본 사람에게 익숙한
+ * 방향이고, "골드 1" 이 골드의 끝이라는 읽기가 자연스럽다.
+ *
+ * 최고 티어는 단계가 없다(division: null). 위가 안 막혀 있어 다섯으로 나눌
+ * 눈금이 없다 — 없는 칸을 지어내느니 안 나누는 편이 낫다.
+ *
+ * @returns {{tier: object, division: number|null, from: number, to: number|null,
+ *            need: number|null, ratio: number}}
+ */
+export function divisionOf(lp) {
+  const value = Math.max(0, lp ?? 0)
+  const tier = tierOf(value)
+  const i = TIERS.findIndex((t) => t.id === tier.id)
+  const next = TIERS[i + 1]
+  if (!next) {
+    return { tier, division: null, from: tier.at, to: null, need: null, ratio: 1 }
+  }
+  const step = (next.at - tier.at) / DIVISIONS
+  // 티어 문턱 바로 아래에서 마지막 칸을 넘어가지 않게 묶는다.
+  const idx = Math.min(DIVISIONS - 1, Math.floor((value - tier.at) / step))
+  const from = tier.at + step * idx
+  const to = from + step
+  return {
+    tier,
+    division: DIVISIONS - idx,
+    from,
+    to,
+    need: Math.ceil(to - value),
+    ratio: Math.max(0, Math.min(1, (value - from) / step)),
+  }
+}
+
+/** 화면에 적을 이름. "골드 3", 최고 티어는 "다이아". */
+export function divisionLabel(lp) {
+  const d = divisionOf(lp)
+  return d.division ? `${d.tier.name} ${d.division}` : d.tier.name
+}
+
+/**
+ * 바로 위 칸의 이름. 최고 티어면 null.
+ *
+ * 문턱 LP 를 그대로 다시 읽는다 — 단계 안에서 세면 골드 1 위가 플래티넘 5
+ * 라는 것을 여기서 또 알아야 하고, 그 앎이 divisionOf 와 어긋날 자리가 된다.
+ */
+export function nextDivisionLabel(lp) {
+  const d = divisionOf(lp)
+  return d.to === null ? null : divisionLabel(d.to)
+}
+
+export { DIVISIONS }
+
 export { TIERS }

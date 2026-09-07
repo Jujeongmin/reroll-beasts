@@ -1,6 +1,6 @@
 // 홈이 무엇을 그릴지 정한다. DOM 을 모른다 — 그래야 상태 전이가 브라우저
 // 없이 검사된다. 그리는 일은 home.js 가 한다.
-import { tierOf, tierProgress } from '@sim/rank.js'
+import { divisionOf, divisionLabel, nextDivisionLabel } from '@sim/rank.js'
 import { t } from './i18n.js'
 
 
@@ -53,15 +53,16 @@ export function homeView({ status, hasAuth, profile, queue, data }) {
 function viewProfile(profile) {
   if (!profile || !profile.games) return null
   const lp = profile.lp ?? 0
-  const tier = tierOf(lp)
-  const p = tierProgress(lp)
+  const d = divisionOf(lp)
   return {
     head: t('home.record', { games: profile.games, best: profile.best }),
     recent: profile.recent ?? [],
-    tier: tier.name,
-    tierId: tier.id,
+    tier: divisionLabel(lp),
+    tierId: d.tier.id,
     lp,
-    // 다음 티어까지. 최고 티어면 남은 게 없으니 막대도 안 그린다.
-    next: p ? { name: p.next.name, need: p.need, ratio: Math.max(0, Math.min(1, p.ratio)) } : null,
+    // 다음 **단계**까지. 티어 한 칸(500 LP)을 눈금으로 쓰면 한 판으로는 막대가
+    // 거의 안 움직여 이겼는데 아무것도 안 변한 것처럼 보인다.
+    // 최고 티어는 위가 안 막혀 있어 남은 게 없다 — 막대도 안 그린다.
+    next: d.division ? { name: nextDivisionLabel(lp), need: d.need, ratio: d.ratio } : null,
   }
 }
