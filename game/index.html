@@ -626,6 +626,8 @@
     font-size: 9px; line-height: 13px; font-weight: 800; text-align: center;
   }
   .btn:disabled .kb { opacity: .45; }
+  .btn { transition: filter .12s, transform .12s; }
+  .btn:hover:not([disabled]) { filter: brightness(1.12); transform: translateY(-1px); }
   .btn:active { transform: translateY(1px); }
   .btn:disabled { filter: grayscale(.7) brightness(.62); cursor: default; }
 
@@ -923,7 +925,12 @@
     background: url('/assets/ui/lobby_btn.png') center/100% 100% no-repeat; color: #3b2a16; text-shadow: 0 1px 0 #ffffff88;
     letter-spacing: .5px; image-rendering: pixelated;
   }
-  #home .btn-home:active { background-image: url('/assets/ui/lobby_btn_down.png'); }
+  /* 손이 닿았다는 표시. 커서로 노는 화면에서는 눌리기 **전에** 무엇이 눌리는지
+     보여야 한다 — 그림이 그대로면 버튼인지 그림인지 구분이 안 된다.
+     밝기와 1px 들림만 쓴다: 크기를 키우면 옆 버튼과 간격이 흔들린다. */
+  #home .btn-home { transition: filter .12s, transform .12s; }
+  #home .btn-home:hover:not([disabled]) { filter: brightness(1.12); transform: translateY(-1px); }
+  #home .btn-home:active { background-image: url('/assets/ui/lobby_btn_down.png'); transform: translateY(1px); }
   /* ── 첫 실행 유도 ───────────────────────────────────
      처음 온 사람에게 고를 것을 하나로 줄인다. 나머지를 덮어 두면 "무엇부터
      눌러야 하나"라는 질문 자체가 안 생긴다. 자동 진입과 다른 점: 언제든
@@ -1027,7 +1034,8 @@
     margin-top: 2px; padding: 5px 0; font-size: 11px; color: #cbb794;
     text-decoration: underline; text-align: left;
   }
-  #home .btn-sub:hover { color: #ffe1a0; }
+  #home .btn-sub { transition: color .12s, transform .12s; }
+  #home .btn-sub:hover { color: #ffe1a0; transform: translateX(2px); }
 
   /* ── 아바타 고르기 ──────────────────────────────────── */
   #skins {
@@ -1496,11 +1504,14 @@
   #passtrack #pass-close {
     align-self: center; font-size: 11px; color: #cbb794; text-decoration: underline;
   }
+  /* 접속 상태. **할 말이 있을 때만 뜬다** — 붙고 나면 적을 것이 없어서,
+     늘 띄워 두면 빈 네모 하나가 하늘 구석에 박혀 있게 된다. */
   #home .conn {
     position: absolute; right: 8px; top: 8px; display: flex; align-items: center; gap: 6px;
     font-size: 10px; color: #e6cfa2;
     background: #2a1f14e8; box-shadow: inset 0 0 0 1px #d8b98455; padding: 3px 8px;
   }
+  #home .conn[hidden] { display: none; }
   #home .conn button { font-size: 10px; color: #ffd98a; text-decoration: underline; }
   #home .conn button[hidden] { display: none; }
 

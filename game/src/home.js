@@ -79,6 +79,7 @@ export function createHome({
     boardRows: document.getElementById('board-rows'),
     boardSub: document.getElementById('board-sub'),
     boardClose: document.getElementById('board-close'),
+    conn: document.getElementById('home-conn'),
     note: document.getElementById('home-note'),
     retry: document.getElementById('home-retry'),
     hero: document.getElementById('home-hero'),
@@ -581,6 +582,9 @@ export function createHome({
 
     el.note.textContent = v.notice ?? ''
     el.retry.hidden = state.status !== 'failed'
+    // 할 말이 없으면 상자째 감춘다. 붙고 나면 적을 것이 없어서, 늘 띄워 두면
+    // 빈 네모 하나가 하늘 구석에 박혀 있다.
+    el.conn.hidden = !el.note.textContent && el.retry.hidden
   }
 
   render()
