@@ -197,9 +197,24 @@ export function createHome({
   el.nameBtn.addEventListener('click', () => openName())
   // 규칙은 클라와 서버가 **같은 함수**를 본다. 여기서 미리 알려 주는 것은
   // 편의고, 막는 것은 서버다.
-  el.nameInput.addEventListener('input', () => {
+  // 한글을 치는 동안 칸의 값은 "ㅇ" → "ㅇㅏ" → "안" 으로 오간다. 그 중간을
+  // 그대로 검사하면 다 치기도 전에 "너무 짧다"가 떴다 사라져서, 뭘 잘못한 줄
+  // 알고 손이 멈춘다. 글자가 맺힐 때까지 기다린다.
+  let composing = false
+  const showNameWhy = () => {
     const c = checkName(el.nameInput.value)
     el.nameWhy.textContent = el.nameInput.value && !c.ok ? t('why.' + c.why) : ''
+  }
+  el.nameInput.addEventListener('compositionstart', () => {
+    composing = true
+    el.nameWhy.textContent = ''
+  })
+  el.nameInput.addEventListener('compositionend', () => {
+    composing = false
+    showNameWhy()
+  })
+  el.nameInput.addEventListener('input', () => {
+    if (!composing) showNameWhy()
   })
   el.nameInput.addEventListener('keydown', (ev) => {
     // 조합 중의 Enter 는 **글자를 확정하는 키**다. 한글을 치다 Enter 로

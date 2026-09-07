@@ -67,3 +67,24 @@ describe('displayName', () => {
     expect(NAME_MIN).toBe(2)
   })
 })
+
+describe('낱자 이름', () => {
+  it('ㅋㅋㅋ · ㅇㅇ 처럼 낱자만으로도 지을 수 있다', () => {
+    expect(checkName('ㅋㅋㅋ').ok).toBe(true)
+    expect(checkName('ㅇㅇ').ok).toBe(true)
+    expect(checkName('ㅎㅎㅎㅎ').ok).toBe(true)
+  })
+
+  it('낱자와 완성형을 섞어도 된다 — 조합하다 만 것도 이름이 된다', () => {
+    expect(checkName('ㅇㅏ차').ok).toBe(true)
+  })
+
+  it('낱자도 한 글자로 센다 — 하나뿐이면 여전히 짧다', () => {
+    expect(checkName('ㄱ').why).toBe('name_short')
+  })
+
+  it('옛한글 자모는 안 받는다 — 겹쳐 쌓여 줄 높이를 밀어낸다', () => {
+    // U+1100(ᄀ) · U+1161(ᅡ) 은 호환 자모가 아니라 조합용 낱자다.
+    expect(checkName('\u1100\u1161').why).toBe('name_chars')
+  })
+})
