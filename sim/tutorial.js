@@ -26,11 +26,11 @@ export function setupTutorial(state, data) {
   state.gold = TUTORIAL_GOLD
   state.bench = state.bench.map(() => null)
   state.board = state.board.map(() => null)
-  for (let i = 0; i < 2; i++) {
-    state.bench[i] = { uid: state.nextUid++, unitId: TUTORIAL_UNIT, star: 1, items: [] }
-  }
-  // 상점 첫 칸을 고정한다 — 리롤을 시키면 골드가 먼저 마른다.
-  state.shop = state.shop.map((_, i) => (i === 0 ? TUTORIAL_UNIT : null))
+  // 상점에 **같은 말 셋**을 깔아 둔다. 전에는 벤치에 둘을 미리 주고 상점에
+  // 하나만 뒀는데, 그러면 "셋이 모이면 합쳐진다"를 말로만 듣고 화면에서는
+  // 하나 사니 갑자기 합쳐지는 것으로 보였다. 셋을 눈으로 세고 셋을 사야
+  // 규칙이 손에 남는다. 리롤은 안 시킨다 — 골드가 먼저 마른다.
+  state.shop = state.shop.map((_, i) => (i < 3 ? TUTORIAL_UNIT : null))
   return state
 }
 
@@ -44,8 +44,8 @@ export const TUTORIAL_STEPS = [
   {
     id: 'buy',
     text: {
-      ko: '상점에서 같은 말을 하나 사 보자. 셋이 모이면 저절로 합쳐진다.',
-      en: 'Buy the same unit from the shop. Three of them merge on their own.',
+      ko: '상점에서 같은 말 셋을 사 보자. 셋이 모이면 저절로 합쳐진다.',
+      en: 'Buy the three matching units from the shop. Three of them merge on their own.',
     },
     target: '#shop',
     done: (state) => allUnits(state).some((u) => u.star >= 2),
