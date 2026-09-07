@@ -163,9 +163,20 @@ export async function createScene({
 
   const camera = new THREE.PerspectiveCamera(38, 1, 0.1, 200)
 
-  const renderer = new THREE.WebGLRenderer({ antialias: true, alpha: true })
-  renderer.setPixelRatio(Math.min(devicePixelRatio, 2))
-  renderer.shadowMap.enabled = true
+  // 손가락으로 하는 기기는 **덜 그린다.**
+  //
+  // 아이폰은 devicePixelRatio 가 3 이라, 상한만 걸어 두면 제일 약한 기기가
+  // 제일 많은 픽셀을 그린다(가로 화면에서 200만 픽셀). 거기에 MSAA 와
+  // 2048 그림자까지 얹히면 프레임이 무너진다. 판은 도트풍이라 안티에일리어싱이
+  // 없어도 크게 안 상하고, 그림자는 장면 전체를 한 번 더 그리는 값이 제일 크다.
+  //
+  // 화면 크기가 아니라 **입력 방식**으로 가른다: 창을 줄인 데스크톱은 여전히
+  // 데스크톱이고, 큰 태블릿도 손가락으로 하면 모바일 칩이다.
+  const lowEnd = matchMedia?.('(pointer: coarse)').matches ?? false
+
+  const renderer = new THREE.WebGLRenderer({ antialias: !lowEnd, alpha: true })
+  renderer.setPixelRatio(Math.min(devicePixelRatio, lowEnd ? 1.5 : 2))
+  renderer.shadowMap.enabled = !lowEnd
   renderer.shadowMap.type = THREE.PCFShadowMap
   renderer.outputColorSpace = THREE.SRGBColorSpace
   // 톤매핑 없이 밝은 직사광을 때리면 밝은 면이 흰색으로 뭉개져
@@ -177,8 +188,9 @@ export async function createScene({
   scene.add(new THREE.HemisphereLight(0xbcd0ff, 0x2a2438, 1.1))
   const sun = new THREE.DirectionalLight(0xfff2d8, 1.9)
   sun.position.set(-8, 16, 6)
-  sun.castShadow = true
-  sun.shadow.mapSize.set(2048, 2048)
+  sun.castShadow = !lowEnd
+  // 그림자 지도도 반으로. 켜 두는 기기에서도 2048 은 이 장면에 과하다.
+  sun.shadow.mapSize.set(lowEnd ? 1024 : 2048, lowEnd ? 1024 : 2048)
   const s = 16
   Object.assign(sun.shadow.camera, { left: -s, right: s, top: s, bottom: -s, near: 1, far: 60 })
   scene.add(sun)
@@ -1280,7 +1292,9 @@ export async function createScene({
     // 무대는 통째로 확대·축소된다 (#viewport). clientWidth 는 확대 전 값이라
     // 그대로 그리면 확대된 화면에서 흐려진다 — 실제 화면 폭만큼 더 그린다.
     const shown = mount.getBoundingClientRect().width
-    renderer.setPixelRatio(Math.min(devicePixelRatio * (shown / w || 1), 2.5))
+    // 상한은 만들 때와 같은 잣대를 쓴다 — 여기만 2.5 로 두면 창 크기가 바뀌는
+    // 순간 모바일이 도로 최대치로 그린다.
+    renderer.setPixelRatio(Math.min(devicePixelRatio * (shown / w || 1), lowEnd ? 1.5 : 2.5))
     // updateStyle 을 끄면 캔버스 CSS 크기가 안 잡혀, devicePixelRatio 2 에서
     // 그리기 버퍼 크기(=2배)로 표시되고 좌상단 1/4 만 보인다.
     renderer.setSize(w, h)
