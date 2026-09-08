@@ -381,6 +381,90 @@ describe('순위표', () => {
     expect(after.total).toBe(1);
     expect(after.top.filter((x: any) => x.mine).length).toBe(0);
   });
+  test('상위 목록은 LP 가 가장 높은 줄들이다 — 먼저 들어온 줄이 아니다', async (server) => {
+    // 전량을 안 읽고 DB 에 정렬을 맡기는 구조라, 목록이 "먼저 들어온 순서"로
+    // 잘려도 아무도 눈치채지 못한다.
+    //
+    // **둘만 달라고 하는 것이 이 검사의 핵심이다.** 여유분이 want+5 라 일곱
+    // 줄만 꺼내 오는데 순위표에는 여덟 줄이 있다 — 그래서 앞자리를 정말 DB 가
+    // 고른다. 여유분 안에 다 들어오게 달라고 하면 우리가 화면에서 다시
+    // 세우므로, DB 정렬을 통째로 빼도 통과한다(아무것도 안 지키는 검사가 된다).
+    //
+    // 항복으로 끝낸다 — 여덟이 찬 방의 정상 마감은 실제 시각이 지나야 돌아서
+    // 테스트가 기다릴 수 없다. 항복 순서가 등수를 가르므로 LP 도 갈린다.
+    const accounts = Array.from({ length: 8 }, (_, i) => `top${i}`);
+    let roomId = null;
+    for (const a of accounts) {
+      server.connect({ account: a });
+      const r = await server.joinQueue('ranked');
+      if (r.status === 'matched') roomId = r.roomId;
+    }
+    expect(roomId).toBeTruthy();
+    for (const a of accounts) {
+      server.connect({ account: a });
+      await server.joinMatchRoom(roomId);
+      await server.surrender();
+    }
+
+    server.connect({ account: accounts[0] });
+    const all = await server.getLeaderboard(50);
+    expect(all.total).toBe(8);
+    // LP 가 다 같으면 무엇을 골라도 통과한다 — 검사가 성립하는지부터 본다.
+    expect(new Set(all.top.map((r: any) => r.lp)).size).toBeGreaterThan(1);
+
+    const two = await server.getLeaderboard(2);
+    // 전체 인원은 목록 길이와 별개다 — 둘만 달라도 여덟이라고 답해야 한다.
+    expect(two.total).toBe(8);
+    expect(two.top.length).toBe(2);
+    expect(two.top.map((r: any) => r.lp)).toEqual(all.top.slice(0, 2).map((r: any) => r.lp));
+    expect(two.top[0].lp).toBeGreaterThanOrEqual(two.top[1].lp);
+  });
+  test('내 등수는 나보다 LP 가 높은 사람 수 + 1 이다', async (server) => {
+    // 등수를 세자고 순위표 전량을 읽지 않는다 — 나보다 위인 줄을 **세기만**
+    // 한다. 그 수가 틀리면 목록에 뻔히 보이는 자리와 내 등수가 어긋난다.
+    const accounts = ['rk0','rk1','rk2','rk3','rk4','rk5','rk6','rk7'];
+    let roomId = null;
+    for (const a of accounts) {
+      server.connect({ account: a });
+      const r = await server.joinQueue('ranked');
+      if (r.status === 'matched') roomId = r.roomId;
+    }
+    for (const a of accounts) {
+      server.connect({ account: a });
+      await server.joinMatchRoom(roomId);
+      await server.surrender();
+    }
+
+    for (const a of accounts) {
+      server.connect({ account: a });
+      const lb = await server.getLeaderboard(50);
+      const mineRow = lb.top.find((r: any) => r.mine);
+      expect(mineRow, a).toBeTruthy();
+      const above = lb.top.filter((r: any) => r.lp > mineRow.lp).length;
+      expect(lb.myRank, a).toBe(above + 1);
+      expect(lb.myRank, a).toBeLessThanOrEqual(lb.total);
+    }
+  });
+
+  test('랭크를 안 한 사람은 남들이 올라 있어도 등수가 없다', async (server) => {
+    // 0 등이나 꼴등을 지어내면 "나도 순위표에 있다"로 읽힌다.
+    const accounts = ['nr0','nr1','nr2','nr3','nr4','nr5','nr6','nr7'];
+    let roomId = null;
+    for (const a of accounts) {
+      server.connect({ account: a });
+      const r = await server.joinQueue('ranked');
+      if (r.status === 'matched') roomId = r.roomId;
+    }
+    server.connect({ account: 'nr0' });
+    await server.joinMatchRoom(roomId);
+    await server.surrender();
+
+    server.connect({ account: 'outsider' });
+    const lb = await server.getLeaderboard();
+    expect(lb.total).toBe(1);
+    expect(lb.myRank).toBe(null);
+    expect(lb.top.some((r: any) => r.mine)).toBe(false);
+  });
   test('일반 판은 순위표에 안 올라간다 — LP 0 인 줄이 목록을 채우면 등수가 뜻을 잃는다', async (server) => {
     await server.joinLobby();
     for (let i = 0; i < 30; i++) {

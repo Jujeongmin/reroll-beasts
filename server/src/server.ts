@@ -24,7 +24,7 @@ import { applyMatchResult, countedMatch } from '../../sim/profile.js'
 import { advanceMissions, claimMission, dayKeyOf } from '../../sim/missions.js'
 import { addPassXp } from '../../sim/pass.js'
 import { adReward, PLACEMENTS } from '../../sim/ads.js'
-import { sortLeaderboard, rankOf } from '../../sim/rank.js'
+import { sortLeaderboard } from '../../sim/rank.js'
 import { sanitizeBoard } from '../../sim/submit.js'
 import {
   canBuyCosmetic,
@@ -606,18 +606,58 @@ export class Server {
   /**
    * 상위 몇 명과 내 등수.
    *
-   * 정렬을 서버가 직접 안 하고 sim/rank 를 부르는 이유: 동점 처리(최고 순위 →
-   * 계정 순)가 흔들리면 새로고침할 때마다 등수가 바뀐다. 그 규칙은 테스트가
-   * 덮는 자리에 있어야 한다.
+   * **전량을 안 읽는다.** 순위표는 랭크를 한 판이라도 끝낸 계정 수만큼 자라는데,
+   * 열 줄을 그리자고 그 전부를 꺼내 오면 사람이 늘수록 청구 한 번이 무거워지고
+   * 언젠가는 한 번에 담기지도 않는다. 필요한 것만 네 번 물어본다:
+   *
+   *   1. 내 줄       — 계정으로 걸러 하나
+   *   2. 전체 인원   — 세기만 한다(문서를 안 꺼낸다)
+   *   3. 내 위 인원  — LP 가 나보다 큰 줄을 세기만 한다
+   *   4. 상위 목록   — LP 내림차순으로 앞에서 몇 줄
+   *
+   * 정렬을 DB 에만 안 맡기는 이유: 동점 처리(최고 순위 → 계정 순)가 흔들리면
+   * 새로고침할 때마다 목록 순서가 바뀐다. 그 규칙은 sim/rank 에 있고 테스트가
+   * 덮는다 — 꺼내 온 몇 줄을 여기서 다시 그 규칙으로 세운다.
+   *
+   * 넉넉히 꺼내는 이유(cushion): DB 는 LP 하나로만 줄을 세운다. 마지막 자리가
+   * 동점이면 누가 잘리는지를 DB 가 정하는데, 조금 더 꺼내 두면 그 경계까지
+   * 우리 규칙으로 가를 수 있다. 여러 칸으로 정렬하면 백엔드가 복합 색인을
+   * 요구할 수 있어, 한 칸 정렬 + 여유분이 안전하다.
+   *
+   * 동점인 사람은 **같은 등수**를 받는다(내 위 인원 + 1). 목록의 줄 번호와 한
+   * 칸 어긋날 수 있지만, 등수를 세자고 전량을 읽는 것보다 낫다.
    */
   async getLeaderboard(limit: number = 10): Promise<any> {
-    const rows: any[] = await $global.getCollectionItems('leaderboard')
-    const sorted = sortLeaderboard(rows)
     const me = $sender.account
+    const want = Math.max(1, Math.min(50, Number(limit) || 10))
+    // 여유분은 동점 경계를 우리 규칙으로 가르기 위한 것뿐이라 몇 줄이면 된다.
+    // 크게 잡으면 안 그릴 줄까지 꺼내 오므로, 목적에 딱 맞는 만큼만 더 본다.
+    const cushion = Math.min(100, want + 5)
+
+    const mineRows: any[] = await $global.getCollectionItems('leaderboard', {
+      filters: [{ field: 'account', operator: '==', value: me }],
+      limit: 1,
+    })
+    const mine: any = mineRows[0] ?? null
+
+    const total = await $global.countCollectionItems('leaderboard')
+    // 순위표에 줄이 없으면 등수도 없다 — 랭크를 아직 한 판도 안 끝냈다.
+    const above = mine
+      ? await $global.countCollectionItems('leaderboard', {
+          filters: [{ field: 'lp', operator: '>', value: mine.lp ?? 0 }],
+        })
+      : 0
+
+    const page: any[] = await $global.getCollectionItems('leaderboard', {
+      orderBy: [{ field: 'lp', direction: 'desc' }],
+      limit: cushion,
+    })
+    const sorted = sortLeaderboard(page)
+
     return {
-      total: sorted.length,
-      myRank: rankOf(rows, me),
-      top: sorted.slice(0, Math.max(1, Math.min(50, limit))).map((r: any, i: number) => ({
+      total,
+      myRank: mine ? above + 1 : null,
+      top: sorted.slice(0, want).map((r: any, i: number) => ({
         rank: i + 1,
         // 계정 전체를 넘기지 않는다 — 화면에 쓸 것도 아니고, 남의 지갑
         // 주소를 목록으로 뿌릴 이유가 없다.
