@@ -1190,7 +1190,10 @@
     background: linear-gradient(180deg, #55401f, #2a1d10);
   }
   /* 탭. 창을 나누는 대신 목록만 갈아 끼운다. */
-  #skins .bhead { position: relative; align-items: center; }
+  /* 머리줄(탭·지갑)도 목록 **위** 층이다. 아래 줄과 같은 이유 — 목록을
+     스크롤하면 위로 올라간 카드가 이 줄을 덮어 무대·승리 탭이 안 눌렸다.
+     목록보다 뒤에 그려지게 z-index 를 준다. */
+  #skins .bhead { position: relative; z-index: 1; align-items: center; }
   #skins .tabs { display: flex; gap: 4px; margin-left: 4px; }
   #skins .tab {
     padding: 2px 9px; font-size: 11px; font-weight: 800; color: #a99a86;
