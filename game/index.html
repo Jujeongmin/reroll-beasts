@@ -1861,7 +1861,7 @@
   #result .sheet {
     animation: sheetin .42s cubic-bezier(.16,1,.3,1);
     width: 100%; height: 100%;
-    display: flex; flex-direction: column; justify-content: center; gap: 10px;
+    display: flex; flex-direction: column; gap: 10px;
     padding: 14px 18px 16px;
   }
 
@@ -1884,10 +1884,13 @@
   }
   #result .bhead .who span { font-size: 11px; color: #a99a86; }
 
-  #result-rows { flex: none; display: flex; flex-direction: column; gap: 3px; }
+  #result-rows {
+    flex: 1 1 auto; min-height: 0;
+    display: flex; flex-direction: column; gap: 4px;
+  }
 
   #result .r {
-    flex: none; height: 44px;
+    flex: 1 1 0; min-height: 40px; max-height: 76px;
     display: flex; align-items: center; gap: 9px; padding: 0 8px;
     background: #1a120bb8; border-radius: 3px; box-shadow: inset 0 0 0 1px #ffffff0f;
   }
@@ -1925,7 +1928,7 @@
   }
   #result .r .us::-webkit-scrollbar { display: none; }
   #result .r .u {
-    flex: none; position: relative; height: 36px; aspect-ratio: 1;
+    flex: none; position: relative; height: clamp(32px, 78%, 62px); aspect-ratio: 1;
     border-radius: 4px; background: #0d0a06;
     box-shadow: inset 0 0 0 1px var(--sc, #d99154);
     overflow: hidden;
@@ -2053,22 +2056,25 @@
   #settings.closing { animation: veilout .24s ease-in forwards; }
   #settings .sheet {
     animation: sheetin .42s cubic-bezier(.16,1,.3,1);
-    width: 340px; display: flex; flex-direction: column; gap: 6px; padding: 10px 12px 12px;
+    /* 화면이 좁으면 화면을 따라 줄어든다 — 손가락 기기에서 창이 화면 밖으로
+       비어져 나가면 닫기 단추부터 사라진다. */
+    width: min(440px, 92vw);
+    display: flex; flex-direction: column; gap: 8px; padding: 14px 16px 16px;
   }
   #settings.closing .sheet { animation: sheetout .24s ease-in forwards; }
   #settings .bhead { display: flex; align-items: baseline; gap: 6px; }
-  #settings .bhead b { font-size: 14px; color: #ffd98a; text-shadow: 0 2px 0 #6b4a2a; }
+  #settings .bhead b { font-size: 16px; color: #ffd98a; text-shadow: 0 2px 0 #6b4a2a; }
   /* 한 줄: 이름 왼쪽, 손잡이 오른쪽. 설명은 이름 아래 작게 — 손잡이 옆에
      붙이면 줄이 길어져 손잡이가 화면 밖으로 밀린다. */
   #settings .row {
-    display: flex; align-items: center; gap: 10px; padding: 6px 2px;
+    display: flex; align-items: center; gap: 12px; padding: 9px 2px;
     box-shadow: inset 0 -1px 0 #ffffff10;
   }
   #settings .row .t { flex: 1; min-width: 0; }
   /* 손잡이가 넓은 줄(언어 다섯 칸)에서는 이름 쪽이 밀린다. 밀려도 잘린
      것이 보이게 둔다 — 소리 없이 잘리면 "언어" 가 "언" 으로 남는다. */
   #settings .row .t b {
-    display: block; font-size: 12px; color: #f0e0bd; font-weight: 800;
+    display: block; font-size: 13px; color: #f0e0bd; font-weight: 800;
     overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
   }
   #settings .row .t span { display: block; font-size: 9px; color: #a99a86; }
