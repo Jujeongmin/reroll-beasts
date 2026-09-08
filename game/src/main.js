@@ -173,6 +173,11 @@ try {
   // 못 붙었을 때의 폴백이다. 반대로 두면 다른 기기에서 고른 것이 이 기기의
   // 오래된 값에 덮인다.
   let profileLook = null
+  // 홈에 서 있는 간판 아바타. 실패하면 초상만 남는다 — 기기가 WebGL
+  // 컨텍스트를 더 못 줄 수도 있다.
+  let hero3d = null
+  // 지금 간판에 세워 둔 아바타 id. 같은 것을 두 번 갈아 끼우지 않는다.
+  let heroShownId = null
 
   function pickedAvatar() {
     return profileLook?.avatar ?? readKey(AVATAR_KEY)
@@ -184,6 +189,19 @@ try {
     return profileLook?.boom ?? readKey(BOOM_KEY)
   }
 
+  /**
+   * 고른 것을 계정에 보낸다. **판 밖에서도 보낸다** — 고르는 곳은 홈이고 판은
+   * 그다음이다. 전에는 mm(판)이 있을 때만 보내서, 홈에서 고르고 그대로 끄면
+   * 계정에는 아무것도 안 남았다. 다른 기기로 접속하면 옛 아바타가 떴다.
+   */
+  function pushLookNow() {
+    const board = myBoardId()
+    const avatar = pickedAvatar()
+    const boom = myBoomId()
+    if (mm?.pushLook) return mm.pushLook(board, avatar, boom)
+    return server?.remoteFunction('updateLook', [board, avatar, boom])?.catch?.(() => {})
+  }
+
   /** 고른 것을 양쪽에 남긴다. 서버는 계정에, 저장소는 이 기기에. */
   function saveLook(key, id) {
     try {
@@ -192,8 +210,26 @@ try {
       // 못 적어도 이번 판에는 적용된다.
     }
     profileLook = { ...(profileLook ?? {}), [key.split('.')[1]]: id }
-    mm?.pushLook?.(myBoardId(), pickedAvatar(), myBoomId())
+    pushLookNow()
   }
+  /**
+   * 간판 아바타를 세운다.
+   *
+   * **계정이 늦게 온다.** 부팅은 서버를 안 기다리고 홈부터 띄우는데, 그때는
+   * profileLook 이 아직 null 이라 pickedAvatar() 가 이 기기의 저장소로
+   * 떨어진다. 계정이 도착한 뒤 다시 안 부르면, PC 에서 바꾼 아바타가
+   * 모바일 간판에는 영영 안 온다 — 꾸미기 창은 "착용 중" 이라고 맞게 뜨는데
+   * 화면에 선 것만 옛것이라 더 헷갈린다.
+   */
+  function showHero(id) {
+    if (!id || id === heroShownId) return
+    heroShownId = id
+    const file = avatarFile(id, data)
+    prep.avatarPortrait(file, 512).then(home.setHero).catch(() => {})
+    // 살아 있는 모델이 아직 안 붙었으면 그쪽이 붙을 때 스스로 맞춘다.
+    hero3d?.swap(file, avatarAnims(id, data)).catch(() => {})
+  }
+
   function readKey(k) {
     try {
       return localStorage.getItem(k)
@@ -391,6 +427,9 @@ try {
     profileOwned = p?.owned ?? []
     profileLook = p?.look ?? null
     home.setProfile(p)
+    // 계정에 적힌 아바타로 간판을 맞춘다. 부팅 때는 이 값을 몰라서 기기
+    // 저장소로 세워 뒀다.
+    showHero(resolveAvatar(pickedAvatar(), data, ownedNow()))
     // 무대 스킨은 **전적이 온 뒤에** 다시 입힌다. 부팅 때는 아직 무엇을
     // 갖고 있는지 몰라 잠긴 무대가 기본으로 떨어진다 — 그 상태로 두면 산
     // 무대가 판을 한 번 들어갔다 나와야 보인다.
@@ -721,9 +760,7 @@ try {
      */
     onPickAvatar: (id) => {
       saveLook(AVATAR_KEY, id)
-      hero3d?.swap(avatarFile(id, data), avatarAnims(id, data)).catch(() => {})
-      // 판 안이면 좌석에도 붙인다 — 구경 온 사람 화면의 내 모습이 바뀐다.
-      mm?.pushLook?.(myBoardId(), id, myBoomId())
+      showHero(id)
       // 내 무대 위 아바타도 갈아 끼운다. 다음 판까지 기다리면 방금 고른 것이
       // 어떻게 생겼는지 확인할 방법이 없다.
       if (avatar) {
@@ -770,10 +807,8 @@ try {
   // 산다. 정지 초상을 먼저 걸고, 살아 있는 모델이 준비되면 그 뒤로 숨는다.
   const heroId = resolveAvatar(pickedAvatar(), data, ownedNow())
   const heroFile = avatarFile(heroId, data)
-  prep.avatarPortrait(heroFile, 512).then(home.setHero).catch(() => {})
+  showHero(heroId)
 
-  // 실패하면 초상이 그대로 남는다 — 기기가 WebGL 컨텍스트를 더 못 줄 수도 있다.
-  let hero3d = null
   createHeroView({
     scene: prep.scene,
     mount: document.getElementById('home-hero3d'),
@@ -784,6 +819,11 @@ try {
       hero3d = v
       home.setHeroLive()
       if (!document.getElementById('home').hidden) v.start()
+      // 모델을 불러오는 사이에 계정이 도착해 다른 아바타로 바뀌었을 수 있다.
+      // 그때 showHero 는 hero3d 가 아직 null 이라 초상만 갈았다.
+      if (heroShownId && heroShownId !== heroId) {
+        v.swap(avatarFile(heroShownId, data), avatarAnims(heroShownId, data)).catch(() => {})
+      }
     })
     .catch((err) => console.warn('간판 애니메이션 없이 간다:', err?.message))
 

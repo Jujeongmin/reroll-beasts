@@ -556,6 +556,38 @@ describe('결제 훅', () => {
 });
 
 describe('겉모습 공유(무대·아바타·승리 이펙트)', () => {
+  test('판 밖에서 고른 겉모습도 계정에 남는다 — 고르는 곳은 홈이고 판은 그다음이다', async (server) => {
+    // 전에는 updateLook 전체가 withRoom 안에 있어서 방에 없으면 아무것도
+    // 저장되지 않았다. 홈에서 아바타를 고르고 그대로 끄면 계정에는 안 남고,
+    // 다른 기기로 접속하면 옛 아바타가 떴다.
+    server.connect({ account: 'look-home' });
+    // 방에 들어가지 않는다.
+    const res = await server.updateLook('stone', 'elf', 'flare');
+    expect(res.ok).toBe(true);
+    expect(res.avatar).toBe('elf');
+
+    const p = await server.getProfile();
+    expect(p?.look?.avatar).toBe('elf');
+    expect(p?.look?.board).toBe('stone');
+  });
+
+  test('판 밖에서도 안 가진 것은 기본값으로 떨어진다 — 방이 없다고 검산을 건너뛰지 않는다', async (server) => {
+    server.connect({ account: 'look-home2' });
+    const res = await server.updateLook('champion', 'cthulhu', 'crownfall');
+    expect(res.ok).toBe(true);
+    expect(res.avatar).toBe('knight');
+    expect(res.skin).toBe('stone');
+    const p = await server.getProfile();
+    expect(p?.look?.avatar).toBe('knight');
+  });
+
+  test('판 밖에서 고른 것이 다음 방의 좌석에 붙는다', async (server) => {
+    server.connect({ account: 'look-home3' });
+    await server.updateLook('stone', 'elf', 'flare');
+    const s = await server.joinLobby();
+    const mine = s.seats.find((x: any) => x.account === 'look-home3');
+    expect(mine.avatar).toBe('elf');
+  });
   test('안 가진 것을 보내면 기본값으로 떨어진다 — 아무나 최고 무대·아바타를 쓰면 안 된다', async (server) => {
     server.connect({ account: 'skin1' });
     await server.joinLobby();

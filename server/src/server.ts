@@ -879,42 +879,50 @@ export class Server {
    */
   async updateLook(boardId: string, avatarId: string, boomId: string): Promise<any> {
     const account = $sender.account
+
+    // **방 밖에서도 계정에 남는다.** 전에는 이 함수 전체가 withRoom 안에 있어서
+    // 판에 들어가기 전에는 아무것도 저장되지 않았다 — 홈에서 아바타를 고르고
+    // 그대로 껐다가 다른 기기로 접속하면 옛 아바타가 그대로 떴다. 고르는 곳은
+    // 홈이고 판은 그다음이라, 저장이 판에 묶여 있으면 안 된다.
+    const st: any = await $global.getUserState(account)
+    const profile = st?.profile
+    const owned = {
+      gems: profile?.gems ?? 0,
+      avatars: profile?.owned ?? [],
+      passLevel: profile?.pass?.level ?? 1,
+      // 프리미엄 전용 보상은 단계만으로 안 열린다(sim/cosmetics.js).
+      premium: !!profile?.pass?.premium,
+      lp: profile?.lp ?? 0,
+    }
+    const skin = resolveBoard(boardId, DATA, owned)
+    const avatar = resolveAvatar(avatarId, DATA, owned)
+    const boom = resolveBoom(boomId, DATA, owned)
+
+    // 계정에 먼저 적는다. 방에 없어도 여기까지는 늘 한다.
+    //
+    // 계정 락으로 다시 읽어 쓴다: 여기서 프로필을 읽은 뒤 쓰기까지 사이에
+    // 결제나 판 정산이 끼면, 위에서 읽은 옛 프로필이 그것을 덮는다.
+    await $lock(`user:${account}`, async () => {
+      const cur: any = await $global.getUserState(account)
+      await $global.updateUserState(account, {
+        profile: { ...(cur?.profile ?? {}), look: { board: skin, avatar, boom } },
+      })
+    })
+
+    // 방에 없으면 여기서 끝. 붙일 좌석도, 알릴 사람도 없다.
+    if (!$sender.roomId) return { ok: true, skin, avatar, boom }
+
     return withRoom(async () => {
       const state = await readLobby()
-      if (!state) return { ok: false }
+      if (!state) return { ok: true, skin, avatar, boom }
       const seat = state.seats.find((s: any) => s.account === account)
-      if (!seat) return { ok: false }
-
-      const st: any = await $global.getUserState(account)
-      const profile = st?.profile
-      const owned = {
-        gems: profile?.gems ?? 0,
-        avatars: profile?.owned ?? [],
-        passLevel: profile?.pass?.level ?? 1,
-        // 프리미엄 전용 보상은 단계만으로 안 열린다(sim/cosmetics.js).
-        premium: !!profile?.pass?.premium,
-        lp: profile?.lp ?? 0,
-      }
-      const skin = resolveBoard(boardId, DATA, owned)
-      const avatar = resolveAvatar(avatarId, DATA, owned)
-      const boom = resolveBoom(boomId, DATA, owned)
+      if (!seat) return { ok: true, skin, avatar, boom }
       if (seat.skin === skin && seat.avatar === avatar && seat.boom === boom) {
         return { ok: true, skin, avatar, boom }
       }
       seat.skin = skin
       seat.avatar = avatar
       seat.boom = boom
-      // 프로필에도 남긴다. 기기 저장소에만 두면 캐시를 지우거나 다른 기기로
-      // 옮기는 순간 산 것이 기본값으로 풀린다 — 산 물건은 계정에 붙어야 한다.
-      //
-      // 계정 락으로 다시 읽어 쓴다: 여기서 프로필을 읽은 뒤 쓰기까지 사이에
-      // 결제나 판 정산이 끼면, 위에서 읽은 옛 프로필이 그것을 덮는다.
-      await $lock(`user:${account}`, async () => {
-        const cur: any = await $global.getUserState(account)
-        await $global.updateUserState(account, {
-          profile: { ...(cur?.profile ?? {}), look: { board: skin, avatar, boom } },
-        })
-      })
       await $room.updateRoomState({ lobby: state })
       $room.broadcastToRoom('LOOK_CHANGED', { id: seat.id, skin, avatar, boom })
       return { ok: true, skin, avatar, boom }
