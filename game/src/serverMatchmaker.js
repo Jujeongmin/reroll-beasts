@@ -62,15 +62,51 @@ export function startQueue({ server, mode, data, onUpdate, onMatched }) {
   let stopped = false
   let timer = null
   let off = null
+  let offHide = null
+
+  /**
+   * 큐에서 빠진다. 취소 단추와 창을 닫는 길이 같은 자리를 지나야, 한쪽만
+   * 고쳐 놓는 일이 안 생긴다.
+   */
+  const leave = () => {
+    clearTimeout(timer)
+    off?.()
+    offHide?.()
+    server.remoteFunction('leaveQueue', [mode], { needResponse: false })
+  }
 
   const done = (roomId) => {
     if (stopped) return
     stopped = true
     clearTimeout(timer)
     off?.()
+    offHide?.()
     onMatched(roomId)
   }
   off = server.onGlobalMessage('MATCH_FOUND', (m) => done(m.roomId))
+
+  /**
+   * 창을 닫거나 다른 곳으로 떠날 때도 큐에서 빠진다.
+   *
+   * 전에는 취소 단추만 큐를 떠났다. 탭을 닫으면 줄이 남아 대기 인원이
+   * 부풀고, 정원이 찰 때 그 유령이 실제 좌석까지 차지했다.
+   *
+   * **visibilitychange 를 안 쓴다.** 알트탭은 떠난 것이 아니다 — 그걸로
+   * 큐를 빼면 다른 창을 잠깐 본 사람이 매칭에서 밀려난다. 페이지를 실제로
+   * 떠날 때만 본다.
+   *
+   * 이건 **최선을 다하는 쪽**이다. 창이 닫히는 중이라 이 요청이 나갈지는
+   * 브라우저가 정한다. 확실한 보루는 서버의 만료(QUEUE_TTL_MS)고, 이건
+   * 그 15초를 대부분의 경우에 0 으로 줄인다.
+   */
+  const onHide = () => {
+    if (stopped) return
+    stopped = true
+    leave()
+  }
+  // 브라우저 밖(테스트)에서도 이 함수는 돈다 — 창이 없으면 걸 것도 없다.
+  globalThis.addEventListener?.('pagehide', onHide)
+  offHide = () => globalThis.removeEventListener?.('pagehide', onHide)
 
   const tick = async (first) => {
     if (stopped) return
@@ -92,9 +128,7 @@ export function startQueue({ server, mode, data, onUpdate, onMatched }) {
     cancel() {
       if (stopped) return
       stopped = true
-      clearTimeout(timer)
-      off?.()
-      server.remoteFunction('leaveQueue', [mode], { needResponse: false })
+      leave()
     },
   }
 }

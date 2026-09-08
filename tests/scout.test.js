@@ -48,6 +48,41 @@ describe('queue recovery', () => {
     queue.cancel()
   })
 
+  it('leaves the queue when the page goes away', async () => {
+    // 큐를 떠나는 길이 취소 단추뿐이면, 탭을 닫은 사람의 줄이 남아 대기
+    // 인원이 부풀고 정원이 찰 때 그 유령이 실제 좌석을 차지한다.
+    vi.useFakeTimers()
+    const handlers = {}
+    vi.stubGlobal('addEventListener', (k, fn) => { handlers[k] = fn })
+    vi.stubGlobal('removeEventListener', (k) => { delete handlers[k] })
+    const remoteFunction = vi.fn().mockResolvedValue({ status: 'waiting' })
+    startQueue({ server: { remoteFunction, onGlobalMessage() {} }, mode: 'normal', data })
+    await vi.advanceTimersByTimeAsync(0)
+
+    handlers.pagehide?.()
+    expect(remoteFunction.mock.calls.some((c) => c[0] === 'leaveQueue')).toBe(true)
+    // 떠난 뒤에는 폴링도 멈춘다 — 안 그러면 나가 놓고 다시 줄을 선다.
+    const before = remoteFunction.mock.calls.length
+    await vi.advanceTimersByTimeAsync(data.lobby.matching.pollMs * 3)
+    expect(remoteFunction.mock.calls.length).toBe(before)
+    vi.unstubAllGlobals()
+  })
+
+  it('does not leave the queue on a plain tab switch', async () => {
+    // 알트탭은 떠난 것이 아니다. 그걸로 큐를 빼면 다른 창을 잠깐 본 사람이
+    // 매칭에서 밀려난다 — pagehide 만 본다.
+    vi.useFakeTimers()
+    const handlers = {}
+    vi.stubGlobal('addEventListener', (k, fn) => { handlers[k] = fn })
+    vi.stubGlobal('removeEventListener', (k) => { delete handlers[k] })
+    const remoteFunction = vi.fn().mockResolvedValue({ status: 'waiting' })
+    startQueue({ server: { remoteFunction, onGlobalMessage() {} }, mode: 'normal', data })
+    await vi.advanceTimersByTimeAsync(0)
+
+    expect(handlers.visibilitychange).toBeUndefined()
+    expect(remoteFunction.mock.calls.some((c) => c[0] === 'leaveQueue')).toBe(false)
+    vi.unstubAllGlobals()
+  })
   it('ignores a response arriving after cancellation', async () => {
     vi.useFakeTimers()
     let resolve
