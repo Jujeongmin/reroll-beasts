@@ -289,7 +289,11 @@ export function createHome({
     el.passHead.textContent = prog.done
       ? t('pass.doneHead', { max: prog.max, gems })
       : t('pass.head', { lv: prog.level, left: prog.need - prog.into, gems })
+    // 진행도를 돌려준다 — 패스 창이 이걸로 현재 단계까지 스크롤한다. 부르는
+    // 쪽이 다시 계산하면 같은 값을 두 번 세고, 한쪽만 고치는 날이 온다.
+    return prog
   }
+
   function openSkins() {
     sfx('open')
     // 닫는 중에 다시 누를 수 있다. closing 이 남아 있으면 열자마자 사라진다.
@@ -486,7 +490,7 @@ export function createHome({
     el.passSheet.classList.remove('closing')
     el.passSheet.hidden = false
     const p = state.profile?.pass ?? EMPTY_PASS
-    drawWallet()
+    const prog = drawWallet()
 
     const track = passTrack(data, p)
 

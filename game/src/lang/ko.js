@@ -215,7 +215,7 @@ export default {
   'settings.surrenderGo': '항복한다',
   'settings.surrenderWarn': '이 판이 끝난다 · 순위는 지금 자리로 기록된다',
   'settings.cancel': '그만두기',
-  'settings.credits': 'Reroll Beasts · 출처는 CREDITS.md',
+  'settings.credits': '아트 Quaternius · Kenney · Kay Lousberg / 음악 Abstraction · Tallbeard (CC0)',
 
   // ── 서버가 보내는 사유 ──
   'why.no_item': '없는 물건',

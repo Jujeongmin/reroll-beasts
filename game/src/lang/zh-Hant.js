@@ -210,7 +210,7 @@ export default {
   'settings.surrenderGo': '投降',
   'settings.surrenderWarn': '這一場就此結束 · 以目前名次記錄',
   'settings.cancel': '取消',
-  'settings.credits': 'Reroll Beasts · 製作名單在CREDITS.md',
+  'settings.credits': '美術 Quaternius · Kenney · Kay Lousberg / 音樂 Abstraction · Tallbeard (CC0)',
 
   'why.no_item': '沒有這個東西',
   'why.bad_purchase': '不明的購買',

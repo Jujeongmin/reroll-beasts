@@ -210,7 +210,7 @@ export default {
   'settings.surrenderGo': '降参',
   'settings.surrenderWarn': 'この試合は終わる · 今の順位で記録される',
   'settings.cancel': 'キャンセル',
-  'settings.credits': 'Reroll Beasts · クレジットはCREDITS.md',
+  'settings.credits': 'アート Quaternius · Kenney · Kay Lousberg / 音楽 Abstraction · Tallbeard (CC0)',
 
   'why.no_item': 'そんな品はない',
   'why.bad_purchase': '不明な購入',

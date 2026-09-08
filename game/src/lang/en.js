@@ -210,7 +210,7 @@ export default {
   'settings.surrenderGo': 'Surrender',
   'settings.surrenderWarn': 'This match ends · your rank is recorded where you stand',
   'settings.cancel': 'Cancel',
-  'settings.credits': 'Reroll Beasts · credits in CREDITS.md',
+  'settings.credits': 'Art Quaternius · Kenney · Kay Lousberg / Music Abstraction · Tallbeard (CC0)',
 
   'why.no_item': 'No such item',
   'why.bad_purchase': 'Unknown purchase',
