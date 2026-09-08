@@ -39,13 +39,41 @@ export function storeProducts(data) {
     desc: p.desc ?? '',
     gems: p.gems ?? 0,
     premium: !!p.premium,
-    bonus: p.bonus ?? null,
     // 그림 파일 이름은 표가 쥔다. id 로 조립하면 id 를 고치는 순간 조용히
     // 깨진 그림이 뜬다 — pass_premium_s1 의 그림이 store_pass_premium.png 다.
     icon: p.icon ?? null,
   }))
 }
 
+/**
+ * 묶음마다 "얼마나 더 주나"를 센다. id → 퍼센트.
+ *
+ * **값을 파일에 적어 두지 않는다.** 값은 대시보드가 쥐는데, 거기서 값을 바꾼
+ * 날 이 파일을 같이 고치는 것을 잊으면 화면이 거짓말을 한다 — 실제로 그랬다.
+ * 화면에 뜨는 그 값에서 그때그때 센다.
+ *
+ * 기준은 VX 당 젬이 가장 적은 묶음이다(보통 제일 작은 것). 그보다 몇 % 더
+ * 주는지를 센다. 값을 못 받았거나 젬을 안 주는 상품이면 세지 않는다 — 없는
+ * 수를 지어내느니 배지를 안 띄우는 편이 낫다.
+ */
+export function gemBonus(rows) {
+  const rated = []
+  for (const r of rows ?? []) {
+    const price = Number(r?.price)
+    const gems = Number(r?.gems)
+    if (!(gems > 0) || !(price > 0)) continue
+    rated.push({ id: r.id, rate: gems / price })
+  }
+  // 하나뿐이면 견줄 대상이 없다. 자기 자신과 견주면 전부 +0% 다.
+  if (rated.length < 2) return {}
+  const base = Math.min(...rated.map((r) => r.rate))
+  const out = {}
+  for (const r of rated) {
+    const pct = Math.round((r.rate / base - 1) * 100)
+    if (pct > 0) out[r.id] = pct
+  }
+  return out
+}
 /**
  * 결제 하나를 프로필에 얹는다. 모르는 상품이면 null — 부르는 쪽이 "안 줬다"를
  * 기록으로 남긴다.

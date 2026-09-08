@@ -9,7 +9,7 @@ import { missionsFor, dayKeyOf } from '@sim/missions.js'
 import { PLACEMENTS } from '@sim/ads.js'
 import { t, textOf, esc } from './i18n.js'
 import { avatarChoices, boardChoices, boomChoices } from '@sim/cosmetics.js'
-import { storeProducts } from '@sim/store.js'
+import { storeProducts, gemBonus } from '@sim/store.js'
 import { seasonAt, daysLeft } from '@sim/season.js'
 import { passProgress, passTrack, EMPTY_PASS } from '@sim/pass.js'
 import { sfx } from './audio.js'
@@ -648,10 +648,25 @@ export function createHome({
    * 쥔다. 여기 적어 두면 결제창과 다른 수가 화면에 뜬다. 플랫폼을 못 붙었으면
    * 값 자리에 그 사실을 적는다.
    */
+  /** 플랫폼이 준 값. 못 받았으면 0 — 그 줄은 보너스를 세지 않는다. */
+  function priceOf(live, id) {
+    return Number(live?.find((x) => x.productId === id)?.price) || 0
+  }
+
+  /** 값 + 단위. 플랫폼 재화 이름은 VX 다 — 숫자만 적으면 무슨 돈인지 모른다. */
+  function vx(price) {
+    const n = Number(price)
+    return `${Number.isFinite(n) ? n.toLocaleString() : price} VX`
+  }
+
   async function drawPacks() {
     el.shopPacks.innerHTML = `<div class="none">${t('shop.loading')}</div>`
     const live = await onStoreItems?.()
     const known = storeProducts(data)
+
+    // 값에서 "몇 % 더 주나"를 센다. 표에 적어 두면 대시보드에서 값을 바꾼 날
+    // 어긋난다 — 실제로 어긋났다.
+    const bonus = gemBonus(known.map((p) => ({ id: p.id, gems: p.gems, price: priceOf(live, p.id) })))
 
     /**
      * 상품 한 줄.
@@ -664,7 +679,10 @@ export function createHome({
      * 값 자리에 "결제창에서" 라고 적는다 — 없는 수를 지어내지 않는다.
      */
     const row = (p, item) => {
-      const price = item ? `<div class="p">${item.price}</div>` : `<div class="p off">${t('shop.priceLater')}</div>`
+      // **단위를 붙인다.** 숫자만 있으면 그것이 원인지 젬인지 VX 인지 알 수 없다.
+      const price = item
+        ? `<div class="p">${esc(vx(item.price))}</div>`
+        : `<div class="p off">${t('shop.priceLater')}</div>`
       // 이름이 이미 "젬 1,000" 이라 젬 수를 또 적으면 같은 말이 두 번이다.
       // 설명만 적되, 패스는 무엇인지 한 마디를 앞에 붙인다.
       const what = p.premium ? t('shop.passWhat') : ''
@@ -675,7 +693,7 @@ export function createHome({
         `<img alt="" src="/assets/store/${p.icon ?? `store_${p.id}.png`}" />` +
         `<div class="t"><div class="n">${esc(name)}</div>` +
         `<div class="d">${esc(what + desc)}</div>` +
-        `${p.bonus ? `<div class="b">${p.bonus}</div>` : ''}</div>` +
+        `${bonus[p.id] ? `<div class="b">+${bonus[p.id]}%</div>` : ''}</div>` +
         price +
         '</div>'
       )

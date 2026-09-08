@@ -2,7 +2,7 @@
 // 여기서 못박는다.
 import { describe, it, expect, beforeAll } from 'vitest'
 import { loadData } from '../sim/data.js'
-import { productOf, purchaseGrant, storeProducts, applyGrant, paidAlready } from '../sim/store.js'
+import { productOf, purchaseGrant, storeProducts, applyGrant, paidAlready, gemBonus } from '../sim/store.js'
 
 let data
 beforeAll(async () => {
@@ -123,5 +123,42 @@ describe('같은 결제를 두 번 지급하지 않는다', () => {
     expect(p.paid.length).toBeLessThanOrEqual(20)
     expect(paidAlready(p, 'p29')).toBe(true)
     expect(paidAlready(p, 'p0')).toBe(false)
+  })
+})
+
+describe('묶음 보너스', () => {
+  it('값에서 센다 — 표에 적어 두면 대시보드에서 값을 바꾼 날 거짓말이 된다', () => {
+    // 대시보드에 실제로 등록한 값. 젬/VX 가 300/100 = 3.0 이 기준선이다.
+    const b = gemBonus([
+      { id: 'small', gems: 300, price: 100 },
+      { id: 'medium', gems: 1000, price: 300 },
+      { id: 'large', gems: 2600, price: 700 },
+    ])
+    // 기준선 자신은 배지가 없다 — "+0%" 는 적을 이유가 없다.
+    expect(b.small).toBeUndefined()
+    expect(b.medium).toBe(11)
+    expect(b.large).toBe(24)
+  })
+
+  it('값을 못 받았거나 젬을 안 주는 상품은 세지 않는다 — 없는 수를 지어내지 않는다', () => {
+    const b = gemBonus([
+      { id: 'small', gems: 300, price: 100 },
+      { id: 'medium', gems: 1000, price: 0 },
+      { id: 'pass', gems: 0, price: 500 },
+    ])
+    expect(b.medium).toBeUndefined()
+    expect(b.pass).toBeUndefined()
+  })
+
+  it('견줄 것이 하나뿐이면 아무것도 안 센다', () => {
+    expect(gemBonus([{ id: 'small', gems: 300, price: 100 }])).toEqual({})
+    expect(gemBonus([])).toEqual({})
+    expect(gemBonus(null)).toEqual({})
+  })
+
+  it('상품 표는 보너스를 들고 있지 않다 — 값과 어긋날 자리를 아예 없앤다', () => {
+    for (const p of storeProducts(data)) {
+      expect(p).not.toHaveProperty('bonus')
+    }
   })
 })
