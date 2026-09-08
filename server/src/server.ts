@@ -417,8 +417,14 @@ export class Server {
     if (verdict === 'unverified') return { ok: false, why: 'not_watched' }
 
     return $lock(`user:${account}`, async () => {
-      const grants: any[] = await $global.getCollectionItems('adGrants')
-      if (grants.some((g: any) => g.account === account && g.requestId === requestId)) {
+      // **한 줄만 찾는다.** 전량을 읽으면 광고를 볼 때마다 지금까지 쌓인 모든
+      // 지급 기록을 통째로 받아 온다 — 사람이 늘수록 청구 한 번이 무거워지고,
+      // 언젠가는 한 번에 담을 수 없는 크기가 된다. purchases 가 쓰는 방식과 같다.
+      const grants: any[] = await $global.getCollectionItems('adGrants', {
+        filters: [{ field: 'requestId', operator: '==', value: requestId }],
+        limit: 5,
+      })
+      if (grants.some((g: any) => g.account === account)) {
         return { ok: false, why: 'already' }
       }
       const st: any = await $global.getUserState(account)
@@ -563,8 +569,13 @@ export class Server {
     const account = $sender.account
     return $lock(`user:${account}`, async () => {
       await $global.updateUserState(account, { profile: null })
-      const rows: any[] = await $global.getCollectionItems('leaderboard')
-      const mine = rows.find((x: any) => x.account === account)
+      // 내 줄만 찾는다. 순위표는 랭크를 한 사람 수만큼 자라므로, 지우자고
+      // 전량을 읽을 이유가 없다.
+      const rows: any[] = await $global.getCollectionItems('leaderboard', {
+        filters: [{ field: 'account', operator: '==', value: account }],
+        limit: 1,
+      })
+      const mine = rows[0]
       if (mine) await $global.deleteCollectionItem('leaderboard', mine.__id)
       return { ok: true }
     })
@@ -572,8 +583,13 @@ export class Server {
 
   /** 내 줄을 갱신한다. 없으면 만든다. */
   private async putLeaderboard(account: string, profile: any): Promise<void> {
-    const rows = await $global.getCollectionItems('leaderboard')
-    const mine: any = rows.find((x: any) => x.account === account)
+    // 내 줄만 찾는다. 이 함수는 랭크 판이 끝날 때 여덟 번 불린다 — 그때마다
+    // 순위표 전체를 읽으면 판 하나의 마감이 사람 수에 비례해 무거워진다.
+    const rows = await $global.getCollectionItems('leaderboard', {
+      filters: [{ field: 'account', operator: '==', value: account }],
+      limit: 1,
+    })
+    const mine: any = rows[0]
     // 이름도 같이 적는다. 순위표를 그릴 때 계정마다 유저 상태를 다시 읽으면
     // 열 줄에 열 번을 읽는다 — 줄 안에 넣어 두면 한 번에 끝난다.
     const row = {
@@ -701,8 +717,13 @@ export class Server {
    */
   async joinMatchRoom(roomId: string): Promise<any> {
     if (typeof roomId !== 'string' || !roomId) return null
-    const matches = await $global.getCollectionItems('matches')
-    const match: any = matches.find((m: any) => m.roomId === roomId)
+    // 그 방 한 줄만 찾는다. 매치 명단은 방마다 쌓이고 지워지지 않아서,
+    // 전량을 읽으면 방에 들어갈 때마다 그동안 만들어진 모든 방을 받아 온다.
+    const matches = await $global.getCollectionItems('matches', {
+      filters: [{ field: 'roomId', operator: '==', value: roomId }],
+      limit: 1,
+    })
+    const match: any = matches[0]
     if (!match || !match.accounts.includes($sender.account)) return null
     await $global.joinRoom(roomId)
     // 안내판은 지운다. 남겨 두면 다음 큐에서 이 방으로 또 끌려온다.

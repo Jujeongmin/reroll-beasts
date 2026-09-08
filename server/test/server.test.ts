@@ -329,6 +329,58 @@ describe('순위표', () => {
     expect(lb.myRank).toBe(null);
   });
 
+  test('랭크 판이 끝나면 계정마다 순위표 줄이 하나씩 생긴다', async (server) => {
+    // 순위표 줄을 계정으로 **걸러** 읽는다(전량을 읽지 않는다). 그 조건이 안
+    // 맞으면 내 줄을 못 찾아 매번 새 줄을 더하거나, 지울 줄을 못 찾는다.
+    //
+    // 항복으로 끝낸다 — 여덟이 찬 방의 정상 마감은 실제 시각이 지나야 돌아서
+    // 테스트가 기다릴 수 없다. 항복도 같은 settleRanks 를 타고 순위표를 쓴다.
+    const accounts = ['lb-me','lb1','lb2','lb3','lb4','lb5','lb6','lb7'];
+    let roomId = null;
+    for (const a of accounts) {
+      server.connect({ account: a });
+      const r = await server.joinQueue('ranked');
+      if (r.status === 'matched') roomId = r.roomId;
+    }
+    expect(roomId).toBeTruthy();
+
+    // 셋이 항복한다 — 각자 제 줄을 쓴다.
+    for (const a of ['lb-me','lb1','lb2']) {
+      server.connect({ account: a });
+      await server.joinMatchRoom(roomId);
+      const out = await server.surrender();
+      expect(out.ok, a).toBe(true);
+    }
+
+    server.connect({ account: 'lb-me' });
+    const lb = await server.getLeaderboard(50);
+    expect(lb.total).toBe(3);
+    expect(lb.top.filter((x: any) => x.mine).length).toBe(1);
+  });
+
+  test('계정을 지우면 순위표에서도 내 줄만 사라진다', async (server) => {
+    // resetAccount 도 계정으로 걸러 내 줄을 찾는다. 못 찾으면 지운 계정이
+    // 순위표에 남아 유령 등수가 된다.
+    const accounts = ['rs-me','rs1','rs2','rs3','rs4','rs5','rs6','rs7'];
+    let roomId = null;
+    for (const a of accounts) {
+      server.connect({ account: a });
+      const r = await server.joinQueue('ranked');
+      if (r.status === 'matched') roomId = r.roomId;
+    }
+    for (const a of ['rs-me','rs1']) {
+      server.connect({ account: a });
+      await server.joinMatchRoom(roomId);
+      await server.surrender();
+    }
+
+    server.connect({ account: 'rs-me' });
+    expect((await server.getLeaderboard(50)).total).toBe(2);
+    await server.resetAccount();
+    const after = await server.getLeaderboard(50);
+    expect(after.total).toBe(1);
+    expect(after.top.filter((x: any) => x.mine).length).toBe(0);
+  });
   test('일반 판은 순위표에 안 올라간다 — LP 0 인 줄이 목록을 채우면 등수가 뜻을 잃는다', async (server) => {
     await server.joinLobby();
     for (let i = 0; i < 30; i++) {
