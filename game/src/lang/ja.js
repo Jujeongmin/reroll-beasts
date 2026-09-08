@@ -21,6 +21,7 @@ export default {
   'shop.tier': 'コスト{n} {pct}%',
   'info.items': 'アイテム',
   'info.itemHint': 'ユニットにドラッグ',
+  'info.itemDrop': '{n}種から均等 · 各{pct}%',
   'info.hp': 'HP',
   'info.atk': '攻撃',
   'info.def': '防御',

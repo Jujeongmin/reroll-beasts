@@ -41,6 +41,7 @@ export default {
   'shop.tier': '{n}티어 {pct}%',
   'info.items': '아이템',
   'info.itemHint': '말 위로 끌면 장착',
+  'info.itemDrop': '{n}종 고르게 등장 · 각 {pct}%',
   'info.hp': '체력',
   'info.atk': '공격력',
   'info.def': '방어력',

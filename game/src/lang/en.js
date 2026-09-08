@@ -21,6 +21,7 @@ export default {
   'shop.tier': 'Tier {n} {pct}%',
   'info.items': 'Items',
   'info.itemHint': 'Drag onto a unit',
+  'info.itemDrop': '{n} kinds, equal odds · {pct}% each',
   'info.hp': 'HP',
   'info.atk': 'ATK',
   'info.def': 'DEF',

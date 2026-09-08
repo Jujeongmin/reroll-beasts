@@ -845,6 +845,13 @@ export async function createPrep({
       `<div class="sub">${t('info.items')}</div></div>` +
       '</div>' +
       `<div class="items"><span><em>${itemEffectText(it)}</em></span></div>` +
+      // 드롭률. **수를 여기서 적지 않는다** — 표에서 센다. 아이템을 하나 더
+      // 넣는 날 이 줄이 조용히 거짓말을 하면 안 된다. 지금은 12 종을 고르게
+      // 뽑으므로(sim/roster.js grantItem) 종 수의 역수가 그대로 확률이다.
+      `<div class="drop">${t('info.itemDrop', {
+        n: data.items.items.length,
+        pct: (100 / data.items.items.length).toFixed(1),
+      })}</div>` +
       `<div class="sell">${t('info.itemHint')}</div>`
     el.info.hidden = false
     // 사거리 표시는 말의 것이다. 아이템 카드를 열 때 지우지 않으면 방금 본

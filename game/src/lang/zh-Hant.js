@@ -21,6 +21,7 @@ export default {
   'shop.tier': '{n}費 {pct}%',
   'info.items': '裝備',
   'info.itemHint': '拖到單位身上',
+  'info.itemDrop': '{n}種等機率 · 各{pct}%',
   'info.hp': 'HP',
   'info.atk': '攻擊',
   'info.def': '防禦',

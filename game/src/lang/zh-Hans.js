@@ -21,6 +21,7 @@ export default {
   'shop.tier': '{n}费 {pct}%',
   'info.items': '装备',
   'info.itemHint': '拖到单位身上',
+  'info.itemDrop': '{n}种等概率 · 各{pct}%',
   'info.hp': 'HP',
   'info.atk': '攻击',
   'info.def': '防御',
