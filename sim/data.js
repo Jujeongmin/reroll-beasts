@@ -36,8 +36,29 @@ async function readNode(name) {
   return JSON.parse(await readFile(path, 'utf8'))
 }
 
+/**
+ * 이 빌드의 표식. 플랫폼이 iframe 주소로 넘겨주는 커밋 해시를 그대로 쓴다.
+ *
+ * **없으면 데이터가 영영 안 바뀐다.** JS 번들은 파일 이름에 해시가 붙어 새
+ * 빌드마다 새 주소가 되지만, /data/*.json 은 주소가 늘 같다 — 브라우저와
+ * CDN 이 한 번 받은 것을 계속 준다. 실제로 시작 골드를 5 → 10 → 14 로 두 번
+ * 바꾸는 동안, 돌아온 사람 화면에는 계속 5 가 떠 있었다. 코드는 새것인데
+ * 수치만 옛것이라 "왜 안 바뀌지"가 배포 로그에서는 안 보인다.
+ *
+ * 로컬 개발에는 sha 가 없다. 그때는 아무것도 안 붙인다 — dev 서버는 어차피
+ * 캐시를 안 태운다.
+ */
+function buildTag() {
+  try {
+    return new URLSearchParams(globalThis.location?.search ?? '').get('sha') ?? ''
+  } catch {
+    return ''
+  }
+}
+
 async function readBrowser(name) {
-  const res = await fetch(`/data/${name}.json`)
+  const tag = buildTag()
+  const res = await fetch(`/data/${name}.json` + (tag ? `?v=${tag}` : ''))
   if (!res.ok) throw new Error(`데이터 로드 실패: ${name}.json (${res.status})`)
   return res.json()
 }
