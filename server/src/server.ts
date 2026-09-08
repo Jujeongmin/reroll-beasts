@@ -147,6 +147,18 @@ async function readLobby(): Promise<any | null> {
  * 배치 한 번이 **라운드가 넘어간 판을 지난 라운드로 되돌린다**(체력·라운드가
  * 같이 딸려 온다). 읽기-고치기-쓰기를 한 줄로 세우는 것이 유일한 답이다.
  */
+/**
+ * 큐에서 이만큼 소식이 없으면 나간 것으로 본다.
+ *
+ * **큐를 떠나는 길이 취소 버튼 하나뿐이었다.** 탭을 닫거나 페이지를 벗어나면
+ * 줄이 영원히 남아, 대기 인원이 부풀고(둘이 기다리는데 셋이라고 뜬다) 그
+ * 유령이 실제 매치의 좌석까지 차지했다 — 아무도 안 앉은 자리가 판마다 진다.
+ *
+ * 폴링이 2초라 15초면 일고여덟 번을 놓친 것이다. 잠깐 끊긴 사람은 안
+ * 쫓아내고, 창을 닫은 사람은 곧 사라진다.
+ */
+const QUEUE_TTL_MS = 15000
+
 function withRoom<T>(fn: () => Promise<T>): Promise<T> {
   return $lock(`room:${$sender.roomId ?? 'none'}`, fn)
 }
@@ -694,7 +706,7 @@ export class Server {
     await $lock(`queue:${mode}`, async () => {
       const queued = await $global.getCollectionItems(col)
       if (!queued.find((x: any) => x.account === account)) {
-        await $global.addCollectionItem(col, { account, at: Date.now(), name })
+        await $global.addCollectionItem(col, { account, at: Date.now(), seen: Date.now(), name })
       }
     })
     return this.pollQueue(mode)
@@ -717,9 +729,38 @@ export class Server {
     const account = $sender.account
     const col = `mmqueue-${mode}`
     return $lock(`queue:${mode}`, async () => {
-      const queued = (await $global.getCollectionItems(col)).sort(
-        (a: any, b: any) => a.at - b.at,
-      )
+      const now = Date.now()
+      const all = (await $global.getCollectionItems(col)).sort((a: any, b: any) => a.at - b.at)
+      const mine: any = all.find((x: any) => x.account === account)
+
+      // **내 소식을 먼저 갱신한다.** 뒤에 하면 내가 나를 유령으로 판정할 수 있다.
+      // 매번 쓰지는 않는다 — 폴링이 2초라 그대로 두면 기다리는 사람 수만큼
+      // 2초마다 쓰기가 나간다. TTL 의 3분의 1쯤 지났을 때만 적는다.
+      if (mine) {
+        const seen = mine.seen ?? mine.at ?? 0
+        if (now - seen > QUEUE_TTL_MS / 3) {
+          await $global.updateCollectionItem(col, { ...mine, seen: now })
+          mine.seen = now
+        }
+      }
+
+      // seen 이 없는 줄은 이 규칙보다 먼저 들어온 줄이다. **지우지 않고 도장을
+      // 찍는다** — 들어온 시각으로 판정하면 배포 직전에 줄을 선 사람이 첫
+      // 폴링을 하기도 전에 쫓겨난다. 도장을 찍어 두면 그다음부터는 남들과
+      // 같은 규칙으로 늙는다. 줄 하나에 한 번뿐인 쓰기다.
+      for (const x of all as any[]) {
+        if (x.seen == null && x.account !== account) {
+          x.seen = now
+          await $global.updateCollectionItem(col, { ...x, seen: now })
+        }
+      }
+
+      // 소식이 끊긴 줄을 걷어낸다.
+      const stale = all.filter((x: any) => now - (x.seen ?? now) > QUEUE_TTL_MS)
+      for (const x of stale) await $global.deleteCollectionItem(col, x.__id)
+      const gone = new Set(stale.map((x: any) => x.__id))
+      const queued = all.filter((x: any) => !gone.has(x.__id))
+
       const me = queued.find((x: any) => x.account === account)
       if (!me) {
         // 큐에 없다 = 남의 폴링이 이미 나를 매치에 넣었다. 내 상태의 안내판을 본다.

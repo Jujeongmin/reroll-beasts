@@ -154,6 +154,46 @@ describe('매칭 큐', () => {
     expect(r.status).toBe('idle');
   });
 
+  test('소식이 끊긴 줄은 큐에서 사라진다 — 창을 닫고 나간 사람이 자리를 차지하면 안 된다', async (server) => {
+    // 큐를 떠나는 길이 취소 버튼 하나뿐이었다. 탭을 닫으면 줄이 영원히 남아
+    // 대기 인원이 부풀고(둘이 기다리는데 셋이라고 뜬다), 그 유령이 실제
+    // 매치의 좌석까지 차지했다 — 아무도 안 앉은 자리가 판마다 진다.
+    //
+    // 하네스에서 시각을 못 돌리므로 마지막 소식 시각을 직접 옛날로 심는다.
+    server.connect({ account: 'ghost' });
+    await server.joinQueue('ranked');
+    server.connect({ account: 'alive' });
+    await server.joinQueue('ranked');
+
+    const rows: any[] = await $global.getCollectionItems('mmqueue-ranked');
+    expect(rows.length).toBe(2);
+    const ghost = rows.find((x: any) => x.account === 'ghost');
+    await $global.updateCollectionItem('mmqueue-ranked', { ...ghost, seen: 0, at: 0 });
+
+    const r = await server.pollQueue('ranked');
+    expect(r.status).toBe('waiting');
+    // 유령을 뺀 나만 남는다.
+    expect(r.queued).toBe(1);
+    const after: any[] = await $global.getCollectionItems('mmqueue-ranked');
+    expect(after.length).toBe(1);
+    expect(after[0].account).toBe('alive');
+  });
+
+  test('내 줄은 내 폴링이 살려 둔다 — 내가 나를 유령으로 판정하면 안 된다', async (server) => {
+    server.connect({ account: 'longwait' });
+    await server.joinQueue('ranked');
+    const rows: any[] = await $global.getCollectionItems('mmqueue-ranked');
+    // 오래 기다린 사람. 마지막 소식도 옛날로 만들어 둔다.
+    await $global.updateCollectionItem('mmqueue-ranked', { ...rows[0], seen: 0, at: 0 });
+
+    const r = await server.pollQueue('ranked');
+    expect(r.status).toBe('waiting');
+    expect(r.queued).toBe(1);
+    const after: any[] = await $global.getCollectionItems('mmqueue-ranked');
+    expect(after.length).toBe(1);
+    // 소식 시각이 갱신됐다.
+    expect(after[0].seen).toBeGreaterThan(0);
+  });
   test('랭크 큐는 8명이 차면 전원이 같은 방을 받는다', async (server) => {
     const accounts = ['r1','r2','r3','r4','r5','r6','r7','r8'];
     let lastResult = null;

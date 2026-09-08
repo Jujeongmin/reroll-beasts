@@ -28,7 +28,7 @@ it('keeps the ninth caller waiting when the first eight are matched', async () =
   const updateUserState = vi.fn()
   vi.stubGlobal('$global', {
     getCollectionItems: async () => queued,
-    addCollectionItem: vi.fn(), deleteCollectionItem: vi.fn(),
+    addCollectionItem: vi.fn(), deleteCollectionItem: vi.fn(), updateCollectionItem: vi.fn(),
     updateUserState, sendMessageToUser: vi.fn(),
   })
   expect(await new Server().pollQueue('normal')).toMatchObject({ status: 'waiting', queued: 1 })
