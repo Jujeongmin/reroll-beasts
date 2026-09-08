@@ -1027,21 +1027,6 @@ try {
     // 체력 반영은 정산에서 한 번에 한다.
     run.otherFights = mm.otherFights(run.index)
 
-    // **수입은 여기서 준다.** 승패가 이미 정해져 있고(로그를 다 만들었다),
-    // 상점은 전투 중에도 열려 있다 — 정산까지 미루면 돈이 들어오는 순간
-    // 상점이 새로 깔려서, 이긴 값으로 지금 보이는 말을 살 창이 없다.
-    //
-    // 연승도 여기서 센다. 수입이 연승을 읽으므로 둘이 갈리면 안 된다.
-    const sNow = run.state
-    const wonNow = result.winner === (iAmA ? 'A' : 'B')
-    sNow.streak = wonNow === run.lastWon ? sNow.streak + 1 : 1
-    run.lastWon = wonNow
-    sNow.gold += roundIncome(
-      { gold: sNow.gold, streak: sNow.streak, won: wonNow, round: run.index },
-      data.economy,
-    ).total
-    // 숫자가 바로 보여야 쓸 수 있다는 것을 안다.
-    prep.refresh()
 
     const onBack = () => settle(result, info)
     // 지금 무대에 올린 전투. 관전에서 돌아올 자리이자 정산의 근거다.
@@ -1076,7 +1061,15 @@ try {
       },
       // 상대 이펙트는 그 좌석에 붙어 온다 — 내가 지면 그 사람 것이 내 판에
       // 떨어져야 한다.
-      onEnd: (winner) =>
+      onEnd: (winner) => {
+        // 로그가 끝났다 = 전투가 끝났다. 연승을 세고 **이긴 값만** 먼저 준다.
+        const sNow = run.state
+        const wonNow = winner === (iAmA ? 'A' : 'B')
+        sNow.streak = wonNow === run.lastWon ? sNow.streak + 1 : 1
+        run.lastWon = wonNow
+        if (wonNow) sNow.gold += data.economy.winBonus
+        // 숫자가 바로 보여야 쓸 수 있다는 것을 안다.
+        prep.refresh()
         playWinFx(winner, {
           iAmA,
           myBoom: myBoomId(),
@@ -1087,7 +1080,8 @@ try {
             winner === 'A' ? result.survivorsA : result.survivorsB,
             info.damage,
           ),
-        }),
+        })
+      },
     })
   }
 
@@ -1154,7 +1148,7 @@ try {
     const mySurvivors = iAmA ? result.survivorsA : result.survivorsB
     const foeSurvivors = iAmA ? result.survivorsB : result.survivorsA
 
-    // 연승과 수입은 **전투를 켤 때 이미 처리했다**(startFight). 여기서 또
+    // 연승은 **전투가 끝나는 순간**(battle 의 onEnd) 이미 셌다. 여기서 또
     // 세면 한 판에 두 번 오른다.
     if (!won) s.hp = Math.max(0, s.hp - defeatDamage(foeSurvivors, info.damage))
     // **0번 좌석이 아니라 내 좌석이다.** 매치 방에서 내 자리는 계정 순서로
@@ -1173,6 +1167,15 @@ try {
     if (won && foe) foe.hp = Math.max(0, foe.hp - defeatDamage(mySurvivors, info.damage))
     // 전투를 시작할 때 이미 돌려 둔 결과를 여기서 반영한다
     mm.applyFights(run.otherFights ?? [], { stageDamage: info.damage })
+
+    // 기본 수입·이자·연승은 여기서. **이긴 값은 빼고 더한다** — 그건 전투가
+    // 끝나는 순간 이미 줬다. 이자를 지금 세는 것이 핵심이다: 그 사이에 곧
+    // 사라질 상점에 돈을 쓴 사람은 그만큼 이자를 덜 받는다.
+    const income = roundIncome(
+      { gold: s.gold, streak: s.streak, won, round: run.index },
+      data.economy,
+    )
+    s.gold += income.base + income.interest + income.streak
 
     // 매 라운드 자동 XP. 구매와 같은 함수를 타야 레벨업 연쇄가 똑같이 돈다.
     const next = addXp(s.level, s.xp, data.levels.xpPerRound, data.levels)

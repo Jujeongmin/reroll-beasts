@@ -407,6 +407,11 @@ export async function createPrep({
       } else if (v.badge) {
         v.badge.setItems(worn)
       }
+      // 말이 줄어든 만큼 배지는 되돌린다. 대기석 말은 0.72 로 줄어드는데
+      // 배지까지 줄면 아이템이 안 읽힌다 — "대기석에서 낀 아이템이 안 보인다"가
+      // 이것이었다. 합성 연출이 root 를 잠깐 더 키우는 동안에는 그대로 둔다:
+      // 그 몇 프레임의 크기 흔들림보다 매 프레임 보정이 더 산만하다.
+      v.badge?.setCompensation(1 / (w.where === 'bench' ? BENCH_UNIT_SCALE : 1))
     }
   }
 

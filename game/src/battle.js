@@ -474,6 +474,10 @@ export async function createBattle({ data, scene }) {
           star: sp.star,
           withHp: true,
           items: sp.items ?? [],
+          // **배치 화면과 같은 규칙을 넘긴다.** 안 넘기면 기본값이 true 라
+          // 전투에서만 1성에도 별이 뜬다 — 같은 말이 판에 설 때와 싸울 때
+          // 다르게 보이고, 별 줄이 생긴 만큼 아이템 줄이 아래로 밀린다.
+          showStars: sp.star > 1,
         })
         v.root.add(v.badge.sprite)
         scene.scene.add(v.root)

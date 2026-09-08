@@ -1503,7 +1503,15 @@ export async function createScene({
    * 캔버스로 그리는 이유: 별 개수와 색이 성급마다 달라 스프라이트 몇 장으로는
    * 안 되고, 체력은 매 프레임 바뀐다.
    */
-  function makeBadge({ team, star, withHp, items = [], showStars = true }) {
+  /**
+   * 머리 위 배지. 별·체력·마나·아이템을 한 캔버스에 그린다.
+   *
+   * showStars 기본값이 star > 1 인 이유: 전에는 true 였는데 battle.js 가 이
+   * 인자를 안 넘겨서, **전투에서만 1성에도 별이 떴다.** 같은 말이 판에 설 때와
+   * 싸울 때 다르게 보였다. 안 넘겨도 옳은 쪽으로 떨어지게 둔다 — 부르는 곳이
+   * 셋이고 앞으로 늘 텐데, 기본값이 틀리면 새로 부르는 곳마다 같은 실수를 한다.
+   */
+  function makeBadge({ team, star, withHp, items = [], showStars = star > 1 }) {
     const W = 128
     // 아이콘 한 칸 28px — 게임플레이 거리에서 16px는 뭘 꼈는지 안 읽혔다.
     const ITEM_ICON = 28
@@ -1544,7 +1552,12 @@ export async function createScene({
     // position.y 를 캔버스의 "아랫변"으로 잡고 위로만 자라게 한다.
     sprite.center.set(0.5, 0)
     const w = spacing.unitStep * 0.92
-    sprite.scale.set(w, (w * H) / W, 1)
+    // 부모(유닛 root)가 줄면 자식인 배지도 같이 준다. 대기석 말은 0.72 로
+    // 줄어드는데, 그대로 두면 아이템 아이콘 28px 가 20px 로 보여 뭘 꼈는지
+    // 안 읽힌다. 그만큼 되돌리는 배율을 따로 든다.
+    let comp = 1
+    const applyScale = () => sprite.scale.set(w * comp, ((w * H) / W) * comp, 1)
+    applyScale()
 
     const g = cv.getContext('2d')
     const starColor = STAR_COLOR[star - 1] ?? STAR_COLOR[0]
@@ -1653,8 +1666,18 @@ export async function createScene({
         worn = (ids ?? []).slice(0, 3)
         H = heightFor(worn)
         cv.height = H
-        sprite.scale.set(w, (w * H) / W, 1)
+        applyScale()
         draw(lastArgs)
+      },
+      /**
+       * 부모가 줄어든 만큼 되돌린다(1 / 부모배율). 배지는 읽으라고 있는
+       * 글자판이라, 말이 작아졌다고 같이 작아지면 있으나 마나다.
+       */
+      setCompensation(k) {
+        const next = Number(k)
+        if (!Number.isFinite(next) || next <= 0 || next === comp) return
+        comp = next
+        applyScale()
       },
     }
   }
