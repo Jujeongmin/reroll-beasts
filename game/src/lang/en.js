@@ -158,7 +158,7 @@ export default {
   'coach.home': 'Home',
   'coach.skip': 'Skip',
   'home.cancel': 'Cancel',
-  'skins.title': 'Cosmetics',
+  'skins.title': 'Style',
   'skins.avatar': 'Avatar',
   'skins.board': 'Arena',
   'skins.boom': 'Win FX',
@@ -172,7 +172,7 @@ export default {
   'settings.ingame': 'Settings',
   'menu.ranked': 'Ranked',
   'menu.tutorial': 'Tutorial',
-  'menu.skins': 'Cosmetics',
+  'menu.skins': 'Style',
   'menu.shop': 'Shop',
   'menu.settings': 'Settings',
   'home.rankNone': 'Unranked',
@@ -190,7 +190,7 @@ export default {
   'pass.soon': 'Coming soon',
 
   'shop.title': 'Get Gems',
-  'shop.note': 'Cosmetics are bought in [Cosmetics]',
+  'shop.note': 'Cosmetics are bought in [Style]',
   'shop.offline': 'Purchases only work inside Verse8 — prices shown are estimates',
   'shop.priceLater': 'See checkout',
 

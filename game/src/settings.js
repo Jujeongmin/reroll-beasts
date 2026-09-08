@@ -8,7 +8,7 @@
 // 필요하고, 볼륨·움직임은 기기마다 달라도 되는 값이다(폰에서는 소리를 끄고
 // PC 에서는 켠다).
 
-import { t, lang, setLang, LANGS } from './i18n.js'
+import { t, lang, setLang, LANGS, esc } from './i18n.js'
 
 const MOTION_KEY = 'rr.motion'
 const SFX_KEY = 'rr.sfx'
@@ -150,7 +150,7 @@ export function createSettings({ account, onSurrender, onReset, onLang, onVolume
 
   function draw() {
     const motion = reduceMotion()
-    const tail = String(account?.() ?? '').slice(-4)
+    const acct = String(account?.() ?? '')
     const cancel = `<button class="ghost" data-act="cancel" type="button">${t('settings.cancel')}</button>`
     el.body.innerHTML =
       row(t('settings.sfx'), slider('sfx', sfxVolume())) +
@@ -163,7 +163,18 @@ export function createSettings({ account, onSurrender, onReset, onLang, onVolume
         `<button class="tg${motion ? ' on' : ''}" data-act="motion" type="button">` +
           `<i></i></button>`,
       ) +
-      (tail ? row(t('settings.account'), `<span class="mono">…${tail}</span>`) : '') +
+      // 계정을 **통째로** 적는다. 전에는 꼬리 네 자리만 "…ah4e" 로 적었는데,
+      // 그건 남의 계정을 목록에서 가를 때 쓰는 표식이지 내 계정을 보는 방법이
+      // 아니다 — 문의를 넣으려고 제 계정을 찾아온 사람에게 점 세 개를 보여
+      // 준 셈이다. 오른쪽에는 꼬리를 남긴다: 좌석·순위표에서 나를 가르는 것이
+      // 그 네 자리라, 둘을 나란히 봐야 어느 쪽이 나인지 안다.
+      (acct
+        ? row(
+            t('settings.account'),
+            `<span class="mono">…${esc(acct.slice(-4))}</span>`,
+            `<i class="acct">${esc(acct)}</i>`,
+          )
+        : '') +
       (inGame
         ? row(
             t('settings.surrender'),

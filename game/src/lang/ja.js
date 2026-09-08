@@ -158,7 +158,7 @@ export default {
   'coach.home': 'ホーム',
   'coach.skip': 'スキップ',
   'home.cancel': 'キャンセル',
-  'skins.title': '着せ替え',
+  'skins.title': '着替え',
   'skins.avatar': 'アバター',
   'skins.board': 'アリーナ',
   'skins.boom': '勝利演出',
@@ -172,8 +172,8 @@ export default {
   'settings.ingame': '設定',
   'menu.ranked': 'ランク',
   'menu.tutorial': 'チュートリアル',
-  'menu.skins': '着せ替え',
-  'menu.shop': 'ショップ',
+  'menu.skins': '着替え',
+  'menu.shop': 'ストア',
   'menu.settings': '設定',
   'home.rankNone': 'ランクなし',
   'home.waitFirst': '最初の試合をする',
@@ -190,7 +190,7 @@ export default {
   'pass.soon': '準備中',
 
   'shop.title': 'ジェム購入',
-  'shop.note': '着せ替えは［着せ替え］で買う',
+  'shop.note': '着替えは［着替え］で買う',
   'shop.offline': '購入はVerse8の中でのみ動く — 表示価格は目安',
   'shop.priceLater': '決済画面で確認',
 
