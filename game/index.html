@@ -1547,6 +1547,23 @@
   #home .missions .line { display: flex; align-items: center; gap: 4px; line-height: 1.2; }
   #home .missions .line b { font-weight: 400; }
   #home .missions .line .n { margin-left: auto; opacity: .75; font-variant-numeric: tabular-nums; }
+  /* 하루 상자. 미션 줄과 같은 카드 안에 두되 한 칸 띄운다 — 미션은 판을 해서
+     받는 것이고 이건 광고를 봐서 받는 것이라, 붙여 두면 같은 종류로 읽힌다. */
+  /* 미션 카드 바로 아래, 같은 폭. 미션이 없는 날에도 제자리에 선다 —
+     카드 안에 두면 미션과 함께 사라진다. */
+  #home .chest {
+    position: absolute; right: 10px; bottom: 120px; width: 186px;
+    box-sizing: border-box; padding: 6px 8px; border-radius: 4px;
+    font-size: 11px; font-weight: 800; color: #3b2a16;
+    background: linear-gradient(#ffe08a, #d9a12c); box-shadow: inset 0 -2px 0 #00000033;
+  }
+  #home .chest[hidden] { display: none; }
+  #home .chest:disabled { opacity: .55; cursor: default; }
+  /* 오늘 이미 받았다. 사라지지 않고 흐려져 남는다 — 내일 다시 온다는 것이
+     빈 자리보다 잘 보인다. */
+  #home .chest.done {
+    background: #2e3f2b; color: #8fe3a4; box-shadow: inset 0 0 0 1px #8fe3a455;
+  }
   #home .missions .bar {
     height: 5px; background: #00000066; box-shadow: inset 0 0 0 1px #00000059;
   }
@@ -2327,6 +2344,9 @@
       <div class="ttl" data-i18n="mission.title">오늘의 미션</div>
       <div id="mission-rows"></div>
     </div>
+    <!-- 하루 상자. 미션 카드 **밖**에 둔다 — 안에 두면 미션이 없는 날(첫 판
+         전)에 상자까지 같이 사라진다. 광고 SDK 가 없으면(로컬·미지원) 안 뜬다. -->
+    <button class="chest" id="home-chest" type="button" hidden></button>
     <!-- 시즌 패스 요약. 누르면 트랙이 열린다. 단계와 게이지를 여기에 두는
          이유: 진행도가 안 보이면 눌러 볼 이유가 없다. -->
     <div class="pass" id="home-pass">

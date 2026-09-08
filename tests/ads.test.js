@@ -66,3 +66,45 @@ describe('adReward', () => {
     for (const id of Object.keys(PLACEMENTS)) expect(id).toMatch(/^[a-z-]+$/)
   })
 })
+
+describe('하루 상자', () => {
+  const chest = (o = {}) => ({ placementId: 'daily-chest', dayKey: '2026-09-08', ...o })
+  const gems = PLACEMENTS['daily-chest'].gems
+
+  it('판과 무관하게 받는다 — 판을 안 해도 받을 수 있는 유일한 젬이다', () => {
+    const r = adReward({ gems: 0 }, chest(), data)
+    expect(r.ok).toBe(true)
+    expect(r.gems).toBe(gems)
+    expect(r.profile.gems).toBe(gems)
+  })
+
+  it('하루 한 번이다', () => {
+    const first = adReward({ gems: 0 }, chest(), data)
+    const again = adReward(first.profile, chest(), data)
+    expect(again.ok).toBe(false)
+    expect(['already', 'cap']).toContain(again.why)
+  })
+
+  it('날이 바뀌면 다시 받는다', () => {
+    const first = adReward({ gems: 0 }, chest(), data)
+    const tomorrow = adReward(first.profile, chest({ dayKey: '2026-09-09' }), data)
+    expect(tomorrow.ok).toBe(true)
+    expect(tomorrow.profile.gems).toBe(gems * 2)
+  })
+
+  it('패스 경험치는 안 건드린다 — 젬만 주는 지면이다', () => {
+    const before = { gems: 0, pass: { xp: 40, level: 1, premium: false } }
+    const r = adReward(before, chest(), data)
+    expect(r.xp).toBe(0)
+    expect(r.profile.pass).toEqual(before.pass)
+  })
+
+  it('전적이 없으면 줄 자리가 없다', () => {
+    expect(adReward(null, chest(), data).why).toBe('no_profile')
+  })
+
+  it('결과판 지면은 여전히 그 판이 정산됐어야 한다 — 하루 열쇠로 못 받는다', () => {
+    const r = adReward({ gems: 0 }, { placementId: 'result-double', dayKey: '2026-09-08' }, data)
+    expect(r.why).toBe('no_match')
+  })
+})

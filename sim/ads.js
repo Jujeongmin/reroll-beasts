@@ -18,6 +18,10 @@ import { xpForRank, addPassXp } from './pass.js'
  */
 export const PLACEMENTS = {
   'result-double': { kind: 'pass_xp_double', dailyCap: 3 },
+  // 하루 상자. 판과 무관하게 홈에서 한 번 — 판을 안 해도 받을 수 있는
+  // 유일한 젬이다. 하루 하나로 묶는다: 값이 있는 것을 여러 번 주면 광고를
+  // 돌리는 것이 게임을 하는 것보다 나은 벌이가 된다.
+  'daily-chest': { kind: 'gems', gems: 15, dailyCap: 1, anyTime: true },
 }
 
 /** 하루 기록의 빈 꼴. */
@@ -32,8 +36,9 @@ const EMPTY = { day: null, count: 0, matches: [] }
  * @param {object|null} profile 지급 전 프로필
  * @param {object} o
  * @param {string} o.placementId
- * @param {string} o.matchId  이 판. 프로필의 lastMatch 와 같아야 한다 — 정산이
- *   안 된 판이나 다른 판의 광고로 받을 수 없다
+ * @param {string} [o.matchId] 이 판. 프로필의 lastMatch 와 같아야 한다 — 정산이
+ *   안 된 판이나 다른 판의 광고로 받을 수 없다. 판과 무관한 지면(anyTime)은
+ *   대신 그날 하루를 열쇠로 쓴다
  * @param {number} o.rank     이 판의 내 등수. 경험치가 등수에서 나온다
  * @param {boolean} o.ranked
  * @param {string} o.dayKey   오늘(UTC). 상한을 세는 단위
@@ -43,35 +48,51 @@ export function adReward(profile, { placementId, matchId, rank, ranked, dayKey }
   const place = PLACEMENTS[placementId]
   if (!place) return { ok: false, why: 'unknown_placement' }
   if (!profile) return { ok: false, why: 'no_profile' }
-  if (!matchId || profile.lastMatch !== matchId) return { ok: false, why: 'no_match' }
+  // 판에 붙은 지면은 그 판이 정산됐어야 한다. 판과 무관한 지면(하루 상자)은
+  // 대신 그날 하루를 열쇠로 삼는다 — 같은 날 두 번 받는 것은 아래 상한이 막는다.
+  const key = place.anyTime ? dayKey : matchId
+  if (!place.anyTime && (!matchId || profile.lastMatch !== matchId)) return { ok: false, why: 'no_match' }
+  if (!key) return { ok: false, why: 'bad_request' }
 
   const prev = profile.ads?.[placementId] ?? EMPTY
   // 날이 바뀌었으면 셈을 비운다. 같은 날이면 이어 센다.
   const today = prev.day === dayKey ? prev : { ...EMPTY, day: dayKey }
-  if (today.matches.includes(matchId)) return { ok: false, why: 'already' }
+  if (today.matches.includes(key)) return { ok: false, why: 'already' }
   if (today.count >= place.dailyCap) return { ok: false, why: 'cap' }
 
-  if (place.kind !== 'pass_xp_double') return { ok: false, why: 'unknown_placement' }
-  // "2배" = 이번 판이 준 만큼을 한 번 더. 등수에서 다시 계산한다 — 프로필에
-  // 지난 판 경험치를 따로 적어 두지 않는다.
-  const xp = xpForRank(rank, data, { ranked })
-  if (!(xp > 0)) return { ok: false, why: 'nothing' }
-
-  const pass = addPassXp(profile.pass ?? null, xp, data)
-  return {
-    ok: true,
-    xp,
-    profile: {
+  // 그 지면이 주는 것. 표가 정한다 — SDK 가 돌려주는 reward 는 화면 힌트다.
+  let next
+  let xp = 0
+  if (place.kind === 'pass_xp_double') {
+    // "2배" = 이번 판이 준 만큼을 한 번 더. 등수에서 다시 계산한다 — 프로필에
+    // 지난 판 경험치를 따로 적어 두지 않는다.
+    xp = xpForRank(rank, data, { ranked })
+    if (!(xp > 0)) return { ok: false, why: 'nothing' }
+    const pass = addPassXp(profile.pass ?? null, xp, data)
+    next = {
       ...profile,
       pass: { xp: pass.xp, level: pass.level, premium: pass.premium },
       gems: (profile.gems ?? 0) + pass.earned,
+    }
+  } else if (place.kind === 'gems') {
+    next = { ...profile, gems: (profile.gems ?? 0) + place.gems }
+  } else {
+    return { ok: false, why: 'unknown_placement' }
+  }
+
+  return {
+    ok: true,
+    xp,
+    gems: place.kind === 'gems' ? place.gems : 0,
+    profile: {
+      ...next,
       ads: {
         ...(profile.ads ?? {}),
         [placementId]: {
           day: dayKey,
           count: today.count + 1,
-          // 최근 몇 판만 든다. 전부 들면 프로필이 끝없이 자란다.
-          matches: [matchId, ...today.matches].slice(0, 5),
+          // 최근 몇 개만 든다. 전부 들면 프로필이 끝없이 자란다.
+          matches: [key, ...today.matches].slice(0, 5),
         },
       },
     },

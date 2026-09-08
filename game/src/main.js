@@ -579,22 +579,27 @@ try {
   // 이름을 resultView 로 둔다. settle(result, info) 의 매개변수가 전투 결과라
   // 여기서 result 라고 부르면 그 안에서 이 창을 못 본다 — 판이 끝나는 그
   // 순간에만 터지는 종류의 어긋남이다.
+  /**
+   * 광고를 끝까지 봤다. 지급은 **서버가** 판정한다 — 등수·판·하루 상한을 서버가
+   * 알고, 클라는 지면 id 와 SDK 가 준 requestId 만 보낸다. 결과판과 홈 상자가
+   * 같은 창구를 쓴다: 두 벌로 두면 한쪽만 고친 상태가 남는다.
+   */
+  async function claimAd(placementId, requestId) {
+    try {
+      const res = await server?.remoteFunction('claimAdReward', [placementId, requestId])
+      if (res?.profile) applyProfile(res.profile)
+      return res
+    } catch (err) {
+      console.warn('광고 보상 실패:', err?.message)
+      return { ok: false, why: 'failed' }
+    }
+  }
+
   const resultView = createResult({
     data,
     thumbFor: (id, star) => prep.thumbFor(id, star),
     onClose: () => location.reload(),
-    // 광고를 끝까지 봤다. 지급은 서버가 판정한다 — 등수·판·하루 상한을 서버가
-    // 알고, 클라는 지면 id 와 SDK 가 준 requestId 만 보낸다.
-    onAd: async (placementId, requestId) => {
-      try {
-        const res = await server?.remoteFunction('claimAdReward', [placementId, requestId])
-        if (res?.profile) applyProfile(res.profile)
-        return res
-      } catch (err) {
-        console.warn('광고 보상 실패:', err?.message)
-        return { ok: false, why: 'failed' }
-      }
-    },
+    onAd: (placementId, requestId) => claimAd(placementId, requestId),
   })
 
   const settings = createSettings({
@@ -658,6 +663,9 @@ try {
         return { ok: false, why: 'now_locked' }
       }
     },
+    // 하루 상자. 결과판 광고와 같은 창구를 쓴다 — 지면 id 만 다르고 판정은
+    // 서버가 한다.
+    onAd: (placementId, requestId) => claimAd(placementId, requestId),
     onPickedAvatar: () => resolveAvatar(pickedAvatar(), data, ownedNow()),
     onAvatarPortrait: (file) => prep.avatarPortrait(file),
     /**

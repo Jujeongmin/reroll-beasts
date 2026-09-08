@@ -6,6 +6,7 @@
 import { homeView } from './home-state.js'
 import { checkName, displayName, tagDuplicates } from '@sim/name.js'
 import { missionsFor, dayKeyOf } from '@sim/missions.js'
+import { PLACEMENTS } from '@sim/ads.js'
 import { t, textOf, esc } from './i18n.js'
 import { avatarChoices, boardChoices, boomChoices } from '@sim/cosmetics.js'
 import { storeProducts } from '@sim/store.js'
@@ -41,8 +42,14 @@ export function createHome({
   onStoreItems,
   onBuyPack,
   onClaimMission,
+  // 하루 상자. 광고를 끝까지 봤다 — 서버에 지급을 청구한다. 없으면 버튼이 안 뜬다.
+  onAd = null,
   onSettings,
 }) {
+  // 하루 상자가 주는 젬. 표가 단일소스다 — 글자에 박아 두면 표를 고칠 때
+  // 화면이 거짓말을 한다.
+  const CHEST_GEMS = PLACEMENTS['daily-chest'].gems
+
   const el = {
     root: document.getElementById('home'),
     menu: document.getElementById('home-menu'),
@@ -88,6 +95,7 @@ export function createHome({
     boardClose: document.getElementById('board-close'),
     missions: document.getElementById('home-missions'),
     missionRows: document.getElementById('mission-rows'),
+    chest: document.getElementById('home-chest'),
     conn: document.getElementById('home-conn'),
     note: document.getElementById('home-note'),
     retry: document.getElementById('home-retry'),
@@ -728,9 +736,11 @@ export function createHome({
     const ms = state.profile?.missions
     if (!ms || !Array.isArray(ms.progress)) {
       el.missions.hidden = true
+      drawChest()
       return
     }
     el.missions.hidden = false
+    drawChest()
     const list = missionsFor(ms.day ?? dayKeyOf(Date.now()), state.account, data)
     el.missionRows.replaceChildren(
       ...list.map((m, i) => {
@@ -752,6 +762,62 @@ export function createHome({
   }
 
   // 위임으로 받는다 — 줄은 다시 그릴 때마다 새로 만들어진다.
+  // ── 하루 상자 ─────────────────────────────────────────
+  //
+  // 판을 안 해도 받을 수 있는 유일한 젬이다. 하루 한 번 — 값이 있는 것을
+  // 여러 번 주면 광고를 돌리는 것이 게임을 하는 것보다 나은 벌이가 된다.
+  // 지급은 서버가 판정한다(하루 상한도 서버가 센다).
+  const ads = () => globalThis.Verse8Ads
+  let adsOff = false
+  let chestBusy = false
+
+  /** 오늘 이미 받았나. 서버가 준 전적의 광고 기록으로 본다. */
+  function chestClaimed() {
+    const rec = state.profile?.ads?.['daily-chest']
+    if (!rec) return false
+    // 날짜는 서버가 쓴 그대로 비교한다 — 여기서 오늘을 다시 계산하면
+    // 시간대가 다른 기기에서 서버와 하루가 어긋난다.
+    return rec.day === dayKeyOf(Date.now()) && (rec.count ?? 0) > 0
+  }
+
+  function drawChest() {
+    const can = !!onAd && !!ads() && !adsOff && state.status === 'ready'
+    el.chest.hidden = !can
+    if (!can) return
+    const done = chestClaimed()
+    el.chest.classList.toggle('done', done)
+    el.chest.disabled = done || chestBusy
+    el.chest.textContent = done ? t('chest.done') : t('chest.ad', { n: CHEST_GEMS })
+  }
+
+  el.chest.addEventListener('click', async () => {
+    if (chestBusy || !ads() || !onAd || chestClaimed()) return
+    chestBusy = true
+    el.chest.disabled = true
+    try {
+      const r = await ads().showRewarded({ placementId: 'daily-chest' })
+      if (r.status === 'rewarded') {
+        const res = await onAd('daily-chest', r.requestId)
+        if (res?.profile) state = { ...state, profile: res.profile }
+        render()
+        return
+      }
+      if (r.status === 'dismissed') {
+        el.chest.textContent = t('chest.dismissed')
+        return
+      }
+      if (r.error?.code === 'unsupported_env') {
+        adsOff = true
+        el.chest.hidden = true
+        return
+      }
+      el.chest.textContent = t('chest.fail')
+    } finally {
+      chestBusy = false
+      el.chest.disabled = chestClaimed()
+    }
+  })
+
   el.missionRows.addEventListener('click', async (ev) => {
     const btn = ev.target.closest('[data-claim]')
     if (!btn) return

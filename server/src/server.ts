@@ -382,22 +382,36 @@ export class Server {
    * requestId 는 두 겹으로 막는다: (계정, requestId) 를 adGrants 에 적어 같은
    * 광고로 두 번 못 받고, adReward 가 판마다 한 번·하루 상한을 센다.
    *
-   * 검증 서버(ads-verifier)에 물어볼 수 있으면 verified 일 때만 준다. 이
-   * 런타임에 fetch 가 없거나 검증 서버가 안 닿으면 **준다** — 지급물이 패스
-   * 경험치라 값이 낮고, 거절하면 광고를 끝까지 본 사람이 못 받는 쪽이 더
-   * 나쁘다. 젬 같은 것을 지면에 붙이는 날에는 이 분기를 거절로 바꿔야 한다.
+   * 검증 서버(ads-verifier)에 물어볼 수 있으면 verified 일 때만 준다.
+   *
+   * **지금 이 런타임에는 fetch 가 없다**(재 봤다: "fetch: none"). 그래서 검증은
+   * 늘 unavailable 이고, 광고를 봤다는 클라의 말을 믿고 준다. 그 대신 값을
+   * 상한으로 묶는다 — 하루 상자는 하루 한 번, 결과판은 판마다 한 번에 하루
+   * 세 번. 조작해도 하루치를 앞당길 뿐 무한히 뽑을 수는 없다.
+   *
+   * GameServer SDK 에 검증 헬퍼가 들어오면(문서에 "곧 출시") 이 자리를
+   * unavailable → 거절로 바꾸고 상한을 풀 수 있다.
    */
   async claimAdReward(placementId: string, requestId: string): Promise<any> {
     if (typeof placementId !== 'string' || !PLACEMENTS[placementId]) return { ok: false, why: 'unknown_placement' }
     if (typeof requestId !== 'string' || !requestId || requestId.length > 128) return { ok: false, why: 'bad_request' }
-    const roomId = $sender.roomId
     const account = $sender.account
-    if (!roomId) return { ok: false, why: 'no_room' }
-    const state = await readLobby()
-    if (!state) return { ok: false, why: 'no_room' }
-    const seat = state.seats.find((s: any) => s.account === account)
-    if (!seat || !seat.rank) return { ok: false, why: 'no_match' }
-    const matchId = `${roomId}#${state.seed}`
+    // 판과 무관한 지면(하루 상자)은 홈에서 부른다 — 방을 안 찾는다.
+    const place: any = PLACEMENTS[placementId]
+    let matchId: string | null = null
+    let rank = 0
+    let ranked = false
+    if (!place.anyTime) {
+      const roomId = $sender.roomId
+      if (!roomId) return { ok: false, why: 'no_room' }
+      const state = await readLobby()
+      if (!state) return { ok: false, why: 'no_room' }
+      const seat = state.seats.find((s: any) => s.account === account)
+      if (!seat || !seat.rank) return { ok: false, why: 'no_match' }
+      matchId = `${roomId}#${state.seed}`
+      rank = seat.rank
+      ranked = state.mode === 'ranked'
+    }
 
     const verdict = await verifyAd(requestId)
     if (verdict === 'unverified') return { ok: false, why: 'not_watched' }
@@ -410,13 +424,13 @@ export class Server {
       const st: any = await $global.getUserState(account)
       const r: any = adReward(
         st?.profile ?? null,
-        { placementId, matchId, rank: seat.rank, ranked: state.mode === 'ranked', dayKey: dayKeyOf(Date.now()) },
+        { placementId, matchId, rank, ranked, dayKey: dayKeyOf(Date.now()) },
         DATA,
       )
       if (!r.ok) return { ok: false, why: r.why }
       await $global.addCollectionItem('adGrants', { account, requestId, placementId, matchId, at: Date.now() })
       await $global.updateUserState(account, { profile: r.profile })
-      return { ok: true, xp: r.xp, profile: r.profile, verified: verdict }
+      return { ok: true, xp: r.xp, gems: r.gems ?? 0, profile: r.profile, verified: verdict }
     })
   }
 
