@@ -310,8 +310,26 @@
     font-size: 11px; line-height: 14px; color: var(--hc, #5fd68a);
   }
 
-  /* 내 줄에는 이름을 안 적는다 — 내가 누군지는 내가 안다. 초상화와 체력만. */
-  .seat.me .n { display: none; }
+  /* 내 줄.
+     **여덟 줄 중 하나를 눈이 찾아다니면 안 된다.** 판이 도는 동안 제일 자주
+     보는 줄이고, 남의 체력과 내 체력을 견주는 것이 이 목록의 용도다. 전에는
+     초상화 안쪽 색만 달랐는데, 그건 이미 작은 원 안이라 한눈에 안 갈렸다.
+     줄 전체를 밝히고 왼쪽에 금색 표를 세운다.
+
+     이름도 다시 적는다. 전에는 "내가 누군지는 내가 안다" 며 감췄는데, 그러면
+     내 줄만 글자가 없어서 목록에서 오히려 빈칸처럼 읽혔다. */
+  .seat.me {
+    position: relative;
+    background: #e2b06b;
+    box-shadow: 0 0 0 1px #ffe08acc, 0 0 8px #ffb04d4d;
+    color: #3a2a06; text-shadow: none;
+  }
+  .seat.me::before {
+    content: ''; position: absolute; left: -6px; top: -2px; bottom: -2px; width: 3px;
+    background: #ffd166; box-shadow: 0 0 4px #ffb04d;
+  }
+  .seat.me .n { display: block; font-weight: 800; color: #3a2a06; }
+  .seat.me .h { color: #3a2a06; }
   .seat.foe .n::after { content: ' ⚔'; color: #ff9a8c; }
 
   /* 3연승 이상. 초상화를 금빛 고리로 두르고 옅게 떨게 한다 —
@@ -1091,6 +1109,9 @@
   #home .record .badge.gold { background-image: url('/assets/ui/tier_gold.png'); }
   #home .record .badge.platinum { background-image: url('/assets/ui/tier_platinum.png'); }
   #home .record .badge.diamond { background-image: url('/assets/ui/tier_diamond.png'); }
+  /* 아직 랭크를 안 했다. 자리를 비워 두면 "여기가 티어 칸" 이라는 것을 모른다 —
+     같은 방패에 물음표를 박아 자리는 남기고 색만 죽인다. */
+  #home .record .badge.unranked { background-image: url('/assets/ui/tier_unranked.png'); }
   /* 다음 티어까지. 숫자만 있으면 "많이 남았나"를 매번 계산해야 한다. */
   #home .record .bar {
     height: 4px; margin: 6px 0 5px; border-radius: 2px; overflow: hidden;
@@ -1128,6 +1149,18 @@
     transition: filter .12s, transform .12s;
   }
   #home .btn-sub:hover { filter: brightness(1.15); transform: translateY(-1px); }
+
+  /* 같이 기다리는 사람들. 숫자만 올라가면 사람이 붙는 중인지 멈춘 것인지
+     알 수가 없다 — 이름이 하나씩 늘면 그것이 그대로 보인다. */
+  #home .queue .names {
+    display: flex; flex-wrap: wrap; gap: 3px; margin-top: 4px;
+  }
+  #home .queue .names span {
+    max-width: 84px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
+    padding: 1px 5px; border-radius: 3px;
+    font-size: 9px; font-weight: 700; color: #d7e2ea;
+    background: #ffffff14; box-shadow: inset 0 0 0 1px #ffffff1f;
+  }
   #home .btn-sub:active { transform: translateY(1px); filter: brightness(.95); }
 
   /* ── 꾸미기(아바타 · 무대 · 승리 이펙트) ─────────────── */
@@ -1344,13 +1377,31 @@
   #result.closing .sheet,
   #board.closing .sheet { animation: sheetout .24s cubic-bezier(.4,0,.9,.5) forwards; }
 
-  /* 내 이름. 카드 맨 위 — 티어보다 먼저 읽히는 것이 이름이다. */
+  /* 내 이름. 카드 맨 위 — 티어보다 먼저 읽히는 것이 이름이다.
+     **누를 수 있게 보여야 한다.** 전에는 점선 밑줄만 그은 글자라 그냥 표시로
+     읽혔고, "닉네임을 어디서 바꾸지" 를 묻게 됐다. 테두리를 두르고 연필을
+     붙인다 — 글자 옆의 연필 하나가 "여기를 누르면 고친다" 를 말로 안 하고
+     전한다. */
   #home .myname {
-    align-self: flex-start; padding: 0 0 2px; margin-bottom: 3px;
+    align-self: flex-start; display: flex; align-items: center; gap: 5px;
+    padding: 3px 8px; margin-bottom: 4px; border-radius: 4px;
     font-size: 13px; font-weight: 800; color: #ffe1a0;
-    text-shadow: 0 1px 2px #000; border-bottom: 1px dashed #ffe1a066;
+    text-shadow: 0 1px 2px #000; cursor: pointer;
+    background: #ffffff0f; box-shadow: inset 0 0 0 1px #ffe1a055;
+    transition: background .12s, box-shadow .12s, transform .12s;
   }
-  #home .myname:hover { color: #fff3d6; }
+  #home .myname i { font-style: normal; font-size: 11px; opacity: .75; }
+  #home .myname:hover {
+    color: #fff3d6; background: #ffffff1c; box-shadow: inset 0 0 0 1px #ffe1a0aa;
+  }
+  #home .myname:active { transform: translateY(1px); }
+  /* 아직 이름을 안 정했다. 여기서만 눈에 띄게 — 정하고 나면 조용한 단추로
+     돌아간다. 늘 번쩍이면 이름을 정한 사람에게는 잔소리다. */
+  #home .myname.unset {
+    color: #2a1d10; background: #ffd166; box-shadow: inset 0 -2px 0 #00000026;
+  }
+  #home .myname.unset i { opacity: .9; }
+  #home .myname.unset:hover { color: #2a1d10; background: #ffdd8a; }
 
   /* ── 이름 바꾸기 ────────────────────────────────────── */
   #namebox {
@@ -2277,6 +2328,7 @@
       <div class="queue" id="queue-status" hidden>
         <div class="row"><span id="queue-text"></span><button id="queue-cancel" data-i18n="home.cancel">취소</button></div>
         <span class="note" id="queue-note"></span>
+        <div class="names" id="queue-names" hidden></div>
       </div>
     </div>
     <!-- 프로필. 왼쪽 위 — 로비에서 눈이 먼저 가는 자리이고, 간판(가운데 위)
@@ -2284,14 +2336,14 @@
          않는 이유: 같이 있으면 "누르는 것"으로 읽히는데 이건 읽는 것이다. -->
     <div class="record" id="home-record">
       <!-- 내 이름. 누르면 바꾼다 — 순위표와 남의 화면에 뜨는 이름이다. -->
-      <button class="myname" id="record-name" hidden></button>
+      <button class="myname" id="record-name" hidden><span id="record-name-text"></span><i>✎</i></button>
       <div class="tierline">
         <i class="badge" id="record-badge"></i>
         <b id="record-tier">브론즈</b>
         <span id="record-lp"></span>
       </div>
       <div class="bar" id="record-bar" hidden><i></i></div>
-      <div class="head" id="record-head" data-i18n="home.waitFirst">첫 판을 기다린다</div>
+      <div class="head" id="record-head"></div>
       <div class="recent" id="record-recent"></div>
       <button class="rankbtn" id="record-rank" hidden></button>
     </div>

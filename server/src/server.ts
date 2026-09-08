@@ -685,10 +685,16 @@ export class Server {
     if (mode !== 'normal' && mode !== 'ranked') return { status: 'error', why: 'bad_request' }
     const account = $sender.account
     const col = `mmqueue-${mode}`
+    // 이름을 **줄에 적어 둔다.** 대기 중인 사람들의 이름을 화면에 보이려면
+    // 이름이 필요한데, 폴링할 때마다 대기자 전원의 프로필을 읽으면 2초마다
+    // 사람 수의 제곱만큼 읽는다. 들어올 때 한 번만 읽어 적어 두면 폴링은
+    // 이미 가진 줄만 돌려주면 된다.
+    const st: any = await $global.getUserState(account)
+    const name = displayName(st?.profile?.name, account)
     await $lock(`queue:${mode}`, async () => {
       const queued = await $global.getCollectionItems(col)
       if (!queued.find((x: any) => x.account === account)) {
-        await $global.addCollectionItem(col, { account, at: Date.now() })
+        await $global.addCollectionItem(col, { account, at: Date.now(), name })
       }
     })
     return this.pollQueue(mode)
@@ -727,7 +733,14 @@ export class Server {
       const timedOut =
         mode === 'normal' && Date.now() - me.at >= DATA.lobby.matching.normalWaitMs
       if (!full && !timedOut) {
-        return { status: 'waiting', queued: queued.length, waitedMs: Date.now() - me.at }
+        return {
+          status: 'waiting',
+          queued: queued.length,
+          waitedMs: Date.now() - me.at,
+          // 누가 같이 기다리는지. 기다리는 화면에 숫자만 있으면 사람이 붙고
+          // 있는지 멈춰 있는지 알 수가 없다. 이름은 줄에 이미 적혀 있다.
+          names: queued.map((x: any) => x.name ?? null).filter(Boolean),
+        }
       }
 
       // 방을 만든다 — 정원이 찼거나, 일반 매치의 대기 시간이 찼거나.

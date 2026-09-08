@@ -56,6 +56,7 @@ export function createHome({
     queue: document.getElementById('queue-status'),
     queueText: document.getElementById('queue-text'),
     queueNote: document.getElementById('queue-note'),
+    queueNames: document.getElementById('queue-names'),
     queueCancel: document.getElementById('queue-cancel'),
     head: document.getElementById('record-head'),
     recent: document.getElementById('record-recent'),
@@ -66,6 +67,7 @@ export function createHome({
     barFill: document.querySelector('#record-bar i'),
     rankBtn: document.getElementById('record-rank'),
     nameBtn: document.getElementById('record-name'),
+    nameBtnText: document.getElementById('record-name-text'),
     nameBox: document.getElementById('namebox'),
     nameInput: document.getElementById('name-input'),
     nameWhy: document.getElementById('name-why'),
@@ -124,10 +126,25 @@ export function createHome({
   // 큐 초를 1초마다 올리는 타이머. 큐가 없으면 0.
   let queueTick = 0
 
+  // 이름을 정하러 간 사이에 눌러 둔 모드. 저장이 끝나면 그리로 이어 간다 —
+  // 이름을 정하고 다시 메뉴를 찾아 누르게 하면 한 걸음이 더 생긴다.
+  let pendingMode = null
+
   el.menu.addEventListener('click', (ev) => {
     const btn = ev.target.closest('[data-mode]')
     if (!btn || btn.disabled) return
-    onPick(btn.dataset.mode)
+    const mode = btn.dataset.mode
+    // **이름 없이 판에 들어가면 남들 화면에 "유저1234" 로 박힌다.** 그 이름은
+    // 좌석·순위표·결과판에 그대로 뜨고, 판이 끝나야 바꿀 기회가 온다.
+    //
+    // 튜토리얼은 뺀다 — 처음 온 사람에게 이름부터 요구하면 시작을 막는 셈이고,
+    // 혼자 하는 판이라 남에게 보일 이름이 없다.
+    if (mode !== 'tutorial' && state.status === 'ready' && !checkName(state.profile?.name).ok) {
+      pendingMode = mode
+      openName({ why: t('name.beforeMatch') })
+      return
+    }
+    onPick(mode)
   })
   el.queueCancel.addEventListener('click', () => onCancelQueue())
   el.rankBtn.addEventListener('click', () => openBoard())
@@ -205,7 +222,10 @@ export function createHome({
     el.nameInput.value = state.profile?.name ?? ''
     el.nameInput.focus()
   }
-  el.nameBtn.addEventListener('click', () => openName())
+  el.nameBtn.addEventListener('click', () => {
+    pendingMode = null
+    openName()
+  })
   // 규칙은 클라와 서버가 **같은 함수**를 본다. 여기서 미리 알려 주는 것은
   // 편의고, 막는 것은 서버다.
   // 한글을 치는 동안 칸의 값은 "ㅇ" → "ㅇㅏ" → "안" 으로 오간다. 그 중간을
@@ -251,6 +271,12 @@ export function createHome({
     if (res.profile) state = { ...state, profile: res.profile }
     render()
     closeSheet(el.nameBox)
+    // 매칭을 누르다 이름 때문에 붙잡혔다면 이어서 간다.
+    if (pendingMode) {
+      const mode = pendingMode
+      pendingMode = null
+      onPick(mode)
+    }
   }
   el.shopBtn.addEventListener('click', () => openShop())
   // 설정은 서버가 없어도 열린다 — 움직임·초기화는 기기 쪽 값이다.
@@ -890,17 +916,33 @@ export function createHome({
     if (v.queue) {
       el.queueText.textContent = v.queue.text
       el.queueNote.textContent = v.queue.note ?? ''
+      // 같이 기다리는 사람들. 내 이름도 그대로 들어 있다 — 목록에서 나를
+      // 빼면 "일곱 명 중 몇 명" 을 세는 눈이 한 번 더 일한다.
+      const names = v.queue.names ?? []
+      el.queueNames.hidden = names.length === 0
+      el.queueNames.replaceChildren(
+        ...names.map((n) => {
+          const b = document.createElement('span')
+          b.textContent = n
+          return b
+        }),
+      )
     }
 
-    el.head.textContent = v.profile ? v.profile.head : t('home.waitFirst')
+    // 전적이 없으면 이 줄은 비운다. 전에는 "첫 판을 기다린다" 를 적었는데,
+    // 아래 언랭크 배지가 같은 말을 그림으로 이미 하고 있다.
+    el.head.textContent = v.profile ? v.profile.head : ''
     el.recent.textContent = v.profile ? v.profile.recent.join(' · ') : ''
 
     // 기록이 없으면 티어 줄도 비워 둔다 — 한 판도 안 한 사람에게 "브론즈 0"
     // 을 붙이면 진 것 같은 인상이 된다.
-    el.tier.textContent = v.profile ? v.profile.tier : t('home.rankNone')
-    el.badge.className = `badge ${v.profile ? v.profile.tierId : ''}`
-    el.lp.textContent = v.profile ? `${v.profile.lp} LP` : ''
-    const next = v.profile?.next
+    // 랭크를 한 판이라도 했을 때만 티어를 적는다. 아니면 언랭크 문장을
+    // 세운다 — 글자로 "랭크 없음" 만 두면 그 자리가 무엇인지 모른 채 지나간다.
+    const rankedYet = !!v.profile?.ranked
+    el.tier.textContent = rankedYet ? v.profile.tier : t('home.rankNone')
+    el.badge.className = `badge ${rankedYet ? v.profile.tierId : 'unranked'}`
+    el.lp.textContent = rankedYet ? `${v.profile.lp} LP` : ''
+    const next = rankedYet ? v.profile.next : null
     el.bar.hidden = !next
     if (next) {
       el.barFill.style.width = `${Math.round(next.ratio * 100)}%`
@@ -916,7 +958,9 @@ export function createHome({
     // 이름을 정했느냐는 **데이터로** 묻는다. 그려진 글자를 견주면 언어를
     // 바꾸는 순간 한쪽만 맞아, 다른 언어에서는 단추가 빈칸으로 뜬다.
     const named = checkName(state.profile?.name)
-    el.nameBtn.textContent = named.ok ? named.name : t('home.setName')
+    el.nameBtnText.textContent = named.ok ? named.name : t('home.setName')
+    // 아직 안 정했으면 눈에 띄게. 정하고 나면 조용한 단추로 돌아간다.
+    el.nameBtn.classList.toggle('unset', !named.ok)
     el.shopBtn.hidden = state.status !== 'ready'
     el.rankBtn.hidden = state.status !== 'ready'
     el.rankBtn.textContent = t('home.leaderboard')

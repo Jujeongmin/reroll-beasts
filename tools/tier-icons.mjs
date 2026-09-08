@@ -31,6 +31,11 @@ const TIERS = [
   // 최고 티어는 줄이 아니라 보석이다. 다섯 줄은 넷과 눈으로 안 갈린다 —
   // 세는 것이 아니라 알아보는 것이어야 한다.
   { id: 'diamond', hi: '#bfe2ff', lo: '#5a8fe0', gem: true },
+  // 아직 랭크를 안 한 사람. 줄도 보석도 없이 물음표만 박는다 — 색을 죽여
+  // 티어 다섯과 한눈에 갈리게 하되, 같은 방패라 "여기가 티어 자리" 라는 것은
+  // 그대로 읽힌다. 글자로 "랭크 없음" 이라고만 두면 그 자리가 무엇인지
+  // 모른 채 지나간다.
+  { id: 'unranked', hi: '#8b8698', lo: '#5b5768', mark: true },
 ]
 
 // 방패. h 는 밝은 면, l 은 그늘, o 는 외곽선.
@@ -97,6 +102,22 @@ function icon(tier) {
     for (const [y, xs] of GEM) {
       for (let x = xs[0]; x <= xs[1]; x++) put(x, y, LINE)
     }
+  } else if (tier.mark) {
+    // 물음표. 방패 가운데에 들어가는 5×7 도트다.
+    const Q = [
+      '.ooo.',
+      'o...o',
+      '....o',
+      '..oo.',
+      '..o..',
+      '.....',
+      '..o..',
+    ]
+    Q.forEach((row, dy) => {
+      row.split('').forEach((c, dx) => {
+        if (c === 'o') put(5 + dx, 4 + dy, LINE)
+      })
+    })
   } else {
     const rows = BAR_ROWS[tier.bars]
     if (!rows) throw new Error(`줄 ${tier.bars} 개는 표에 없다`)

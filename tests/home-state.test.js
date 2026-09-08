@@ -116,3 +116,50 @@ describe('프로필 티어', () => {
     expect(withLp(undefined).tier).toBe('브론즈 5')
   })
 })
+
+describe('랭크 자리', () => {
+  // 전에는 판을 한 번이라도 했으면 티어를 그렸다. 일반 매치만 한 사람은
+  // LP 가 0 이라 "브론즈 5" 가 떴다 — 랭크를 한 번도 안 했는데 티어가 붙었다.
+  it('일반 판만 한 계정에는 티어가 안 붙는다', () => {
+    const v = homeView({
+      status: 'ready', hasAuth: true, data,
+      profile: { games: 5, best: 2, recent: [2], rankedGames: 0, lp: 0 },
+      queue: null,
+    })
+    expect(v.profile.ranked).toBe(false)
+    expect(v.profile.tier).toBe(null)
+    expect(v.profile.lp).toBe(null)
+    expect(v.profile.next).toBe(null)
+    // 전적 자체는 남는다 — 판수와 최고 등수는 모드를 안 가린다.
+    expect(typeof v.profile.head).toBe('string')
+  })
+
+  it('랭크를 한 판이라도 하면 티어가 붙는다', () => {
+    const v = homeView({
+      status: 'ready', hasAuth: true, data,
+      profile: { games: 5, best: 2, recent: [2], rankedGames: 1, lp: 0 },
+      queue: null,
+    })
+    expect(v.profile.ranked).toBe(true)
+    expect(typeof v.profile.tier).toBe('string')
+  })
+})
+
+describe('대기 줄', () => {
+  // 숫자만 올라가면 사람이 붙는 중인지 멈춘 것인지 알 수가 없다.
+  it('같이 기다리는 사람 이름을 준다 — 언어를 든 이름도 푼다', () => {
+    const v = homeView({
+      status: 'ready', hasAuth: true, data, profile: null,
+      queue: { mode: 'normal', queued: 2, waitedMs: 3000, names: ['테스터', { ko: '유저ab12', en: 'Player ab12' }] },
+    })
+    expect(v.queue.names).toEqual(['테스터', '유저ab12'])
+  })
+
+  it('서버가 이름을 안 주면 빈 목록이다 — undefined 가 화면에 뜨면 안 된다', () => {
+    const v = homeView({
+      status: 'ready', hasAuth: true, data, profile: null,
+      queue: { mode: 'normal', queued: 1, waitedMs: 0 },
+    })
+    expect(v.queue.names).toEqual([])
+  })
+})
