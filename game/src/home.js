@@ -265,6 +265,31 @@ export function createHome({
   let skinTab = 'avatar'
   let skinPick = null
 
+  /**
+   * 보유 재화가 뜨는 자리를 **한 자리에서** 전부 고쳐 쓴다.
+   *
+   * 젬은 창이 열려 있는 동안에도 바뀐다 — 광고를 보거나, 결제가 끝나거나,
+   * 꾸미기에서 하나 사면. 자리마다 "창을 열 때 한 번" 적으면 그 사이에 바뀐
+   * 수는 창을 닫았다 열기 전까지 옛 수로 남는다. 받은 것 같지 않아 한 번 더
+   * 누르게 된다.
+   *
+   * 안 보이는 창까지 같이 적는다 — 어느 창이 열려 있는지 따지는 것보다
+   * 세 줄을 그냥 적는 편이 싸고, 따지는 조건이 틀리는 날이 없다.
+   */
+  function drawWallet() {
+    const gems = state.profile?.gems ?? 0
+    el.passGems.textContent = String(gems)
+    el.skinsGems.textContent = String(gems)
+    el.shopGems.textContent = String(gems)
+
+    // 패스 머리줄에도 젬이 적혀 있다. 여기만 빠뜨리면 같은 화면 안에서
+    // 두 수가 다르게 뜬다.
+    const pass = state.profile?.pass ?? EMPTY_PASS
+    const prog = passProgress(pass.xp ?? 0, data)
+    el.passHead.textContent = prog.done
+      ? t('pass.doneHead', { max: prog.max, gems })
+      : t('pass.head', { lv: prog.level, left: prog.need - prog.into, gems })
+  }
   function openSkins() {
     sfx('open')
     // 닫는 중에 다시 누를 수 있다. closing 이 남아 있으면 열자마자 사라진다.
@@ -309,7 +334,7 @@ export function createHome({
   function drawSkins() {
     const list = skinList()
     const cur = currentId()
-    el.skinsGems.textContent = String(ownedNow().gems)
+    drawWallet()
     for (const tab of el.skinsTabs.querySelectorAll('[data-tab]')) {
       tab.classList.toggle('on', tab.dataset.tab === skinTab)
     }
@@ -461,11 +486,7 @@ export function createHome({
     el.passSheet.classList.remove('closing')
     el.passSheet.hidden = false
     const p = state.profile?.pass ?? EMPTY_PASS
-    const prog = passProgress(p.xp ?? 0, data)
-    const gems = state.profile?.gems ?? 0
-    el.passHead.textContent = prog.done
-      ? t('pass.doneHead', { max: prog.max, gems })
-      : t('pass.head', { lv: prog.level, left: prog.need - prog.into, gems })
+    drawWallet()
 
     const track = passTrack(data, p)
 
@@ -637,7 +658,7 @@ export function createHome({
     sfx('open')
     el.shop.classList.remove('closing')
     el.shop.hidden = false
-    el.shopGems.textContent = String(ownedNow().gems)
+    drawWallet()
     drawPacks()
   }
 
@@ -901,7 +922,7 @@ export function createHome({
     const prog = passProgress(state.profile?.pass?.xp ?? 0, data)
     el.passLv.textContent = t('pass.level', { n: prog.level })
     el.passBar.style.width = `${Math.round(prog.ratio * 100)}%`
-    el.passGems.textContent = String(state.profile?.gems ?? 0)
+    drawWallet()
     showNextReward(prog.level)
 
     renderMissions()

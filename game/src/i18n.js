@@ -9,10 +9,13 @@
 // 영어는 직역이 아니다. 그 자리에서 하는 일을 영어로 쓴 것이다 — 한국어 문장을
 // 그대로 옮기면 버튼 폭을 넘기거나, 게임에서 안 쓰는 말이 된다.
 
-const LANG_KEY = 'rr.lang'
-
 import ko from './lang/ko.js'
 import en from './lang/en.js'
+import ja from './lang/ja.js'
+import zhHant from './lang/zh-Hant.js'
+import zhHans from './lang/zh-Hans.js'
+
+const LANG_KEY = 'rr.lang'
 
 /**
  * 문구 표. 언어 하나가 파일 하나다(game/src/lang/).
@@ -24,7 +27,25 @@ import en from './lang/en.js'
 export const STRINGS = {
   ko,
   en,
+  ja,
+  'zh-Hant': zhHant,
+  'zh-Hans': zhHans,
 }
+
+/**
+ * 고를 수 있는 언어. 설정 창이 이 목록으로 단추를 만든다 — 표에 언어를 더하면
+ * 화면에도 저절로 생긴다.
+ *
+ * 이름은 **그 언어로** 적는다. "일본어" 라고 적으면 한국어를 못 읽는 사람이
+ * 자기 언어를 못 찾는다.
+ */
+export const LANGS = [
+  { id: 'ko', label: '한국어' },
+  { id: 'en', label: 'English' },
+  { id: 'ja', label: '日本語' },
+  { id: 'zh-Hant', label: '繁體' },
+  { id: 'zh-Hans', label: '简体' },
+]
 
 let current = null
 
@@ -36,17 +57,35 @@ export function lang() {
   if (current) return current
   try {
     const saved = localStorage.getItem(LANG_KEY)
-    if (saved === 'ko' || saved === 'en') return (current = saved)
+    if (saved && STRINGS[saved]) return (current = saved)
   } catch {
     // 저장소를 못 읽는 브라우저가 있다. 기기 언어만 본다.
   }
-  const nav = String(globalThis.navigator?.language ?? 'ko').toLowerCase()
-  return (current = nav.startsWith('ko') ? 'ko' : 'en')
+  return (current = detect(globalThis.navigator?.language))
+}
+
+/**
+ * 기기 언어 → 우리가 아는 언어.
+ *
+ * 중국어는 글자가 갈린다. zh-TW·zh-HK·zh-MO 는 번체, 그 밖의 zh 는 간체다 —
+ * "zh" 만 보고 하나로 몰면 절반은 못 읽는 글자를 본다.
+ */
+function detect(navLang) {
+  const v = String(navLang ?? 'en').toLowerCase()
+  if (v.startsWith('ko')) return 'ko'
+  if (v.startsWith('ja')) return 'ja'
+  if (v.startsWith('zh')) {
+    return /hant|tw|hk|mo/.test(v) ? 'zh-Hant' : 'zh-Hans'
+  }
+  return 'en'
 }
 
 /** 언어를 바꾼다. 화면은 부르는 쪽이 다시 그린다 — 여기서 DOM 을 모른다. */
+/** 언어를 바꾼다. 화면은 부르는 쪽이 다시 그린다 — 여기서 DOM 을 모른다. */
 export function setLang(v) {
-  current = v === 'en' ? 'en' : 'ko'
+  // 모르는 값이 오면 한국어로 둔다. 표에 없는 언어를 넣으면 t 가 전부 키를
+  // 그려서 화면이 통째로 영문 키가 된다.
+  current = STRINGS[v] ? v : 'ko'
   try {
     localStorage.setItem(LANG_KEY, current)
   } catch {
@@ -57,8 +96,10 @@ export function setLang(v) {
 
 /** 키 → 문장. `{n}` 같은 자리는 vars 로 채운다. */
 export function t(key, vars) {
-  const table = STRINGS[lang()] ?? STRINGS.ko
-  let s = table[key]
+  const table = STRINGS[lang()] ?? STRINGS.en
+  // 그 언어에 없으면 영어로. 한국어로 떨어지면 일본어·중국어 화면에 한국어가
+  // 섞여 뜨는데, 그건 그 화면을 보는 사람에게 아무 뜻도 없다.
+  let s = table[key] ?? STRINGS.en[key]
   if (s == null) return key
   if (vars) {
     for (const [k, v] of Object.entries(vars)) s = s.split(`{${k}}`).join(String(v))
@@ -75,7 +116,7 @@ export function t(key, vars) {
 export function textOf(field) {
   if (field == null) return ''
   if (typeof field === 'string') return field
-  return field[lang()] ?? field.ko ?? field.en ?? ''
+  return field[lang()] ?? field.en ?? field.ko ?? ''
 }
 
 /** `data-i18n` 이 붙은 요소를 채운다. 정적 문구는 이 한 번으로 끝난다. */

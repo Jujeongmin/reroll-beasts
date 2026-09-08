@@ -8,7 +8,7 @@
 // 필요하고, 볼륨·움직임은 기기마다 달라도 되는 값이다(폰에서는 소리를 끄고
 // PC 에서는 켠다).
 
-import { t, lang, setLang } from './i18n.js'
+import { t, lang, setLang, LANGS } from './i18n.js'
 
 const MOTION_KEY = 'rr.motion'
 const SFX_KEY = 'rr.sfx'
@@ -132,6 +132,22 @@ export function createSettings({ account, onSurrender, onReset, onLang, onVolume
     `<input class="vol" type="range" min="0" max="100" step="5" value="${v}" data-act="${act}" />` +
     `<span class="num">${v}</span>`
 
+  /**
+   * 언어 단추. **표(LANGS)에서 만든다** — 여기에 손으로 적어 두면 언어를
+   * 더한 날 표에는 있는데 화면에서는 고를 수 없는 언어가 생긴다.
+   *
+   * 이름은 그 언어로 적혀 있다. 지금 언어로 번역해 두면, 읽을 줄 아는 언어로
+   * 되돌리려는 사람이 자기 언어를 못 찾는다.
+   */
+  function langSegs() {
+    const now = lang()
+    return LANGS.map(
+      (l) =>
+        `<button class="seg${l.id === now ? ' on' : ''}" data-act="lang" data-lang="${l.id}" type="button">` +
+        `${l.label}</button>`,
+    ).join('')
+  }
+
   function draw() {
     const motion = reduceMotion()
     const tail = String(account?.() ?? '').slice(-4)
@@ -141,11 +157,7 @@ export function createSettings({ account, onSurrender, onReset, onLang, onVolume
       row(t('settings.bgm'), slider('bgm', bgmVolume())) +
       // 둘 중 하나를 고르는 손잡이. 토글(켜고 끄기)과 모양이 달라야 무엇을
       // 하는 손잡이인지 안 헷갈린다.
-      row(
-        t('settings.language'),
-        `<button class="seg${lang() === 'ko' ? ' on' : ''}" data-act="lang-ko" type="button">한국어</button>` +
-          `<button class="seg${lang() === 'en' ? ' on' : ''}" data-act="lang-en" type="button">English</button>`,
-      ) +
+      row(t('settings.language'), langSegs()) +
       row(
         t('settings.motion'),
         `<button class="tg${motion ? ' on' : ''}" data-act="motion" type="button">` +
@@ -193,8 +205,8 @@ export function createSettings({ account, onSurrender, onReset, onLang, onVolume
     if (!btn) return
     const act = btn.dataset.act
 
-    if (act === 'lang-ko' || act === 'lang-en') {
-      setLang(act === 'lang-ko' ? 'ko' : 'en')
+    if (act === 'lang') {
+      setLang(btn.dataset.lang)
       // 창 안만 다시 그리면 뒤에 깔린 홈이 옛 언어로 남는다 — 바깥도 같이
       // 그리라고 알린다.
       onLang?.()
