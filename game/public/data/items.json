@@ -14,7 +14,10 @@
       "id": "steel_sword",
       "name": {
         "ko": "강철검",
-        "en": "Steel Sword"
+        "en": "Steel Sword",
+        "ja": "鋼の剣",
+        "zh-Hant": "鋼劍",
+        "zh-Hans": "钢剑"
       },
       "effect": {
         "atkPct": 20
@@ -24,7 +27,10 @@
       "id": "swift_gloves",
       "name": {
         "ko": "쾌속 장갑",
-        "en": "Swift Gloves"
+        "en": "Swift Gloves",
+        "ja": "疾風の手袋",
+        "zh-Hant": "疾風手套",
+        "zh-Hans": "疾风手套"
       },
       "effect": {
         "attackSpeedPct": 25
@@ -34,7 +40,10 @@
       "id": "executioner_seal",
       "name": {
         "ko": "처형자의 인장",
-        "en": "Executioner's Seal"
+        "en": "Executioner's Seal",
+        "ja": "処刑人の印",
+        "zh-Hant": "處刑者之印",
+        "zh-Hans": "处刑者之印"
       },
       "effect": {
         "critChancePct": 25
@@ -44,7 +53,10 @@
       "id": "piercing_arrowhead",
       "name": {
         "ko": "관통 화살촉",
-        "en": "Piercing Arrowhead"
+        "en": "Piercing Arrowhead",
+        "ja": "貫通の鏃",
+        "zh-Hant": "貫穿箭簇",
+        "zh-Hans": "贯穿箭簇"
       },
       "effect": {
         "pierceCount": 1,
@@ -55,7 +67,10 @@
       "id": "oak_shield",
       "name": {
         "ko": "참나무 방패",
-        "en": "Oak Shield"
+        "en": "Oak Shield",
+        "ja": "樫の盾",
+        "zh-Hant": "橡木盾",
+        "zh-Hans": "橡木盾"
       },
       "effect": {
         "def": 30
@@ -65,7 +80,10 @@
       "id": "giant_heart",
       "name": {
         "ko": "거인의 심장",
-        "en": "Giant Heart"
+        "en": "Giant Heart",
+        "ja": "巨人の心臓",
+        "zh-Hant": "巨人之心",
+        "zh-Hans": "巨人之心"
       },
       "effect": {
         "hp": 400
@@ -75,7 +93,10 @@
       "id": "thorn_armor",
       "name": {
         "ko": "가시 갑옷",
-        "en": "Thorn Armor"
+        "en": "Thorn Armor",
+        "ja": "棘の鎧",
+        "zh-Hant": "荊棘之鎧",
+        "zh-Hans": "荆棘之铠"
       },
       "effect": {
         "thornsPct": 20
@@ -85,7 +106,10 @@
       "id": "holy_charm",
       "name": {
         "ko": "성수 부적",
-        "en": "Holy Charm"
+        "en": "Holy Charm",
+        "ja": "聖水の護符",
+        "zh-Hant": "聖水護符",
+        "zh-Hans": "圣水护符"
       },
       "effect": {
         "mr": 30
@@ -95,7 +119,10 @@
       "id": "sage_orb",
       "name": {
         "ko": "현자의 보주",
-        "en": "Sage Orb"
+        "en": "Sage Orb",
+        "ja": "賢者の宝珠",
+        "zh-Hant": "賢者寶珠",
+        "zh-Hans": "贤者宝珠"
       },
       "effect": {
         "power": 30
@@ -105,7 +132,10 @@
       "id": "mana_stone",
       "name": {
         "ko": "마나 원석",
-        "en": "Mana Stone"
+        "en": "Mana Stone",
+        "ja": "マナ原石",
+        "zh-Hant": "魔力原石",
+        "zh-Hans": "魔力原石"
       },
       "effect": {
         "manaStart": 20
@@ -115,7 +145,10 @@
       "id": "vampiric_scythe",
       "name": {
         "ko": "흡혈의 낫",
-        "en": "Vampiric Scythe"
+        "en": "Vampiric Scythe",
+        "ja": "吸血の鎌",
+        "zh-Hant": "吸血鐮刀",
+        "zh-Hans": "吸血镰刀"
       },
       "effect": {
         "lifestealPct": 20
@@ -125,7 +158,10 @@
       "id": "victory_banner",
       "name": {
         "ko": "승리의 깃발",
-        "en": "Victory Banner"
+        "en": "Victory Banner",
+        "ja": "勝利の旗",
+        "zh-Hant": "勝利之旗",
+        "zh-Hans": "胜利之旗"
       },
       "effect": {
         "auraAtkPct": 10,

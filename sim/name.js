@@ -65,14 +65,46 @@ export function checkName(raw) {
 }
 
 /**
+ * 이름을 안 정한 사람을 부르는 말. **모든 언어를 든 채로** 낸다 — 화면이
+ * textOf 로 푼다.
+ *
+ * 한 언어로 굳히면 안 되는 이유: 좌석과 순위표는 **서버가** 만들어 내려보내는데,
+ * 한 방에 언어가 다른 여덟 명이 앉는다. 만드는 쪽은 받는 사람의 언어를 알 수
+ * 없으므로, 고르는 일을 화면까지 미룬다.
+ *
+ * 꼬리 네 자리를 붙인다 — 이름 없는 사람이 여럿이면 서로 구분이 안 된다.
+ */
+export function guestName(account) {
+  const tail = accountTag(account)
+  // 영어만 낱말 사이를 띄운다. 꼬리가 없으면 그 칸도 없다 — "Player " 처럼
+  // 뒤에 공백이 남으면 목록에서 이름이 어긋나 보인다.
+  const sp = tail ? ' ' : ''
+  return {
+    ko: `유저${tail}`,
+    en: `Player${sp}${tail}`,
+    ja: `プレイヤー${tail}`,
+    'zh-Hant': `玩家${tail}`,
+    'zh-Hans': `玩家${tail}`,
+  }
+}
+
+/** 봇 자리 이름. 데이터에 이름이 모자랄 때만 쓰는 마지막 그물이다. */
+export function botName(i) {
+  return { ko: `봇${i}`, en: `Bot ${i}`, ja: `ボット${i}`, 'zh-Hant': `電腦${i}`, 'zh-Hans': `电脑${i}` }
+}
+
+/**
  * 화면에 띄울 이름. 정한 이름이 없으면 계정에서 만든다.
  *
  * 계정 전체를 안 쓰는 이유: 남의 지갑 주소를 목록에 뿌릴 이유가 없다.
+ *
+ * **정한 이름은 문자열, 아니면 언어를 든 객체**다. 부르는 쪽은 둘 다 textOf 로
+ * 푼다 — 사람이 정한 이름은 번역할 것이 없고, 우리가 지어낸 이름만 언어를 탄다.
  */
 export function displayName(profileName, account) {
   const c = checkName(profileName)
   if (c.ok) return c.name
-  return `유저${String(account ?? '').slice(-4)}`
+  return guestName(account)
 }
 
 /**

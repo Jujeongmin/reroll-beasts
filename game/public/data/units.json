@@ -11,82 +11,618 @@
     ]
   },
   "units": [
-    { "id": "green_blob", "name": { "ko": "초록 슬라임", "en": "Green Blob" }, "tier": 1, "origin": "slime", "class": "revive", "model": "green_blob",
-      "skill": { "id": "gb_split", "type": "summon", "params": { "unitId": "green_blob", "count": 2, "hpPct": 40, "trigger": "onDeath" } } },
-
-    { "id": "pink_blob", "name": { "ko": "분홍 슬라임", "en": "Pink Blob" }, "tier": 1, "origin": "slime", "class": "tank", "model": "pink_blob",
-      "skill": { "id": "pb_harden", "type": "buff", "params": { "target": "self", "stat": "def", "amount": 45, "durationTicks": 90 } } },
-
-    { "id": "cat", "name": { "ko": "젤리 고양이", "en": "Jelly Cat" }, "tier": 1, "origin": "slime", "class": "assassin", "model": "cat",
-      "skill": { "id": "cat_claw", "type": "single", "params": { "dmgPct": 90, "hits": 3 } } },
-
-    { "id": "chicken", "name": { "ko": "닭", "en": "Chicken" }, "tier": 1, "origin": "wing", "class": "shooter", "model": "chicken",
-      "skill": { "id": "ck_feather", "type": "single", "params": { "dmgPct": 200, "hits": 1, "pierceCount": 2, "piercePct": 60 } } },
-
-    { "id": "mushnub", "name": { "ko": "꼬마 버섯", "en": "Mushnub" }, "tier": 1, "origin": "mushroom", "class": "mage", "model": "mushnub", "evolved": true,
-      "skill": { "id": "mn_spore", "type": "aoe", "params": { "radius": 1, "dmgPct": 0, "tickDamagePct": 16, "durationTicks": 90 } } },
-
-    { "id": "pigeon", "name": { "ko": "비둘기", "en": "Pigeon" }, "tier": 1, "origin": "wing", "class": "assassin", "model": "pigeon",
-      "skill": { "id": "pg_dive", "type": "single", "params": { "dmgPct": 210, "hits": 1 } } },
-
-    { "id": "goleling", "name": { "ko": "뿔도깨비", "en": "Goleling" }, "tier": 1, "origin": "undead", "class": "revive", "model": "goleling", "evolved": true,
-      "skill": { "id": "gl_stone", "type": "buff", "params": { "target": "self", "stat": "damageTakenPct", "amount": -45, "durationTicks": 90 } } },
-
-    { "id": "bunny", "name": { "ko": "성난 토끼", "en": "Angry Bunny" }, "tier": 1, "origin": "giant", "class": "fighter", "model": "bunny",
-      "skill": { "id": "bn_kick", "type": "single", "params": { "dmgPct": 190, "hits": 1 } } },
-
-    { "id": "spiky_blob", "name": { "ko": "가시 슬라임", "en": "Spiky Blob" }, "tier": 2, "origin": "slime", "class": "tank", "model": "spiky_blob",
-      "skill": { "id": "sb_spike", "type": "buff", "params": { "target": "self", "stat": "def", "amount": 70, "durationTicks": 120 } } },
-
-    { "id": "cactoro_blob", "name": { "ko": "선인장", "en": "Cactoro" }, "tier": 2, "origin": "mushroom", "class": "shooter", "model": "cactoro_blob",
-      "skill": { "id": "cb_needle", "type": "single", "params": { "dmgPct": 230, "hits": 1, "pierceCount": 2, "piercePct": 60 } } },
-
-    { "id": "cactoro_big", "name": { "ko": "큰 선인장", "en": "Elder Cactoro" }, "tier": 2, "origin": "mushroom", "class": "tank", "model": "cactoro_big",
-      "skill": { "id": "cg_root", "type": "buff", "params": { "target": "self", "stat": "shield", "amountPctMaxHp": 18, "durationTicks": 150 } } },
-
-    { "id": "glub", "name": { "ko": "보라 올챙이", "en": "Glub" }, "tier": 2, "origin": "wing", "class": "shooter", "model": "glub", "evolved": true,
-      "skill": { "id": "gb_jet", "type": "single", "params": { "dmgPct": 240, "hits": 1 } } },
-
-    { "id": "armabee", "name": { "ko": "벌", "en": "Armabee" }, "tier": 2, "origin": "wing", "class": "mage", "model": "armabee", "evolved": true,
-      "skill": { "id": "ab_swarm", "type": "aoe", "params": { "radius": 1, "dmgPct": 230 } } },
-
-    { "id": "ghost", "name": { "ko": "유령", "en": "Ghost" }, "tier": 2, "origin": "undead", "class": "assassin", "model": "ghost",
-      "skill": { "id": "gh_drain", "type": "single", "params": { "dmgPct": 250, "hits": 1, "defIgnorePct": 30 } } },
-
-    { "id": "frog", "name": { "ko": "황소개구리", "en": "Bullfrog" }, "tier": 2, "origin": "giant", "class": "tank", "model": "frog",
-      "skill": { "id": "fg_tongue", "type": "single", "params": { "dmgPct": 200, "hits": 1, "pull": true } } },
-
-    { "id": "wizard", "name": { "ko": "젤리 마법사", "en": "Jelly Wizard" }, "tier": 3, "origin": "slime", "class": "mage", "model": "wizard",
-      "skill": { "id": "wz_burst", "type": "aoe", "params": { "radius": 2, "dmgPct": 290 } } },
-
-    { "id": "alpaking", "name": { "ko": "왕관 요정", "en": "Alpaking" }, "tier": 3, "origin": "wing", "class": "tank", "model": "alpaking", "evolved": true,
-      "skill": { "id": "ap_veil", "type": "buff", "params": { "target": "allies", "stat": "shield", "amountPctMaxHp": 12, "durationTicks": 180 } } },
-
-    { "id": "ghost_skull", "name": { "ko": "해골 유령", "en": "Skull Ghost" }, "tier": 3, "origin": "undead", "class": "revive", "model": "ghost_skull",
-      "skill": { "id": "gs_curse", "type": "aoe", "params": { "radius": 2, "dmgPct": 0, "tickDamagePct": 22, "durationTicks": 120 } } },
-
-    { "id": "orc", "name": { "ko": "오크", "en": "Orc" }, "tier": 3, "origin": "giant", "class": "fighter", "model": "orc",
-      "skill": { "id": "or_chop", "type": "single", "params": { "dmgPct": 110, "hits": 3 } } },
-
-    { "id": "ninja", "name": { "ko": "닌자", "en": "Ninja" }, "tier": 3, "origin": "giant", "class": "assassin", "model": "ninja",
-      "skill": { "id": "nj_shadow", "type": "single", "params": { "dmgPct": 310, "hits": 1, "releapOnKill": true } } },
-
-    { "id": "yeti", "name": { "ko": "예티", "en": "Yeti" }, "tier": 4, "origin": "giant", "class": "tank", "model": "yeti",
-      "skill": { "id": "yt_roar", "type": "buff", "params": { "target": "allies", "stat": "atkPct", "amount": 25, "durationTicks": 180 } } },
-
-    { "id": "mushroom_king", "name": { "ko": "버섯왕", "en": "Mushroom King" }, "tier": 4, "origin": "mushroom", "class": "mage", "model": "mushroom_king",
-      "skill": { "id": "mk_bloom", "type": "aoe", "params": { "radius": 2, "dmgPct": 260, "tickDamagePct": 18, "durationTicks": 90 } } },
-
-    { "id": "orc_skull", "name": { "ko": "해골 오크", "en": "Skull Orc" }, "tier": 4, "origin": "undead", "class": "fighter", "model": "orc_skull",
-      "skill": { "id": "os_reap", "type": "single", "params": { "dmgPct": 360, "hits": 1, "manaRefillOnKill": true } } },
-
-    { "id": "dragon", "name": { "ko": "드래곤", "en": "Dragon" }, "tier": 5, "origin": "wing", "class": "mage", "model": "dragon", "evolved": true,
-      "skill": { "id": "dr_breath", "type": "aoe", "params": { "radius": 2, "dmgPct": 320, "lineLength": 3, "burnTickPct": 12, "burnTicks": 90 } } },
-
-    { "id": "blue_demon", "name": { "ko": "푸른 마귀", "en": "Blue Demon" }, "tier": 5, "origin": "giant", "class": "fighter", "model": "blue_demon",
-      "skill": { "id": "bd_smite", "type": "single", "params": { "dmgPct": 420, "hits": 1, "stunTicks": 30 } } },
-
-    { "id": "dino", "name": { "ko": "공룡", "en": "Dino" }, "tier": 5, "origin": "giant", "class": "tank", "model": "dino",
-      "skill": { "id": "dn_bulwark", "type": "buff", "params": { "target": "allies", "stat": "shieldAndDef", "amountPctMaxHp": 14, "amount": 60, "durationTicks": 240 } } }
+    {
+      "id": "green_blob",
+      "name": {
+        "ko": "초록 슬라임",
+        "en": "Green Blob",
+        "ja": "緑スライム",
+        "zh-Hant": "綠史萊姆",
+        "zh-Hans": "绿史莱姆"
+      },
+      "tier": 1,
+      "origin": "slime",
+      "class": "revive",
+      "model": "green_blob",
+      "skill": {
+        "id": "gb_split",
+        "type": "summon",
+        "params": {
+          "unitId": "green_blob",
+          "count": 2,
+          "hpPct": 40,
+          "trigger": "onDeath"
+        }
+      }
+    },
+    {
+      "id": "pink_blob",
+      "name": {
+        "ko": "분홍 슬라임",
+        "en": "Pink Blob",
+        "ja": "ピンクスライム",
+        "zh-Hant": "粉紅史萊姆",
+        "zh-Hans": "粉红史莱姆"
+      },
+      "tier": 1,
+      "origin": "slime",
+      "class": "tank",
+      "model": "pink_blob",
+      "skill": {
+        "id": "pb_harden",
+        "type": "buff",
+        "params": {
+          "target": "self",
+          "stat": "def",
+          "amount": 45,
+          "durationTicks": 90
+        }
+      }
+    },
+    {
+      "id": "cat",
+      "name": {
+        "ko": "젤리 고양이",
+        "en": "Jelly Cat",
+        "ja": "ゼリーキャット",
+        "zh-Hant": "果凍貓",
+        "zh-Hans": "果冻猫"
+      },
+      "tier": 1,
+      "origin": "slime",
+      "class": "assassin",
+      "model": "cat",
+      "skill": {
+        "id": "cat_claw",
+        "type": "single",
+        "params": {
+          "dmgPct": 90,
+          "hits": 3
+        }
+      }
+    },
+    {
+      "id": "chicken",
+      "name": {
+        "ko": "닭",
+        "en": "Chicken",
+        "ja": "ニワトリ",
+        "zh-Hant": "雞",
+        "zh-Hans": "鸡"
+      },
+      "tier": 1,
+      "origin": "wing",
+      "class": "shooter",
+      "model": "chicken",
+      "skill": {
+        "id": "ck_feather",
+        "type": "single",
+        "params": {
+          "dmgPct": 200,
+          "hits": 1,
+          "pierceCount": 2,
+          "piercePct": 60
+        }
+      }
+    },
+    {
+      "id": "mushnub",
+      "name": {
+        "ko": "꼬마 버섯",
+        "en": "Mushnub",
+        "ja": "ちびキノコ",
+        "zh-Hant": "小蘑菇",
+        "zh-Hans": "小蘑菇"
+      },
+      "tier": 1,
+      "origin": "mushroom",
+      "class": "mage",
+      "model": "mushnub",
+      "evolved": true,
+      "skill": {
+        "id": "mn_spore",
+        "type": "aoe",
+        "params": {
+          "radius": 1,
+          "dmgPct": 0,
+          "tickDamagePct": 16,
+          "durationTicks": 90
+        }
+      }
+    },
+    {
+      "id": "pigeon",
+      "name": {
+        "ko": "비둘기",
+        "en": "Pigeon",
+        "ja": "ハト",
+        "zh-Hant": "鴿子",
+        "zh-Hans": "鸽子"
+      },
+      "tier": 1,
+      "origin": "wing",
+      "class": "assassin",
+      "model": "pigeon",
+      "skill": {
+        "id": "pg_dive",
+        "type": "single",
+        "params": {
+          "dmgPct": 210,
+          "hits": 1
+        }
+      }
+    },
+    {
+      "id": "goleling",
+      "name": {
+        "ko": "뿔도깨비",
+        "en": "Goleling",
+        "ja": "ツノ小鬼",
+        "zh-Hant": "角小鬼",
+        "zh-Hans": "角小鬼"
+      },
+      "tier": 1,
+      "origin": "undead",
+      "class": "revive",
+      "model": "goleling",
+      "evolved": true,
+      "skill": {
+        "id": "gl_stone",
+        "type": "buff",
+        "params": {
+          "target": "self",
+          "stat": "damageTakenPct",
+          "amount": -45,
+          "durationTicks": 90
+        }
+      }
+    },
+    {
+      "id": "bunny",
+      "name": {
+        "ko": "성난 토끼",
+        "en": "Angry Bunny",
+        "ja": "怒りウサギ",
+        "zh-Hant": "憤怒兔",
+        "zh-Hans": "愤怒兔"
+      },
+      "tier": 1,
+      "origin": "giant",
+      "class": "fighter",
+      "model": "bunny",
+      "skill": {
+        "id": "bn_kick",
+        "type": "single",
+        "params": {
+          "dmgPct": 190,
+          "hits": 1
+        }
+      }
+    },
+    {
+      "id": "spiky_blob",
+      "name": {
+        "ko": "가시 슬라임",
+        "en": "Spiky Blob",
+        "ja": "トゲスライム",
+        "zh-Hant": "尖刺史萊姆",
+        "zh-Hans": "尖刺史莱姆"
+      },
+      "tier": 2,
+      "origin": "slime",
+      "class": "tank",
+      "model": "spiky_blob",
+      "skill": {
+        "id": "sb_spike",
+        "type": "buff",
+        "params": {
+          "target": "self",
+          "stat": "def",
+          "amount": 70,
+          "durationTicks": 120
+        }
+      }
+    },
+    {
+      "id": "cactoro_blob",
+      "name": {
+        "ko": "선인장",
+        "en": "Cactoro",
+        "ja": "サボテン",
+        "zh-Hant": "仙人掌",
+        "zh-Hans": "仙人掌"
+      },
+      "tier": 2,
+      "origin": "mushroom",
+      "class": "shooter",
+      "model": "cactoro_blob",
+      "skill": {
+        "id": "cb_needle",
+        "type": "single",
+        "params": {
+          "dmgPct": 230,
+          "hits": 1,
+          "pierceCount": 2,
+          "piercePct": 60
+        }
+      }
+    },
+    {
+      "id": "cactoro_big",
+      "name": {
+        "ko": "큰 선인장",
+        "en": "Elder Cactoro",
+        "ja": "大サボテン",
+        "zh-Hant": "大仙人掌",
+        "zh-Hans": "大仙人掌"
+      },
+      "tier": 2,
+      "origin": "mushroom",
+      "class": "tank",
+      "model": "cactoro_big",
+      "skill": {
+        "id": "cg_root",
+        "type": "buff",
+        "params": {
+          "target": "self",
+          "stat": "shield",
+          "amountPctMaxHp": 18,
+          "durationTicks": 150
+        }
+      }
+    },
+    {
+      "id": "glub",
+      "name": {
+        "ko": "보라 올챙이",
+        "en": "Glub",
+        "ja": "紫おたまじゃくし",
+        "zh-Hant": "紫蝌蚪",
+        "zh-Hans": "紫蝌蚪"
+      },
+      "tier": 2,
+      "origin": "wing",
+      "class": "shooter",
+      "model": "glub",
+      "evolved": true,
+      "skill": {
+        "id": "gb_jet",
+        "type": "single",
+        "params": {
+          "dmgPct": 240,
+          "hits": 1
+        }
+      }
+    },
+    {
+      "id": "armabee",
+      "name": {
+        "ko": "벌",
+        "en": "Armabee",
+        "ja": "ハチ",
+        "zh-Hant": "蜜蜂",
+        "zh-Hans": "蜜蜂"
+      },
+      "tier": 2,
+      "origin": "wing",
+      "class": "mage",
+      "model": "armabee",
+      "evolved": true,
+      "skill": {
+        "id": "ab_swarm",
+        "type": "aoe",
+        "params": {
+          "radius": 1,
+          "dmgPct": 230
+        }
+      }
+    },
+    {
+      "id": "ghost",
+      "name": {
+        "ko": "유령",
+        "en": "Ghost",
+        "ja": "ゴースト",
+        "zh-Hant": "幽靈",
+        "zh-Hans": "幽灵"
+      },
+      "tier": 2,
+      "origin": "undead",
+      "class": "assassin",
+      "model": "ghost",
+      "skill": {
+        "id": "gh_drain",
+        "type": "single",
+        "params": {
+          "dmgPct": 250,
+          "hits": 1,
+          "defIgnorePct": 30
+        }
+      }
+    },
+    {
+      "id": "frog",
+      "name": {
+        "ko": "황소개구리",
+        "en": "Bullfrog",
+        "ja": "ウシガエル",
+        "zh-Hant": "牛蛙",
+        "zh-Hans": "牛蛙"
+      },
+      "tier": 2,
+      "origin": "giant",
+      "class": "tank",
+      "model": "frog",
+      "skill": {
+        "id": "fg_tongue",
+        "type": "single",
+        "params": {
+          "dmgPct": 200,
+          "hits": 1,
+          "pull": true
+        }
+      }
+    },
+    {
+      "id": "wizard",
+      "name": {
+        "ko": "젤리 마법사",
+        "en": "Jelly Wizard",
+        "ja": "ゼリー魔法使い",
+        "zh-Hant": "果凍法師",
+        "zh-Hans": "果冻法师"
+      },
+      "tier": 3,
+      "origin": "slime",
+      "class": "mage",
+      "model": "wizard",
+      "skill": {
+        "id": "wz_burst",
+        "type": "aoe",
+        "params": {
+          "radius": 2,
+          "dmgPct": 290
+        }
+      }
+    },
+    {
+      "id": "alpaking",
+      "name": {
+        "ko": "왕관 요정",
+        "en": "Alpaking",
+        "ja": "王冠の精",
+        "zh-Hant": "王冠精靈",
+        "zh-Hans": "王冠精灵"
+      },
+      "tier": 3,
+      "origin": "wing",
+      "class": "tank",
+      "model": "alpaking",
+      "evolved": true,
+      "skill": {
+        "id": "ap_veil",
+        "type": "buff",
+        "params": {
+          "target": "allies",
+          "stat": "shield",
+          "amountPctMaxHp": 12,
+          "durationTicks": 180
+        }
+      }
+    },
+    {
+      "id": "ghost_skull",
+      "name": {
+        "ko": "해골 유령",
+        "en": "Skull Ghost",
+        "ja": "ドクロゴースト",
+        "zh-Hant": "骷髏幽靈",
+        "zh-Hans": "骷髅幽灵"
+      },
+      "tier": 3,
+      "origin": "undead",
+      "class": "revive",
+      "model": "ghost_skull",
+      "skill": {
+        "id": "gs_curse",
+        "type": "aoe",
+        "params": {
+          "radius": 2,
+          "dmgPct": 0,
+          "tickDamagePct": 22,
+          "durationTicks": 120
+        }
+      }
+    },
+    {
+      "id": "orc",
+      "name": {
+        "ko": "오크",
+        "en": "Orc",
+        "ja": "オーク",
+        "zh-Hant": "獸人",
+        "zh-Hans": "兽人"
+      },
+      "tier": 3,
+      "origin": "giant",
+      "class": "fighter",
+      "model": "orc",
+      "skill": {
+        "id": "or_chop",
+        "type": "single",
+        "params": {
+          "dmgPct": 110,
+          "hits": 3
+        }
+      }
+    },
+    {
+      "id": "ninja",
+      "name": {
+        "ko": "닌자",
+        "en": "Ninja",
+        "ja": "忍者",
+        "zh-Hant": "忍者",
+        "zh-Hans": "忍者"
+      },
+      "tier": 3,
+      "origin": "giant",
+      "class": "assassin",
+      "model": "ninja",
+      "skill": {
+        "id": "nj_shadow",
+        "type": "single",
+        "params": {
+          "dmgPct": 310,
+          "hits": 1,
+          "releapOnKill": true
+        }
+      }
+    },
+    {
+      "id": "yeti",
+      "name": {
+        "ko": "예티",
+        "en": "Yeti",
+        "ja": "イエティ",
+        "zh-Hant": "雪怪",
+        "zh-Hans": "雪怪"
+      },
+      "tier": 4,
+      "origin": "giant",
+      "class": "tank",
+      "model": "yeti",
+      "skill": {
+        "id": "yt_roar",
+        "type": "buff",
+        "params": {
+          "target": "allies",
+          "stat": "atkPct",
+          "amount": 25,
+          "durationTicks": 180
+        }
+      }
+    },
+    {
+      "id": "mushroom_king",
+      "name": {
+        "ko": "버섯왕",
+        "en": "Mushroom King",
+        "ja": "キノコ王",
+        "zh-Hant": "蘑菇王",
+        "zh-Hans": "蘑菇王"
+      },
+      "tier": 4,
+      "origin": "mushroom",
+      "class": "mage",
+      "model": "mushroom_king",
+      "skill": {
+        "id": "mk_bloom",
+        "type": "aoe",
+        "params": {
+          "radius": 2,
+          "dmgPct": 260,
+          "tickDamagePct": 18,
+          "durationTicks": 90
+        }
+      }
+    },
+    {
+      "id": "orc_skull",
+      "name": {
+        "ko": "해골 오크",
+        "en": "Skull Orc",
+        "ja": "ドクロオーク",
+        "zh-Hant": "骷髏獸人",
+        "zh-Hans": "骷髅兽人"
+      },
+      "tier": 4,
+      "origin": "undead",
+      "class": "fighter",
+      "model": "orc_skull",
+      "skill": {
+        "id": "os_reap",
+        "type": "single",
+        "params": {
+          "dmgPct": 360,
+          "hits": 1,
+          "manaRefillOnKill": true
+        }
+      }
+    },
+    {
+      "id": "dragon",
+      "name": {
+        "ko": "드래곤",
+        "en": "Dragon",
+        "ja": "ドラゴン",
+        "zh-Hant": "巨龍",
+        "zh-Hans": "巨龙"
+      },
+      "tier": 5,
+      "origin": "wing",
+      "class": "mage",
+      "model": "dragon",
+      "evolved": true,
+      "skill": {
+        "id": "dr_breath",
+        "type": "aoe",
+        "params": {
+          "radius": 2,
+          "dmgPct": 320,
+          "lineLength": 3,
+          "burnTickPct": 12,
+          "burnTicks": 90
+        }
+      }
+    },
+    {
+      "id": "blue_demon",
+      "name": {
+        "ko": "푸른 마귀",
+        "en": "Blue Demon",
+        "ja": "青い魔物",
+        "zh-Hant": "藍魔",
+        "zh-Hans": "蓝魔"
+      },
+      "tier": 5,
+      "origin": "giant",
+      "class": "fighter",
+      "model": "blue_demon",
+      "skill": {
+        "id": "bd_smite",
+        "type": "single",
+        "params": {
+          "dmgPct": 420,
+          "hits": 1,
+          "stunTicks": 30
+        }
+      }
+    },
+    {
+      "id": "dino",
+      "name": {
+        "ko": "공룡",
+        "en": "Dino",
+        "ja": "恐竜",
+        "zh-Hant": "恐龍",
+        "zh-Hans": "恐龙"
+      },
+      "tier": 5,
+      "origin": "giant",
+      "class": "tank",
+      "model": "dino",
+      "skill": {
+        "id": "dn_bulwark",
+        "type": "buff",
+        "params": {
+          "target": "allies",
+          "stat": "shieldAndDef",
+          "amountPctMaxHp": 14,
+          "amount": 60,
+          "durationTicks": 240
+        }
+      }
+    }
   ]
 }

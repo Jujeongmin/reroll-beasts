@@ -8,7 +8,10 @@
       "xp": 30,
       "text": {
         "ko": "판 2번 끝내기",
-        "en": "Finish 2 matches"
+        "en": "Finish 2 matches",
+        "ja": "2試合を終える",
+        "zh-Hant": "完成2場對局",
+        "zh-Hans": "完成2场对局"
       }
     },
     {
@@ -18,7 +21,10 @@
       "xp": 30,
       "text": {
         "ko": "랭크 판 1번",
-        "en": "Play 1 ranked match"
+        "en": "Play 1 ranked match",
+        "ja": "ランク戦を1試合",
+        "zh-Hant": "打1場排位",
+        "zh-Hans": "打1场排位"
       }
     },
     {
@@ -28,7 +34,10 @@
       "xp": 35,
       "text": {
         "ko": "4위 안에 들기",
-        "en": "Place in the top 4"
+        "en": "Place in the top 4",
+        "ja": "4位以内に入る",
+        "zh-Hant": "進入前4名",
+        "zh-Hans": "进入前4名"
       }
     },
     {
@@ -38,7 +47,10 @@
       "xp": 50,
       "text": {
         "ko": "1위 하기",
-        "en": "Take first place"
+        "en": "Take first place",
+        "ja": "1位になる",
+        "zh-Hant": "拿下第1名",
+        "zh-Hans": "拿下第1名"
       }
     },
     {
@@ -48,7 +60,10 @@
       "xp": 40,
       "text": {
         "ko": "3성 유닛 만들기",
-        "en": "Make a 3-star unit"
+        "en": "Make a 3-star unit",
+        "ja": "3星ユニットを作る",
+        "zh-Hant": "做出3星單位",
+        "zh-Hans": "做出3星单位"
       }
     },
     {
@@ -58,7 +73,10 @@
       "xp": 35,
       "text": {
         "ko": "시너지 하나를 3단계까지 올리기",
-        "en": "Reach trait tier 3"
+        "en": "Reach trait tier 3",
+        "ja": "シナジーを3段階まで上げる",
+        "zh-Hant": "讓一個羈絆升到第3階",
+        "zh-Hans": "让一个羁绊升到第3阶"
       }
     },
     {
@@ -68,7 +86,10 @@
       "xp": 30,
       "text": {
         "ko": "아이템 3개 장착하기",
-        "en": "Equip 3 items"
+        "en": "Equip 3 items",
+        "ja": "アイテムを3個装備する",
+        "zh-Hant": "裝備3件裝備",
+        "zh-Hans": "装备3件装备"
       }
     },
     {
@@ -78,7 +99,10 @@
       "xp": 25,
       "text": {
         "ko": "레벨만큼 판을 꽉 채우기",
-        "en": "Fill the board to your level"
+        "en": "Fill the board to your level",
+        "ja": "レベルの分だけ盤を埋める",
+        "zh-Hant": "把場上填滿到等級上限",
+        "zh-Hans": "把场上填满到等级上限"
       }
     },
     {
@@ -88,7 +112,10 @@
       "xp": 35,
       "text": {
         "ko": "한 판에서 라운드 3승",
-        "en": "Win 3 rounds in one match"
+        "en": "Win 3 rounds in one match",
+        "ja": "1試合でラウンド3勝",
+        "zh-Hant": "單場贏3個回合",
+        "zh-Hans": "单场赢3个回合"
       }
     }
   ]

@@ -9,95 +9,363 @@
     "steps 와 effects 는 길이가 같아야 하고(검증기 불변식), 각 시너지는",
     "최대 활성 단계 이상의 유닛을 보유해야 하며 T1 진입점이 하나는 있어야 한다."
   ],
-
   "origins": [
     {
-      "id": "giant", "name": { "ko": "거인", "en": "Giant" }, "steps": [2, 4, 6],
+      "id": "giant",
+      "name": {
+        "ko": "거인",
+        "en": "Giant",
+        "ja": "巨人",
+        "zh-Hant": "巨人",
+        "zh-Hans": "巨人"
+      },
+      "steps": [
+        2,
+        4,
+        6
+      ],
       "effects": [
-        { "hp": 250, "scope": "trait" },
-        { "hp": 500, "def": 20, "scope": "trait" },
-        { "hp": 900, "def": 40, "scope": "trait", "allyDef": 15 }
+        {
+          "hp": 250,
+          "scope": "trait"
+        },
+        {
+          "hp": 500,
+          "def": 20,
+          "scope": "trait"
+        },
+        {
+          "hp": 900,
+          "def": 40,
+          "scope": "trait",
+          "allyDef": 15
+        }
       ]
     },
     {
-      "id": "slime", "name": { "ko": "슬라임", "en": "Slime" }, "steps": [2, 3, 5],
+      "id": "slime",
+      "name": {
+        "ko": "슬라임",
+        "en": "Slime",
+        "ja": "スライム",
+        "zh-Hant": "史萊姆",
+        "zh-Hans": "史莱姆"
+      },
+      "steps": [
+        2,
+        3,
+        5
+      ],
       "effects": [
-        { "def": 20, "scope": "trait" },
-        { "def": 40, "critTakenPct": -25, "scope": "trait" },
-        { "def": 70, "critTakenPct": -40, "regenPctPer5s": 8, "scope": "trait" }
+        {
+          "def": 20,
+          "scope": "trait"
+        },
+        {
+          "def": 40,
+          "critTakenPct": -25,
+          "scope": "trait"
+        },
+        {
+          "def": 70,
+          "critTakenPct": -40,
+          "regenPctPer5s": 8,
+          "scope": "trait"
+        }
       ]
     },
     {
-      "id": "wing", "name": { "ko": "날개", "en": "Wing" }, "steps": [2, 4, 6],
+      "id": "wing",
+      "name": {
+        "ko": "날개",
+        "en": "Wing",
+        "ja": "翼",
+        "zh-Hant": "羽翼",
+        "zh-Hans": "羽翼"
+      },
+      "steps": [
+        2,
+        4,
+        6
+      ],
       "effects": [
-        { "attackSpeedPct": 15, "scope": "trait" },
-        { "attackSpeedPct": 30, "dodgePct": 20, "dodgeTicks": 90, "scope": "trait" },
-        { "attackSpeedPct": 50, "dodgePct": 35, "dodgeTicks": 150, "scope": "trait" }
+        {
+          "attackSpeedPct": 15,
+          "scope": "trait"
+        },
+        {
+          "attackSpeedPct": 30,
+          "dodgePct": 20,
+          "dodgeTicks": 90,
+          "scope": "trait"
+        },
+        {
+          "attackSpeedPct": 50,
+          "dodgePct": 35,
+          "dodgeTicks": 150,
+          "scope": "trait"
+        }
       ]
     },
     {
-      "id": "mushroom", "name": { "ko": "버섯", "en": "Mushroom" }, "steps": [2, 3, 4],
+      "id": "mushroom",
+      "name": {
+        "ko": "버섯",
+        "en": "Mushroom",
+        "ja": "キノコ",
+        "zh-Hant": "蘑菇",
+        "zh-Hans": "蘑菇"
+      },
+      "steps": [
+        2,
+        3,
+        4
+      ],
       "effects": [
-        { "power": 25, "scope": "trait" },
-        { "power": 50, "manaStart": 20, "scope": "trait" },
-        { "power": 100, "manaStart": 35, "scope": "trait", "splashOnSkillPct": 40 }
+        {
+          "power": 25,
+          "scope": "trait"
+        },
+        {
+          "power": 50,
+          "manaStart": 20,
+          "scope": "trait"
+        },
+        {
+          "power": 100,
+          "manaStart": 35,
+          "scope": "trait",
+          "splashOnSkillPct": 40
+        }
       ]
     },
     {
-      "id": "undead", "name": { "ko": "망자", "en": "Undead" }, "steps": [2, 3, 4],
+      "id": "undead",
+      "name": {
+        "ko": "망자",
+        "en": "Undead",
+        "ja": "アンデッド",
+        "zh-Hant": "不死",
+        "zh-Hans": "不死"
+      },
+      "steps": [
+        2,
+        3,
+        4
+      ],
       "effects": [
-        { "atkPct": 12, "scope": "trait" },
-        { "atkPct": 25, "deathBlastPct": 100, "deathBlastRadius": 1, "scope": "trait" },
-        { "atkPct": 45, "deathBlastPct": 160, "deathBlastRadius": 1, "revive": { "hpPct": 35, "perRound": 1 }, "scope": "trait" }
+        {
+          "atkPct": 12,
+          "scope": "trait"
+        },
+        {
+          "atkPct": 25,
+          "deathBlastPct": 100,
+          "deathBlastRadius": 1,
+          "scope": "trait"
+        },
+        {
+          "atkPct": 45,
+          "deathBlastPct": 160,
+          "deathBlastRadius": 1,
+          "revive": {
+            "hpPct": 35,
+            "perRound": 1
+          },
+          "scope": "trait"
+        }
       ]
     }
   ],
-
   "classes": [
     {
-      "id": "tank", "name": { "ko": "탱커", "en": "Tank" }, "steps": [2, 4, 6],
+      "id": "tank",
+      "name": {
+        "ko": "탱커",
+        "en": "Tank",
+        "ja": "タンク",
+        "zh-Hant": "坦克",
+        "zh-Hans": "坦克"
+      },
+      "steps": [
+        2,
+        4,
+        6
+      ],
       "effects": [
-        { "def": 25, "hp": 250, "scope": "trait" },
-        { "def": 55, "hp": 550, "scope": "trait" },
-        { "def": 95, "hp": 950, "shieldPctMaxHp": 20, "shieldTicks": 150, "scope": "trait" }
+        {
+          "def": 25,
+          "hp": 250,
+          "scope": "trait"
+        },
+        {
+          "def": 55,
+          "hp": 550,
+          "scope": "trait"
+        },
+        {
+          "def": 95,
+          "hp": 950,
+          "shieldPctMaxHp": 20,
+          "shieldTicks": 150,
+          "scope": "trait"
+        }
       ]
     },
     {
-      "id": "fighter", "name": { "ko": "전사", "en": "Fighter" }, "steps": [2, 3, 4],
+      "id": "fighter",
+      "name": {
+        "ko": "전사",
+        "en": "Fighter",
+        "ja": "戦士",
+        "zh-Hant": "戰士",
+        "zh-Hans": "战士"
+      },
+      "steps": [
+        2,
+        3,
+        4
+      ],
       "effects": [
-        { "atkPct": 20, "scope": "trait" },
-        { "atkPct": 35, "doubleStrikeChance": 15, "scope": "trait" },
-        { "atkPct": 60, "doubleStrikeChance": 30, "scope": "trait" }
+        {
+          "atkPct": 20,
+          "scope": "trait"
+        },
+        {
+          "atkPct": 35,
+          "doubleStrikeChance": 15,
+          "scope": "trait"
+        },
+        {
+          "atkPct": 60,
+          "doubleStrikeChance": 30,
+          "scope": "trait"
+        }
       ]
     },
     {
-      "id": "shooter", "name": { "ko": "사수", "en": "Shooter" }, "steps": [2, 3],
+      "id": "shooter",
+      "name": {
+        "ko": "사수",
+        "en": "Shooter",
+        "ja": "射手",
+        "zh-Hant": "射手",
+        "zh-Hans": "射手"
+      },
+      "steps": [
+        2,
+        3
+      ],
       "effects": [
-        { "range": 1, "attackSpeedPct": 20, "scope": "trait" },
-        { "range": 2, "attackSpeedPct": 40, "pierceCount": 1, "piercePct": 60, "scope": "trait" }
+        {
+          "range": 1,
+          "attackSpeedPct": 20,
+          "scope": "trait"
+        },
+        {
+          "range": 2,
+          "attackSpeedPct": 40,
+          "pierceCount": 1,
+          "piercePct": 60,
+          "scope": "trait"
+        }
       ]
     },
     {
-      "id": "mage", "name": { "ko": "마법사", "en": "Mage" }, "steps": [2, 3, 5],
+      "id": "mage",
+      "name": {
+        "ko": "마법사",
+        "en": "Mage",
+        "ja": "魔法使い",
+        "zh-Hant": "法師",
+        "zh-Hans": "法师"
+      },
+      "steps": [
+        2,
+        3,
+        5
+      ],
       "effects": [
-        { "power": 30, "scope": "trait" },
-        { "power": 60, "manaCostPct": -10, "scope": "trait" },
-        { "power": 120, "manaCostPct": -20, "aoeRadius": 1, "scope": "trait" }
+        {
+          "power": 30,
+          "scope": "trait"
+        },
+        {
+          "power": 60,
+          "manaCostPct": -10,
+          "scope": "trait"
+        },
+        {
+          "power": 120,
+          "manaCostPct": -20,
+          "aoeRadius": 1,
+          "scope": "trait"
+        }
       ]
     },
     {
-      "id": "assassin", "name": { "ko": "암살자", "en": "Assassin" }, "steps": [2, 3, 4],
+      "id": "assassin",
+      "name": {
+        "ko": "암살자",
+        "en": "Assassin",
+        "ja": "暗殺者",
+        "zh-Hant": "刺客",
+        "zh-Hans": "刺客"
+      },
+      "steps": [
+        2,
+        3,
+        4
+      ],
       "effects": [
-        { "leapToBackline": true, "critChancePct": 20, "scope": "trait" },
-        { "leapToBackline": true, "critChancePct": 35, "critDamagePct": 30, "scope": "trait" },
-        { "leapToBackline": true, "critChancePct": 50, "critDamagePct": 50, "manaOnKill": 20, "scope": "trait" }
+        {
+          "leapToBackline": true,
+          "critChancePct": 20,
+          "scope": "trait"
+        },
+        {
+          "leapToBackline": true,
+          "critChancePct": 35,
+          "critDamagePct": 30,
+          "scope": "trait"
+        },
+        {
+          "leapToBackline": true,
+          "critChancePct": 50,
+          "critDamagePct": 50,
+          "manaOnKill": 20,
+          "scope": "trait"
+        }
       ]
     },
     {
-      "id": "revive", "name": { "ko": "부활", "en": "Revive" }, "steps": [2, 3],
+      "id": "revive",
+      "name": {
+        "ko": "부활",
+        "en": "Revive",
+        "ja": "復活",
+        "zh-Hant": "復活",
+        "zh-Hans": "复活"
+      },
+      "steps": [
+        2,
+        3
+      ],
       "effects": [
-        { "deathBlastPct": 120, "deathBlastRadius": 1, "scope": "trait" },
-        { "deathBlastPct": 120, "deathBlastRadius": 1, "revive": { "hpPct": 40, "perRound": 1 }, "scope": "trait" }
+        {
+          "deathBlastPct": 120,
+          "deathBlastRadius": 1,
+          "scope": "trait"
+        },
+        {
+          "deathBlastPct": 120,
+          "deathBlastRadius": 1,
+          "revive": {
+            "hpPct": 40,
+            "perRound": 1
+          },
+          "scope": "trait"
+        }
       ]
     }
   ]

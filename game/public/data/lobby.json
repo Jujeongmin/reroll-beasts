@@ -3,35 +3,59 @@
   "names": [
     {
       "ko": "나",
-      "en": "You"
+      "en": "You",
+      "ja": "あなた",
+      "zh-Hant": "你",
+      "zh-Hans": "你"
     },
     {
       "ko": "바위손",
-      "en": "Stonehand"
+      "en": "Stonehand",
+      "ja": "岩の手",
+      "zh-Hant": "岩手",
+      "zh-Hans": "岩手"
     },
     {
       "ko": "잿불",
-      "en": "Ashfall"
+      "en": "Ashfall",
+      "ja": "燠火",
+      "zh-Hant": "餘燼",
+      "zh-Hans": "余烬"
     },
     {
       "ko": "물비늘",
-      "en": "Waterscale"
+      "en": "Waterscale",
+      "ja": "水鱗",
+      "zh-Hant": "水鱗",
+      "zh-Hans": "水鳞"
     },
     {
       "ko": "덩굴손",
-      "en": "Vinegrip"
+      "en": "Vinegrip",
+      "ja": "蔦手",
+      "zh-Hant": "藤蔓",
+      "zh-Hans": "藤蔓"
     },
     {
       "ko": "쇠발톱",
-      "en": "Ironclaw"
+      "en": "Ironclaw",
+      "ja": "鉄爪",
+      "zh-Hant": "鐵爪",
+      "zh-Hans": "铁爪"
     },
     {
       "ko": "달그림자",
-      "en": "Moonshade"
+      "en": "Moonshade",
+      "ja": "月影",
+      "zh-Hant": "月影",
+      "zh-Hans": "月影"
     },
     {
       "ko": "모래턱",
-      "en": "Sandjaw"
+      "en": "Sandjaw",
+      "ja": "砂顎",
+      "zh-Hant": "沙顎",
+      "zh-Hans": "沙颚"
     }
   ],
   "growth": [

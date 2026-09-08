@@ -515,7 +515,9 @@ describe('닉네임', () => {
     }
     const s = await server.joinLobby();
     // 거절됐으니 기본 이름 그대로다
-    expect(s.seats[0].name).toBe('유저mer2');
+    // 지어낸 이름은 언어를 든 객체다 — 한 방에 언어가 다른 여덟 명이 앉는다.
+    expect(s.seats[0].name.ko).toBe('유저mer2');
+    expect(s.seats[0].name.en).toBe('Player mer2');
   });
 });
 

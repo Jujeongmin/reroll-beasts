@@ -167,17 +167,31 @@ describe('승리 이펙트 형태', () => {
   })
 })
 
-describe('두 언어', () => {
-  // 한쪽만 있으면 그 언어에서 빈칸이 뜨거나 다른 언어가 섞여 나온다.
+describe('모든 언어', () => {
+  // 한 언어가 빠지면 그 화면에서만 영어가 섞여 나온다 — 그 언어로 노는
+  // 사람에게만 보이는 종류의 흠이라, 여기서 안 잡으면 아무도 못 본다.
+  const missing = (m) => m.includes('빠진 언어')
+
   it('한쪽 언어만 있는 이름을 잡는다', async () => {
     const bad = clone(data)
     bad.items.items[0].name = { ko: '강철검' }
-    expect((await validate(bad)).some((m) => m.includes('영어'))).toBe(true)
+    expect((await validate(bad)).some(missing)).toBe(true)
   })
 
   it('한쪽 언어만 있는 미션 문구를 잡는다', async () => {
     const bad = clone(data)
     bad.missions.missions[0].text = { en: 'Play 2' }
-    expect((await validate(bad)).some((m) => m.includes('영어'))).toBe(true)
+    expect((await validate(bad)).some(missing)).toBe(true)
+  })
+
+  // 한국어·영어만 채우고 새 언어를 잊는 것이 실제로 일어나는 실수다.
+  it('나중에 더한 언어가 빠진 것도 잡는다', async () => {
+    const bad = clone(data)
+    bad.units.units[0].name = { ko: '초록 슬라임', en: 'Green Blob', ja: '緑スライム' }
+    expect((await validate(bad)).some(missing)).toBe(true)
+  })
+
+  it('멀쩡한 데이터에는 이 흠이 없다', async () => {
+    expect((await validate(clone(data))).some(missing)).toBe(false)
   })
 })

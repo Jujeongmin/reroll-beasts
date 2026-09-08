@@ -5,11 +5,17 @@
       "id": "gems_small",
       "name": {
         "ko": "젬 300",
-        "en": "300 Gems"
+        "en": "300 Gems",
+        "ja": "ジェム300",
+        "zh-Hant": "300寶石",
+        "zh-Hans": "300宝石"
       },
       "desc": {
         "ko": "아바타 하나 값이 넉넉하다",
-        "en": "Enough for an avatar"
+        "en": "Enough for an avatar",
+        "ja": "アバター1体に十分",
+        "zh-Hant": "買一個角色綽綽有餘",
+        "zh-Hans": "买一个角色绰绰有余"
       },
       "gems": 300,
       "icon": "store_gems_small.webp"
@@ -18,39 +24,55 @@
       "id": "gems_medium",
       "name": {
         "ko": "젬 1,000",
-        "en": "1,000 Gems"
+        "en": "1,000 Gems",
+        "ja": "ジェム1,000",
+        "zh-Hant": "1,000寶石",
+        "zh-Hans": "1,000宝石"
       },
       "desc": {
-        "ko": "10% 더 준다",
-        "en": "10% extra"
+        "ko": "가장 많이 고르는 묶음",
+        "en": "The popular pack",
+        "ja": "一番選ばれている",
+        "zh-Hant": "最多人選的組合",
+        "zh-Hans": "最多人选的组合"
       },
       "gems": 1000,
-      "bonus": "+10%",
       "icon": "store_gems_medium.webp"
     },
     {
       "id": "gems_large",
       "name": {
         "ko": "젬 2,600",
-        "en": "2,600 Gems"
+        "en": "2,600 Gems",
+        "ja": "ジェム2,600",
+        "zh-Hant": "2,600寶石",
+        "zh-Hans": "2,600宝石"
       },
       "desc": {
-        "ko": "23% 더 준다",
-        "en": "23% extra"
+        "ko": "젬 하나당 값이 가장 싸다",
+        "en": "Best value per gem",
+        "ja": "ジェム単価が一番安い",
+        "zh-Hant": "每顆寶石最划算",
+        "zh-Hans": "每颗宝石最划算"
       },
       "gems": 2600,
-      "bonus": "+23%",
       "icon": "store_gems_large.webp"
     },
     {
       "id": "pass_premium_s1",
       "name": {
         "ko": "시즌 1 프리미엄 패스",
-        "en": "Season 1 Premium Pass"
+        "en": "Season 1 Premium Pass",
+        "ja": "シーズン1 プレミアムパス",
+        "zh-Hant": "第1賽季高級通行證",
+        "zh-Hans": "第1赛季高级通行证"
       },
       "desc": {
         "ko": "잠긴 16칸이 전부 열린다. 끝까지 올리면 젬 500",
-        "en": "Unlocks all 16 locked tiers · 500 gems if you finish"
+        "en": "Unlocks all 16 locked tiers · 500 gems if you finish",
+        "ja": "ロックされた16段がすべて開く。最後まで上げるとジェム500",
+        "zh-Hant": "鎖住的16格全部開啟。升到頂可得500寶石",
+        "zh-Hans": "锁住的16格全部开启。升到顶可得500宝石"
       },
       "premium": true,
       "icon": "store_pass_premium.webp"

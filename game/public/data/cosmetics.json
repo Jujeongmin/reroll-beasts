@@ -28,7 +28,10 @@
       "id": "knight",
       "name": {
         "ko": "기사",
-        "en": "Knight"
+        "en": "Knight",
+        "ja": "騎士",
+        "zh-Hant": "騎士",
+        "zh-Hans": "骑士"
       },
       "pack": "chars",
       "file": "Knight_Male.glb",
@@ -38,7 +41,10 @@
       "id": "elf",
       "name": {
         "ko": "엘프",
-        "en": "Elf"
+        "en": "Elf",
+        "ja": "エルフ",
+        "zh-Hant": "精靈",
+        "zh-Hans": "精灵"
       },
       "pack": "chars",
       "file": "Elf.glb",
@@ -48,7 +54,10 @@
       "id": "wizard",
       "name": {
         "ko": "마법사",
-        "en": "Wizard"
+        "en": "Wizard",
+        "ja": "魔法使い",
+        "zh-Hant": "法師",
+        "zh-Hans": "法师"
       },
       "pack": "chars",
       "file": "Wizard.glb",
@@ -58,7 +67,10 @@
       "id": "ghost",
       "name": {
         "ko": "유령",
-        "en": "Ghost"
+        "en": "Ghost",
+        "ja": "ゴースト",
+        "zh-Hant": "幽靈",
+        "zh-Hans": "幽灵"
       },
       "pack": "cute",
       "file": "Ghost.glb",
@@ -68,7 +80,10 @@
       "id": "penguin",
       "name": {
         "ko": "펭귄",
-        "en": "Penguin"
+        "en": "Penguin",
+        "ja": "ペンギン",
+        "zh-Hant": "企鵝",
+        "zh-Hans": "企鹅"
       },
       "pack": "cute",
       "file": "Penguin.glb",
@@ -78,7 +93,10 @@
       "id": "viking",
       "name": {
         "ko": "바이킹",
-        "en": "Viking"
+        "en": "Viking",
+        "ja": "ヴァイキング",
+        "zh-Hant": "維京人",
+        "zh-Hans": "维京人"
       },
       "pack": "chars",
       "file": "Viking_Male.glb",
@@ -89,7 +107,10 @@
       "id": "bee",
       "name": {
         "ko": "꿀벌",
-        "en": "Bee"
+        "en": "Bee",
+        "ja": "ミツバチ",
+        "zh-Hant": "蜜蜂",
+        "zh-Hans": "蜜蜂"
       },
       "pack": "cute",
       "file": "Bee.glb",
@@ -100,7 +121,10 @@
       "id": "ninja",
       "name": {
         "ko": "닌자",
-        "en": "Ninja"
+        "en": "Ninja",
+        "ja": "忍者",
+        "zh-Hant": "忍者",
+        "zh-Hans": "忍者"
       },
       "pack": "chars",
       "file": "Ninja_Male.glb",
@@ -111,7 +135,10 @@
       "id": "panda",
       "name": {
         "ko": "판다",
-        "en": "Panda"
+        "en": "Panda",
+        "ja": "パンダ",
+        "zh-Hant": "熊貓",
+        "zh-Hans": "熊猫"
       },
       "pack": "cute",
       "file": "Panda.glb",
@@ -122,7 +149,10 @@
       "id": "bat",
       "name": {
         "ko": "박쥐",
-        "en": "Bat"
+        "en": "Bat",
+        "ja": "コウモリ",
+        "zh-Hant": "蝙蝠",
+        "zh-Hans": "蝙蝠"
       },
       "pack": "cute",
       "file": "Bat.glb",
@@ -133,7 +163,10 @@
       "id": "witch",
       "name": {
         "ko": "마녀",
-        "en": "Witch"
+        "en": "Witch",
+        "ja": "魔女",
+        "zh-Hant": "女巫",
+        "zh-Hans": "女巫"
       },
       "pack": "chars",
       "file": "Witch.glb",
@@ -144,7 +177,10 @@
       "id": "skull",
       "name": {
         "ko": "해골",
-        "en": "Skull"
+        "en": "Skull",
+        "ja": "ドクロ",
+        "zh-Hant": "骷髏",
+        "zh-Hans": "骷髅"
       },
       "pack": "cute",
       "file": "Skull.glb",
@@ -155,7 +191,10 @@
       "id": "cyclops",
       "name": {
         "ko": "키클롭스",
-        "en": "Cyclops"
+        "en": "Cyclops",
+        "ja": "サイクロプス",
+        "zh-Hant": "獨眼巨人",
+        "zh-Hans": "独眼巨人"
       },
       "pack": "cute",
       "file": "Cyclops.glb",
@@ -166,7 +205,10 @@
       "id": "goblin",
       "name": {
         "ko": "고블린",
-        "en": "Goblin"
+        "en": "Goblin",
+        "ja": "ゴブリン",
+        "zh-Hant": "哥布林",
+        "zh-Hans": "哥布林"
       },
       "pack": "chars",
       "file": "Goblin_Male.glb",
@@ -177,7 +219,10 @@
       "id": "demon",
       "name": {
         "ko": "마귀",
-        "en": "Demon"
+        "en": "Demon",
+        "ja": "魔物",
+        "zh-Hant": "惡魔",
+        "zh-Hans": "恶魔"
       },
       "pack": "cute",
       "file": "Demon.glb",
@@ -188,7 +233,10 @@
       "id": "yeti",
       "name": {
         "ko": "예티",
-        "en": "Yeti"
+        "en": "Yeti",
+        "ja": "イエティ",
+        "zh-Hant": "雪怪",
+        "zh-Hans": "雪怪"
       },
       "pack": "cute",
       "file": "Yeti.glb",
@@ -199,7 +247,10 @@
       "id": "cthulhu",
       "name": {
         "ko": "크툴루",
-        "en": "Cthulhu"
+        "en": "Cthulhu",
+        "ja": "クトゥルフ",
+        "zh-Hant": "克蘇魯",
+        "zh-Hans": "克苏鲁"
       },
       "pack": "cute",
       "file": "Cthulhu.glb",
@@ -210,7 +261,10 @@
       "id": "golden_knight",
       "name": {
         "ko": "황금 기사",
-        "en": "Golden Knight"
+        "en": "Golden Knight",
+        "ja": "黄金の騎士",
+        "zh-Hant": "黃金騎士",
+        "zh-Hans": "黄金骑士"
       },
       "pack": "chars",
       "file": "Knight_Golden_Female.glb",
@@ -221,7 +275,10 @@
       "id": "pirate",
       "name": {
         "ko": "해적",
-        "en": "Pirate"
+        "en": "Pirate",
+        "ja": "海賊",
+        "zh-Hant": "海盜",
+        "zh-Hans": "海盗"
       },
       "pack": "chars",
       "file": "Pirate_Female.glb",
@@ -232,7 +289,10 @@
       "id": "zombie",
       "name": {
         "ko": "좀비",
-        "en": "Zombie"
+        "en": "Zombie",
+        "ja": "ゾンビ",
+        "zh-Hant": "殭屍",
+        "zh-Hans": "僵尸"
       },
       "pack": "chars",
       "file": "Zombie_Male.glb",
@@ -249,11 +309,17 @@
       "id": "stone",
       "name": {
         "ko": "돌마당",
-        "en": "Stone Yard"
+        "en": "Stone Yard",
+        "ja": "石の広場",
+        "zh-Hant": "石場",
+        "zh-Hans": "石场"
       },
       "desc": {
         "ko": "기본 무대",
-        "en": "Where every run starts"
+        "en": "Where every run starts",
+        "ja": "最初の舞台",
+        "zh-Hant": "一切從這裡開始",
+        "zh-Hans": "一切从这里开始"
       },
       "unlock": "free",
       "colors": {
@@ -267,11 +333,17 @@
       "id": "ashen",
       "name": {
         "ko": "잿빛 폐허",
-        "en": "Ashen Ruins"
+        "en": "Ashen Ruins",
+        "ja": "灰の廃墟",
+        "zh-Hant": "灰燼廢墟",
+        "zh-Hans": "灰烬废墟"
       },
       "desc": {
         "ko": "타 버린 돌과 재",
-        "en": "Burnt stone and ash"
+        "en": "Burnt stone and ash",
+        "ja": "焼けた石と灰",
+        "zh-Hant": "燒焦的石頭與灰",
+        "zh-Hans": "烧焦的石头与灰"
       },
       "unlock": "gem",
       "price": 180,
@@ -286,11 +358,17 @@
       "id": "frost",
       "name": {
         "ko": "서리 들판",
-        "en": "Frostreach"
+        "en": "Frostreach",
+        "ja": "霜の野",
+        "zh-Hant": "霜原",
+        "zh-Hans": "霜原"
       },
       "desc": {
         "ko": "얼어붙은 판",
-        "en": "Ice that never melts"
+        "en": "Ice that never melts",
+        "ja": "溶けない氷",
+        "zh-Hant": "不會融化的冰",
+        "zh-Hans": "不会融化的冰"
       },
       "unlock": "gem",
       "price": 220,
@@ -305,11 +383,17 @@
       "id": "emberfall",
       "name": {
         "ko": "잿불 협곡",
-        "en": "Ember Canyon"
+        "en": "Ember Canyon",
+        "ja": "燠火の峡谷",
+        "zh-Hant": "餘燼峽谷",
+        "zh-Hans": "余烬峡谷"
       },
       "desc": {
         "ko": "패스 15단계",
-        "en": "Embers drifting up from below"
+        "en": "Embers drifting up from below",
+        "ja": "下から火の粉が舞い上がる",
+        "zh-Hant": "火星從下方飄上來",
+        "zh-Hans": "火星从下方飘上来"
       },
       "unlock": "pass",
       "passLevel": 15,
@@ -324,11 +408,17 @@
       "id": "champion",
       "name": {
         "ko": "챔피언 무대",
-        "en": "Champion's Arena"
+        "en": "Champion's Arena",
+        "ja": "チャンピオンの舞台",
+        "zh-Hant": "冠軍競技場",
+        "zh-Hans": "冠军竞技场"
       },
       "desc": {
         "ko": "플래티넘 달성",
-        "en": "Only the top tier stands here"
+        "en": "Only the top tier stands here",
+        "ja": "最上位だけが立てる",
+        "zh-Hant": "只有頂尖才站得上來",
+        "zh-Hans": "只有顶尖才站得上来"
       },
       "unlock": "rank",
       "tier": "platinum",
@@ -343,11 +433,17 @@
       "id": "dawnvale",
       "name": {
         "ko": "새벽 골짜기",
-        "en": "Dawnvale"
+        "en": "Dawnvale",
+        "ja": "暁の谷",
+        "zh-Hant": "破曉谷",
+        "zh-Hans": "破晓谷"
       },
       "desc": {
         "ko": "해 뜨기 직전의 돌",
-        "en": "Stone just before sunrise"
+        "en": "Stone just before sunrise",
+        "ja": "日の出直前の石",
+        "zh-Hant": "日出前的石頭",
+        "zh-Hans": "日出前的石头"
       },
       "unlock": "pass",
       "passLevel": 4,
@@ -362,11 +458,17 @@
       "id": "voidstone",
       "name": {
         "ko": "공허석",
-        "en": "Voidstone"
+        "en": "Voidstone",
+        "ja": "虚無石",
+        "zh-Hant": "虛空石",
+        "zh-Hans": "虚空石"
       },
       "desc": {
         "ko": "빛이 닿지 않는 돌",
-        "en": "Light does not reach it"
+        "en": "Light does not reach it",
+        "ja": "光が届かない",
+        "zh-Hant": "光照不到",
+        "zh-Hans": "光照不到"
       },
       "unlock": "pass",
       "passLevel": 9,
@@ -381,11 +483,17 @@
       "id": "bloomfield",
       "name": {
         "ko": "꽃밭",
-        "en": "Bloomfield"
+        "en": "Bloomfield",
+        "ja": "花畑",
+        "zh-Hant": "花田",
+        "zh-Hans": "花田"
       },
       "desc": {
         "ko": "밟으면 꽃가루가 인다",
-        "en": "Pollen rises where you step"
+        "en": "Pollen rises where you step",
+        "ja": "踏むと花粉が舞う",
+        "zh-Hant": "踩過就揚起花粉",
+        "zh-Hans": "踩过就扬起花粉"
       },
       "unlock": "pass",
       "passLevel": 16,
@@ -403,11 +511,17 @@
       "id": "flare",
       "name": {
         "ko": "섬광",
-        "en": "Flare"
+        "en": "Flare",
+        "ja": "閃光",
+        "zh-Hant": "閃光",
+        "zh-Hans": "闪光"
       },
       "desc": {
         "ko": "기본 승리 이펙트",
-        "en": "A burst on the losing board"
+        "en": "A burst on the losing board",
+        "ja": "負けた盤で弾ける",
+        "zh-Hant": "在輸掉的場上炸開",
+        "zh-Hans": "在输掉的场上炸开"
       },
       "unlock": "free",
       "fx": {
@@ -423,11 +537,17 @@
       "id": "frostfall",
       "name": {
         "ko": "서리 낙하",
-        "en": "Frostfall"
+        "en": "Frostfall",
+        "ja": "霜の落下",
+        "zh-Hant": "霜降",
+        "zh-Hans": "霜降"
       },
       "desc": {
         "ko": "진 판이 얼어붙는다",
-        "en": "The losing board freezes over"
+        "en": "The losing board freezes over",
+        "ja": "負けた盤が凍りつく",
+        "zh-Hant": "輸掉的場地結凍",
+        "zh-Hans": "输掉的场地结冻"
       },
       "unlock": "gem",
       "price": 160,
@@ -444,11 +564,17 @@
       "id": "emberstorm",
       "name": {
         "ko": "잿불 폭풍",
-        "en": "Emberstorm"
+        "en": "Emberstorm",
+        "ja": "燠火の嵐",
+        "zh-Hant": "餘燼風暴",
+        "zh-Hans": "余烬风暴"
       },
       "desc": {
         "ko": "불티가 쏟아진다",
-        "en": "Embers sweep across the loser"
+        "en": "Embers sweep across the loser",
+        "ja": "火の粉が降り注ぐ",
+        "zh-Hant": "火星傾瀉而下",
+        "zh-Hans": "火星倾泻而下"
       },
       "unlock": "gem",
       "price": 200,
@@ -465,11 +591,17 @@
       "id": "starfall",
       "name": {
         "ko": "별똥별",
-        "en": "Starfall"
+        "en": "Starfall",
+        "ja": "流星",
+        "zh-Hant": "流星",
+        "zh-Hans": "流星"
       },
       "desc": {
         "ko": "패스 18단계",
-        "en": "Stars come down on the loser"
+        "en": "Stars come down on the loser",
+        "ja": "負けた盤に星が降る",
+        "zh-Hant": "星星落在輸家身上",
+        "zh-Hans": "星星落在输家身上"
       },
       "unlock": "pass",
       "passLevel": 18,
@@ -486,11 +618,17 @@
       "id": "crownfall",
       "name": {
         "ko": "왕관 강림",
-        "en": "Crownfall"
+        "en": "Crownfall",
+        "ja": "王冠の降臨",
+        "zh-Hant": "王冠降臨",
+        "zh-Hans": "王冠降临"
       },
       "desc": {
         "ko": "다이아 달성",
-        "en": "A crown falls and shatters"
+        "en": "A crown falls and shatters",
+        "ja": "王冠が落ちて砕ける",
+        "zh-Hant": "王冠墜落碎裂",
+        "zh-Hans": "王冠坠落碎裂"
       },
       "unlock": "rank",
       "tier": "diamond",
@@ -507,11 +645,17 @@
       "id": "leafstorm",
       "name": {
         "ko": "잎보라",
-        "en": "Leafstorm"
+        "en": "Leafstorm",
+        "ja": "木の葉嵐",
+        "zh-Hant": "落葉風暴",
+        "zh-Hans": "落叶风暴"
       },
       "desc": {
         "ko": "진 판이 잎에 묻힌다",
-        "en": "The losing board is buried in leaves"
+        "en": "The losing board is buried in leaves",
+        "ja": "負けた盤が葉に埋もれる",
+        "zh-Hant": "輸掉的場地被葉子淹沒",
+        "zh-Hans": "输掉的场地被叶子淹没"
       },
       "unlock": "pass",
       "passLevel": 7,
@@ -528,11 +672,17 @@
       "id": "voidfall",
       "name": {
         "ko": "공허 낙하",
-        "en": "Voidfall"
+        "en": "Voidfall",
+        "ja": "虚無の落下",
+        "zh-Hant": "虛空降臨",
+        "zh-Hans": "虚空降临"
       },
       "desc": {
         "ko": "진 판이 어둠에 삼켜진다",
-        "en": "The dark swallows the losing board"
+        "en": "The dark swallows the losing board",
+        "ja": "負けた盤が闇に呑まれる",
+        "zh-Hant": "輸掉的場地被黑暗吞沒",
+        "zh-Hans": "输掉的场地被黑暗吞没"
       },
       "unlock": "pass",
       "passLevel": 14,
@@ -549,11 +699,17 @@
       "id": "sunburst",
       "name": {
         "ko": "해돋이",
-        "en": "Sunburst"
+        "en": "Sunburst",
+        "ja": "日の出",
+        "zh-Hant": "日出",
+        "zh-Hans": "日出"
       },
       "desc": {
         "ko": "진 판 위로 해가 뜬다",
-        "en": "A sun rises over the loser"
+        "en": "A sun rises over the loser",
+        "ja": "負けた盤に日が昇る",
+        "zh-Hant": "太陽在輸家上方升起",
+        "zh-Hans": "太阳在输家上方升起"
       },
       "unlock": "pass",
       "passLevel": 21,

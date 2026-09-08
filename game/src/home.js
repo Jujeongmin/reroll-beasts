@@ -4,7 +4,7 @@
 // 밀어 넣는다. 홈이 SDK 를 알면 홈을 확인하려면 네트워크가 필요해진다.
 
 import { homeView } from './home-state.js'
-import { checkName, displayName, tagDuplicates } from '@sim/name.js'
+import { checkName, tagDuplicates } from '@sim/name.js'
 import { missionsFor, dayKeyOf } from '@sim/missions.js'
 import { PLACEMENTS } from '@sim/ads.js'
 import { t, textOf, esc } from './i18n.js'
@@ -751,7 +751,7 @@ export function createHome({
       return
     }
     // 같은 이름이 두 줄 이상이면 그 줄들에만 계정 꼬리가 붙는다.
-    const shown = tagDuplicates(lb.top.map((r) => ({ text: r.name, tag: r.tag })))
+    const shown = tagDuplicates(lb.top.map((r) => ({ text: textOf(r.name), tag: r.tag })))
     el.boardRows.innerHTML = lb.top
       .map(
         (r, i) =>
@@ -909,7 +909,10 @@ export function createHome({
     // 채로 열어 두면 눌러도 아무 일이 없는 버튼이 된다.
     // 이름은 서버에 저장된다 — 못 붙었으면 바꿀 수도 없다.
     el.nameBtn.hidden = state.status !== 'ready'
-    el.nameBtn.textContent = displayName(state.profile?.name, null) === t('home.guest') ? t('home.setName') : state.profile?.name
+    // 이름을 정했느냐는 **데이터로** 묻는다. 그려진 글자를 견주면 언어를
+    // 바꾸는 순간 한쪽만 맞아, 다른 언어에서는 단추가 빈칸으로 뜬다.
+    const named = checkName(state.profile?.name)
+    el.nameBtn.textContent = named.ok ? named.name : t('home.setName')
     el.shopBtn.hidden = state.status !== 'ready'
     el.rankBtn.hidden = state.status !== 'ready'
     el.rankBtn.textContent = t('home.leaderboard')

@@ -1,7 +1,17 @@
 // 닉네임 규칙. 서버가 이 함수로 검산하므로 여기서 못박는다 — 화면에서만
 // 막으면 조작된 요청 하나로 아무 이름이나 남의 화면에 뜬다.
 import { describe, it, expect } from 'vitest'
-import { checkName, normalizeName, displayName, NAME_MIN, NAME_MAX, tagDuplicates, accountTag } from '../sim/name.js'
+import {
+  checkName,
+  normalizeName,
+  displayName,
+  guestName,
+  NAME_MIN,
+  NAME_MAX,
+  tagDuplicates,
+  accountTag,
+} from '../sim/name.js'
+import { STRINGS } from '../game/src/i18n.js'
 
 describe('normalizeName', () => {
   it('앞뒤 공백을 떼고 사이 공백은 하나로 줄인다', () => {
@@ -56,13 +66,26 @@ describe('displayName', () => {
     expect(displayName('고수', '0xabcdef1234')).toBe('고수')
   })
 
+  // 지어낸 이름은 **언어를 든 채로** 낸다. 한 방에 언어가 다른 여덟 명이
+  // 앉으므로, 만드는 쪽(서버)은 받는 사람의 언어를 알 수가 없다.
   it('없거나 규칙에 안 맞으면 계정 꼬리로 만든다', () => {
-    expect(displayName(null, '0xabcdef1234')).toBe('유저1234')
-    expect(displayName('!!', '0xabcdef1234')).toBe('유저1234')
+    expect(displayName(null, '0xabcdef1234').ko).toBe('유저1234')
+    expect(displayName('!!', '0xabcdef1234').ko).toBe('유저1234')
+    expect(displayName(null, '0xabcdef1234').en).toBe('Player 1234')
+    expect(displayName(null, '0xabcdef1234').ja).toBe('プレイヤー1234')
   })
 
   it('계정이 없어도 안 던진다', () => {
-    expect(displayName(null, null)).toBe('유저')
+    expect(displayName(null, null).ko).toBe('유저')
+    // 꼬리가 없으면 뒤에 공백도 없다.
+    expect(displayName(null, null).en).toBe('Player')
+  })
+
+  it('우리가 파는 모든 언어를 든다 — 한 언어가 빠지면 그 화면만 남의 말로 뜬다', () => {
+    const g = guestName('0xabcdef1234')
+    for (const l of Object.keys(STRINGS)) {
+      expect(String(g[l] ?? '').trim(), l).not.toBe('')
+    }
   })
 
   it('최소 길이는 2 다 — 한 글자 이름은 목록에서 안 읽힌다', () => {

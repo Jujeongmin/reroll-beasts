@@ -9,6 +9,7 @@
 // 보드 두 개와 시드가 같으면 클라가 같은 로그를 스스로 만든다.
 
 import { simulate } from './combat.js'
+import { guestName, botName } from './name.js'
 import { botBoard, pairUp } from './lobby.js'
 import { createRng } from './rng.js'
 import { roundAt, totalRounds, defeatDamage } from './rounds.js'
@@ -150,7 +151,7 @@ export function createLobbyState({ seed, account, accounts, now, data }) {
       // 사람은 계정 꼬리로 구분한다 — 익명 계정이라 달리 부를 이름이 없다.
       // 봇 이름은 데이터가 든 { ko, en } 객체 그대로 둔다 — 화면이 textOf 로
       // 푼다. 여기서 한쪽 언어로 굳히면 언어를 바꿔도 좌석 이름만 안 바뀐다.
-      name: who ? { ko: `유저${String(who).slice(-4)}`, en: `Player ${String(who).slice(-4)}` } : (names[i] ?? { ko: `봇${i}`, en: `Bot ${i}` }),
+      name: who ? guestName(who) : (names[i] ?? botName(i)),
       account: who,
       isBot: !who,
       hp: data.economy.startHp,

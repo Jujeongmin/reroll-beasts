@@ -334,9 +334,14 @@ export async function validate(data) {
   if (freeLevels.length === 0) errors.push('무료 칸이 하나도 없다')
   if (freeLevels.length >= maxPassLevel) errors.push('무료 칸이 트랙 전체다 — 팔 것이 없다')
 
-  // 27. 이름·설명은 **두 언어가 다 있어야** 한다. 한쪽만 있으면 그 언어에서
-  // 빈칸이 뜨거나 다른 언어가 섞여 나온다 — 화면에서야 발견하게 된다.
-  const both = (v) => v == null || typeof v === 'string' || (v.ko && v.en)
+  // 27. 이름·설명은 **우리가 파는 모든 언어에** 있어야 한다. 한 언어가
+  // 빠지면 그 화면에서 영어가 섞여 나온다 — 화면에서야 발견하게 된다.
+  //
+  // 언어 목록은 문구 표(game/src/lang/)에서 읽는다. 여기에 손으로 적어 두면
+  // 언어를 더한 날 이 검사만 옛 목록을 보고 통과시킨다.
+  const { STRINGS } = await import(pathToFileURL(SRC_DIR + 'i18n.js').href)
+  const LANGS = Object.keys(STRINGS)
+  const both = (v) => v == null || typeof v === 'string' || LANGS.every((l) => v[l])
   const named = [
     ['유닛', data.units?.units ?? []],
     ['아이템', data.items?.items ?? []],
@@ -349,13 +354,13 @@ export async function validate(data) {
   ]
   for (const [what, list] of named) {
     for (const x of list) {
-      if (!both(x.name)) errors.push(`${what} ${x.id} 의 이름에 영어가 없다`)
-      if (!both(x.desc)) errors.push(`${what} ${x.id} 의 설명에 영어가 없다`)
-      if (!both(x.text)) errors.push(`${what} ${x.id} 의 문구에 영어가 없다`)
+      if (!both(x.name)) errors.push(`${what} ${x.id} 의 이름에 빠진 언어가 있다`)
+      if (!both(x.desc)) errors.push(`${what} ${x.id} 의 설명에 빠진 언어가 있다`)
+      if (!both(x.text)) errors.push(`${what} ${x.id} 의 문구에 빠진 언어가 있다`)
     }
   }
   for (const n of data.lobby?.names ?? []) {
-    if (!both(n)) errors.push('봇 이름에 영어가 없다')
+    if (!both(n)) errors.push('봇 이름에 빠진 언어가 있다')
   }
 
   // 28. 소리. 두 가지가 조용히 어긋난다:
