@@ -40,7 +40,6 @@ export default {
   'hint.fighting': "Can't sell a unit that's fighting",
   'hint.sold': 'Sold +{gold}g',
   'hint.autoPlace': 'Placed from the bench',
-  'hint.noEquipInBattle': "Can't equip a unit that's fighting",
   'hint.equipped': '{item} equipped',
   'hint.frozenBoard': "Can't change the board during battle",
   'hint.merged': 'Merged',

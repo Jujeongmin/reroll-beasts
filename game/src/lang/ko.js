@@ -60,7 +60,6 @@ export default {
   'hint.fighting': '싸우는 중인 말은 못 판다',
   'hint.sold': '판매 +{gold}골드',
   'hint.autoPlace': '대기석에서 자동 배치',
-  'hint.noEquipInBattle': '싸우는 중인 말에는 못 낀다',
   'hint.equipped': '{item} 장착',
   'hint.frozenBoard': '전투 중에는 판을 못 바꾼다',
   'hint.merged': '합성 완료',

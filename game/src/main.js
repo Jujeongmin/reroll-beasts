@@ -32,6 +32,7 @@ import {
 } from './tutorial.js'
 import { createTutorialMatchmaker } from './tutorialMatchmaker.js'
 import { createHeroView } from './heroView.js'
+import { keepAwake } from './wakelock.js'
 import { createAvatar } from './avatarView.js'
 import { createJoystick } from './joystick.js'
 import { createSettings, reduceMotion } from './settings.js'
@@ -46,6 +47,9 @@ const boot = document.getElementById('boot')
 // 소리는 첫 손짓을 기다린다 — 브라우저가 그 전에는 재생을 막는다. 여기서
 // 귀만 열어 두고, 무엇을 틀지는 화면들이 정한다.
 initAudio()
+// 배치 30초는 화면만 보고, 전투는 만질 것이 없다 — 그 사이에 화면이 꺼지면
+// 다시 켜는 동안 라운드가 넘어간다.
+keepAwake()
 // 눌리는 것에는 소리가 난다. **한 곳에서 잡는다** — 버튼마다 손으로 붙이면
 // 버튼이 늘 때마다 하나씩 조용한 버튼이 생긴다.
 addEventListener(

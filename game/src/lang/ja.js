@@ -40,7 +40,6 @@ export default {
   'hint.fighting': '戦闘中のユニットは売れない',
   'hint.sold': '売却 +{gold}G',
   'hint.autoPlace': '控えから配置した',
-  'hint.noEquipInBattle': '戦闘中のユニットには装備できない',
   'hint.equipped': '{item}を装備',
   'hint.frozenBoard': '戦闘中は盤を動かせない',
   'hint.merged': '合成',

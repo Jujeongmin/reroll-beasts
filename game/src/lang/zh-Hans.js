@@ -40,7 +40,6 @@ export default {
   'hint.fighting': '战斗中的单位不能卖',
   'hint.sold': '卖出 +{gold}金',
   'hint.autoPlace': '已从备战区上场',
-  'hint.noEquipInBattle': '战斗中的单位不能装备',
   'hint.equipped': '已装备{item}',
   'hint.frozenBoard': '战斗中不能动场上',
   'hint.merged': '已合成',

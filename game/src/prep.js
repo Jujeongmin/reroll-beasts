@@ -1538,9 +1538,14 @@ export async function createPrep({
       if (!held.moved) return showItemCard(held.item.id)
       const found = unitAtPointer(ev.clientX, ev.clientY)
       if (!found) return
-      // moveTo 와 같은 잠금이다 — 전투 중엔 판 위 말이 리플레이 스냅샷과
-      // 묶여 있다. 벤치는 리플레이와 무관하니 그대로 둔다.
-      if (!canTouch(found.uid)) return hint(t('hint.noEquipInBattle'))
+      // **전투 중에도 낀다.** 옮기기·팔기와 다르다: 그 둘은 말이 선 자리를
+      // 바꾸는데, 지금 무대는 리플레이가 쥐고 있어 어긋난다. 아이템은 칸의
+      // items 만 건드리고 이번 전투는 이미 다 계산된 로그로 돈다 — 이번 판에
+      // 영향을 못 주고 다음 라운드부터 붙는다.
+      //
+      // 막아 두면 상점이 전투 중에도 열려 있는 것과 앞뒤가 안 맞는다. 싸우는
+      // 동안 사고 굴리는 것이 이 게임의 리듬인데 아이템만 기다리게 할 이유가
+      // 없다. 판 위 말의 배지는 전투가 끝난 뒤에 갱신된다(boardFrozen).
       const r = equipItem(run.state, found.uid, held.item.invIndex, data)
       if (!r.ok) hint(r.reason)
       else hint(t('hint.equipped', { item: textOf(itemById(data.items, held.item.id).name) }), 'ok')
