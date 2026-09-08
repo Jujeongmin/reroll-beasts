@@ -7,6 +7,7 @@ import * as THREE from 'three'
 import { GLTFLoader } from 'three/examples/jsm/loaders/GLTFLoader.js'
 import { MeshoptDecoder } from 'three/examples/jsm/libs/meshopt_decoder.module.js'
 import { clone as cloneSkinned } from 'three/examples/jsm/utils/SkeletonUtils.js'
+import { mergeGeometries } from 'three/examples/jsm/utils/BufferGeometryUtils.js'
 import { createRng } from '@sim/rng.js'
 import { hexSpacing, buildBoard3D } from './board3d.js'
 
@@ -2288,6 +2289,75 @@ export async function createScene({
       ringHot.color.set(colors.ring).offsetHSL(0, 0, 0.18)
     }
   }
+
+
+  /**
+   * 안 움직이는 배경을 재질별로 하나씩 합친다.
+   *
+   * **손가락 기기에서만 한다.** 판을 재 보니 삼각형은 2만 개로 하찮은데
+   * 드로우콜이 227 이었다 — 기하가 아니라 드로우콜에 막힌 장면이다. 그 227
+   * 중 대부분이 둘레·마당·랜드마크였다: 메시 370 개가 고작 31 개의 기하를
+   * 수백 번 따로 그리고 있었다. 재질별로 합치면 그 수백 번이 재질 수만큼으로
+   * 줄어든다.
+   *
+   * 합쳐도 되는 이유: 이것들은 씬을 **세우는 동안에만** 지워지고(대기석·
+   * 아이템 선반·랜드마크가 앉을 자리 비우기) 그 뒤로는 아무도 안 건드린다.
+   * 판이 도는 내내 제자리에 있다.
+   *
+   * 데스크톱은 그대로 둔다. 거기서는 그림자가 켜져 있고 메시마다
+   * receiveShadow 가 다른데, 합치면 그 구분이 사라져 그림자가 달라 보인다.
+   * 굳이 안 급한 곳에서 그림을 바꿀 이유가 없다.
+   */
+  function bakeStatic(group) {
+    if (!lowEnd || !group) return
+    group.updateMatrixWorld(true)
+    // 재질 하나에 기하 하나로 모은다. 재질이 같아도 기하가 다르면 상관없다 —
+    // 합치는 쪽이 좌표를 굽는다.
+    const buckets = new Map()
+    const dead = []
+    group.traverse((o) => {
+      if (!o.isMesh || Array.isArray(o.material) || !o.geometry?.attributes?.position) return
+      // 화면에 없는 것은 합치지 않는다. 켜질 수도 있는 것을 구워 버리면
+      // 다시 못 끈다.
+      if (!o.visible) return
+      const key = o.material.uuid
+      let b = buckets.get(key)
+      if (!b) buckets.set(key, (b = { mat: o.material, geos: [] }))
+      const g = o.geometry.clone()
+      g.applyMatrix4(o.matrixWorld)
+      // 합치려면 속성 구성이 같아야 한다. 안 쓰는 것은 떨군다 — 하나만
+      // 달라도 mergeGeometries 가 null 을 낸다.
+      for (const name of Object.keys(g.attributes)) {
+        if (name !== 'position' && name !== 'normal' && name !== 'uv') g.deleteAttribute(name)
+      }
+      b.geos.push(g)
+      dead.push(o)
+    })
+
+    let merged = 0
+    for (const { mat, geos } of buckets.values()) {
+      if (geos.length < 2) continue
+      const g = mergeGeometries(geos, false)
+      if (!g) continue
+      for (const old of geos) old.dispose()
+      const mesh = new THREE.Mesh(g, mat)
+      // 좌표를 이미 구웠으므로 이 메시는 원점에 선다.
+      mesh.matrixAutoUpdate = false
+      mesh.receiveShadow = false
+      mesh.castShadow = false
+      group.add(mesh)
+      merged++
+    }
+    if (merged === 0) return
+    for (const o of dead) {
+      o.removeFromParent()
+      o.geometry?.dispose?.()
+    }
+  }
+
+  // 판 타일은 안 굽는다 — 색과 테두리가 칸마다 바뀐다.
+  bakeStatic(surroundGroup)
+  bakeStatic(scene.getObjectByName('landmarks'))
 
   return {
     THREE,
