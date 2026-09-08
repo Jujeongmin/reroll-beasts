@@ -1411,19 +1411,51 @@ export async function createScene({
   // 아이템 아이콘. 배지가 캔버스로 그리므로 텍스처가 아니라 이미지가 필요하다.
   // 로드가 늦으면 배지가 빈 칸으로 한 프레임 그려지므로 프리로드에 얹는다.
   const itemIcons = new Map()
+  // 받는 중인 그림. 같은 것을 여러 번 받지 않는다 — 배지가 여덟 개면 요청도
+  // 여덟 번 나간다.
+  const itemIconJobs = new Map()
+  // 못 받은 그림. 계속 다시 시도하면 매 프레임 404 를 쏜다.
+  const itemIconFailed = new Set()
 
   function loadItemIcon(id) {
     if (itemIcons.has(id)) return Promise.resolve()
-    return new Promise((resolve) => {
+    const running = itemIconJobs.get(id)
+    if (running) return running
+    const job = new Promise((resolve) => {
       const img = new Image()
       // 못 받아도 게임은 돌아야 한다 — 아이콘만 빠진다.
       img.onload = () => {
         itemIcons.set(id, img)
+        itemIconJobs.delete(id)
         resolve()
       }
-      img.onerror = () => resolve()
+      img.onerror = () => {
+        itemIconJobs.delete(id)
+        itemIconFailed.add(id)
+        resolve()
+      }
       img.src = `/assets/ui/item_${id}.png`
     })
+    itemIconJobs.set(id, job)
+    return job
+  }
+
+  /**
+   * 지금 그릴 수 있는 아이콘. 없으면 받아 오고, 도착하면 onReady 로 알린다.
+   *
+   * **배지는 한 번 그리고 만다.** 아이콘이 아직 안 왔을 때 그리면 어두운
+   * 받침판만 남고, 그림이 도착해도 다시 그리는 사람이 없어 영영 빈 칸이다 —
+   * 게다가 아이템 줄만큼 캔버스가 이미 커져서 별이 위로 밀려 있다. "무기는
+   * 안 보이는데 별만 위로 늘어났다" 가 그 모습이다.
+   */
+  function itemIconNow(id, onReady) {
+    const img = itemIcons.get(id)
+    if (img) return img
+    if (itemIconFailed.has(id)) return null
+    loadItemIcon(id).then(() => {
+      if (itemIcons.get(id)) onReady?.()
+    })
+    return null
   }
 
   async function preloadItemIcons(ids) {
@@ -1566,8 +1598,10 @@ export async function createScene({
     // "내 편 초록 / 상대 빨강" 은 체력만 쓰는 약속이다.
     const MANA_COLOR = '#5aa9ff'
 
-    // 마지막으로 그린 인자. setItems 가 같은 값으로 다시 그린다.
+    // 마지막으로 그린 인자. setItems 와 늦게 온 아이콘이 같은 값으로 다시 그린다.
     let lastArgs = {}
+    // 이 배지를 그대로 다시 그린다. 아이콘이 늦게 도착했을 때 쓴다.
+    const redraw = () => draw(lastArgs)
 
     function star5(cx, cy, r) {
       g.beginPath()
@@ -1615,7 +1649,9 @@ export async function createScene({
       let x = (W - total) / 2
       const y = H - ITEM_ROW + 1
       for (const id of worn) {
-        const img = itemIcons.get(id)
+        // 그림이 아직 없으면 받아 두고, 도착하면 이 배지를 다시 그린다.
+        // redraw 가 다시 여기로 들어와도 그때는 지도에 그림이 있어 멈춘다.
+        const img = itemIconNow(id, redraw)
         // 어두운 판을 먼저 깐다. 밝은 바닥 위에서는 아이콘만으로 안 읽힌다.
         g.fillStyle = '#0d0b12c0'
         g.fillRect(x - 1, y - 1, size + 2, size + 2)
