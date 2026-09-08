@@ -924,6 +924,8 @@ try {
               // 등수는 내 체력이 0 이 되는 순간이 아니라 서버가 박는 순간에
               // 온다. 결과판이 이미 떠 있으면 그 자리에서 다시 그린다.
               onSeats: (seats) => resultView.seatsChanged(seats),
+              // 서버가 앞서 있으면 그 라운드로 건너뛴다.
+              onRound: (round, deadline) => catchUpRound(round, deadline),
             }),
             mode,
           )
@@ -935,6 +937,54 @@ try {
     })
     // 폴링 첫 응답이 오기 전에도 대기 중임이 보여야 한다.
     home.setQueue({ mode, queued: 1, waitedMs: 0 })
+  }
+
+  // 전투 연출 중에 온 따라잡기. 연출 도중에 라운드를 바꾸면 정산이 딴
+  // 라운드로 가므로, 정산이 끝난 뒤에 적용한다.
+  let pendingRound = null
+  // 지금 전투 연출 중인가. run.fight 는 관전용 기록이라 끝나도 남는다.
+  let inCombat = false
+
+  /**
+   * 서버가 나보다 앞선 라운드를 알려 왔다. 그 자리로 건너뛴다.
+   *
+   * 뒤처지는 길은 여럿이다 — 창을 숨기면 전투 연출이 멈추고(rAF 는 숨은
+   * 탭에서 안 돈다), 기기가 느려도 밀린다. 뒤처진 채로 두면 같은 방에서
+   * 서로 다른 스테이지를 보게 된다.
+   *
+   * **지나간 전투는 다시 안 튼다.** 자리를 비운 사이의 싸움을 지금 보여
+   * 줘야 할 이유가 없고, 그동안의 체력·연승은 서버가 이미 맞춰 놨다
+   * (ROUND_RESOLVED). 여기서는 클라만 아는 것 — 골드와 경험치 — 을 그
+   * 라운드 수만큼 쳐 준다. 안 주면 자리를 비운 사람만 영영 가난하다.
+   */
+  function catchUpRound(round, deadline) {
+    if (!mm || !Number.isInteger(round) || round <= run.index) return
+    if (inCombat) {
+      pendingRound = { round, deadline }
+      return
+    }
+    const s = run.state
+    const me = run.lobby.find((x) => x.isPlayer)
+    for (let i = run.index; i < round; i++) {
+      s.gold += roundIncome(
+        { gold: s.gold, streak: s.streak, won: !!run.lastWon, round: i },
+        data.economy,
+      ).total
+      const next = addXp(s.level, s.xp, data.levels.xpPerRound, data.levels)
+      s.level = next.level
+      s.xp = next.xp
+    }
+    // 체력·연승은 서버 값이 맞다. 내가 못 본 전투의 결과가 거기 들어 있다.
+    if (me) {
+      s.hp = me.hp
+      if (Number.isInteger(me.streak)) s.streak = me.streak
+    }
+    run.index = round
+    run.round = roundAt(round, data.rounds).label
+    drawRound()
+    refreshShop(s, run.pool, run.rng, data, { free: true })
+    grantIfDue(round)
+    prep.show(deadline)
   }
 
   async function startFight(entries) {
@@ -977,6 +1027,22 @@ try {
     // 체력 반영은 정산에서 한 번에 한다.
     run.otherFights = mm.otherFights(run.index)
 
+    // **수입은 여기서 준다.** 승패가 이미 정해져 있고(로그를 다 만들었다),
+    // 상점은 전투 중에도 열려 있다 — 정산까지 미루면 돈이 들어오는 순간
+    // 상점이 새로 깔려서, 이긴 값으로 지금 보이는 말을 살 창이 없다.
+    //
+    // 연승도 여기서 센다. 수입이 연승을 읽으므로 둘이 갈리면 안 된다.
+    const sNow = run.state
+    const wonNow = result.winner === (iAmA ? 'A' : 'B')
+    sNow.streak = wonNow === run.lastWon ? sNow.streak + 1 : 1
+    run.lastWon = wonNow
+    sNow.gold += roundIncome(
+      { gold: sNow.gold, streak: sNow.streak, won: wonNow, round: run.index },
+      data.economy,
+    ).total
+    // 숫자가 바로 보여야 쓸 수 있다는 것을 안다.
+    prep.refresh()
+
     const onBack = () => settle(result, info)
     // 지금 무대에 올린 전투. 관전에서 돌아올 자리이자 정산의 근거다.
     // iAmA 를 같이 들고 있어야 정산과 연출이 "어느 쪽이 나인가"를 안다.
@@ -991,6 +1057,7 @@ try {
 
     // 전투 중에는 코치를 내린다 — 시킬 게 없는데 "싸우자" 가 계속 떠 있으면
     // 아직 안 누른 줄 안다. 결과가 나오면 finish() 가 다시 올린다.
+    inCombat = true
     coach?.hide()
     prep.hide()
     // 전투 소리가 서는 자리를 비운다. 판 안 곡은 낮게 깔리지만, 그 위로
@@ -1075,6 +1142,7 @@ try {
   }
 
   function settle(result, info) {
+    inCombat = false
     clearDuel()
     // 무대를 원래 자리로 돌린다 — 배치 화면은 언제나 내 판이 아래다.
     prep.scene.setSideFlip(false)
@@ -1086,10 +1154,8 @@ try {
     const mySurvivors = iAmA ? result.survivorsA : result.survivorsB
     const foeSurvivors = iAmA ? result.survivorsB : result.survivorsA
 
-    // 연속 횟수는 승패 방향과 무관하게 센다 — 연승도 연패도 같은 표를 쓴다.
-    s.streak = won === run.lastWon ? s.streak + 1 : 1
-    run.lastWon = won
-
+    // 연승과 수입은 **전투를 켤 때 이미 처리했다**(startFight). 여기서 또
+    // 세면 한 판에 두 번 오른다.
     if (!won) s.hp = Math.max(0, s.hp - defeatDamage(foeSurvivors, info.damage))
     // **0번 좌석이 아니라 내 좌석이다.** 매치 방에서 내 자리는 계정 순서로
     // 정해지므로 0 이 아닐 수 있다 — 0 에 적으면 남의 체력·연승을 내 것으로
@@ -1107,11 +1173,6 @@ try {
     if (won && foe) foe.hp = Math.max(0, foe.hp - defeatDamage(mySurvivors, info.damage))
     // 전투를 시작할 때 이미 돌려 둔 결과를 여기서 반영한다
     mm.applyFights(run.otherFights ?? [], { stageDamage: info.damage })
-
-    s.gold += roundIncome(
-      { gold: s.gold, streak: s.streak, won, round: run.index },
-      data.economy,
-    ).total
 
     // 매 라운드 자동 XP. 구매와 같은 함수를 타야 레벨업 연쇄가 똑같이 돈다.
     const next = addXp(s.level, s.xp, data.levels.xpPerRound, data.levels)
@@ -1167,6 +1228,13 @@ try {
     refreshShop(s, run.pool, run.rng, data, { free: true })
     grantIfDue(run.index)
     prep.show()
+    // 전투 중에 서버가 앞서 갔다면 지금 따라잡는다. run.fight 를 먼저 비운다 —
+    // 안 그러면 catchUpRound 가 "아직 전투 중"으로 보고 또 미룬다.
+    if (pendingRound) {
+      const p = pendingRound
+      pendingRound = null
+      catchUpRound(p.round, p.deadline)
+    }
   }
 } catch (err) {
   // boot 는 부팅 성공 직후 지워진다. 여기서 무조건 건드리면 부팅 뒤에 난

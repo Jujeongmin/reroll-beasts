@@ -105,7 +105,15 @@ export function startQueue({ server, mode, data, onUpdate, onMatched }) {
  * roomId 를 주면 그 매치 방(사람들이 모인 방), 없으면 1인 방(봇 7). 1인 방은
  * 지금 홈에서 못 들어가지만 서버 함수가 살아 있다 — 튜토리얼이 그 위에 선다.
  */
-export async function createServerMatchmaker({ data, server, roomId = null, timeoutMs = 3500, onSeats = null }) {
+export async function createServerMatchmaker({
+  data,
+  server,
+  roomId = null,
+  timeoutMs = 3500,
+  onSeats = null,
+  // 서버가 라운드를 넘겼다. 뒤처진 클라가 이걸 보고 따라잡는다.
+  onRound = null,
+}) {
   server = server ?? (await connectServer({ timeoutMs }))
 
   const state = roomId
@@ -167,6 +175,10 @@ export async function createServerMatchmaker({ data, server, roomId = null, time
     // 좌석이 갱신됐다고 알린다. 결과판이 이걸 기다린다 — 내 체력이 0 이 된
     // 순간과 서버가 등수를 박는 순간은 같지 않다.
     onSeats?.(seats)
+    // **서버가 몇 라운드인지도 알린다.** 전에는 체력·등수만 맞추고 라운드는
+    // 안 읽어서, 알트탭 등으로 뒤처진 사람이 영영 제 라운드에 남았다 — 같은
+    // 방에서 서로 다른 스테이지를 보고 있었다.
+    onRound?.(m.round, m.deadline)
   })
 
   /**

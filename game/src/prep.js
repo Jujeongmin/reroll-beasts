@@ -1191,13 +1191,46 @@ export async function createPrep({
   //
   // 0 이 되면 스스로 전투가 시작된다. 시간 제한이 없으면 한 판이 늘어져
   // "8~12분에 끝난다"는 설계가 무너진다.
-  let timeLeft = 0
+  //
+  // **벽시계로 센다.** 전에는 프레임마다 dt 를 빼서 셌는데, 브라우저는 숨은
+  // 탭에서 requestAnimationFrame 을 아예 안 부른다 — 알트탭 한 번에 그 사람
+  // 시계만 멈추고, 남들은 계속 가서 서로 다른 라운드에 있게 됐다. 게다가
+  // 돌아와도 dt 가 0.1 초로 잘려 있어(애니메이션 보호용) 자리 비운 시간이
+  // 안 깎였다. 마감 시각을 잡아 두고 Date.now() 로 재면 둘 다 안 생긴다.
+  let endAt = 0
   // 게이지를 채우려면 "얼마 중 얼마"인지 알아야 한다. 남은 시간만으로는 못 그린다.
   let timeTotal = 1
-  function resetTimer() {
+  // 튜토리얼이 시계를 멈춘 동안 남은 시간. 멈춘 채 벽시계를 재면 계속 줄어든다.
+  let heldLeft = 0
+
+  // 튜토리얼은 시간에 쫓기면 안 된다. 코치가 시키는 걸 하는 동안 라운드가
+  // 저절로 시작되면 배우다 말고 전투에 끌려 들어간다.
+  let timerPaused = false
+
+  /** 지금 남은 초. 멈춰 있으면 멈출 때의 값 그대로. */
+  function timeLeftNow() {
+    if (timerPaused) return heldLeft
+    return Math.max(0, (endAt - Date.now()) / 1000)
+  }
+
+  /**
+   * @param {number} endsAt 서버가 준 마감 시각(Date.now 기준). 0 이면 여기서 잡는다.
+   *
+   * 서버 값을 쓰면 방 사람 전원이 **같은 순간에** 넘어간다. 각자 자기 시계로
+   * 재면 배치 시간이 조금씩 달라지고, 그 차이가 라운드마다 쌓인다.
+   *
+   * 다만 그 값을 그대로는 안 믿는다 — 기기 시계가 몇 분씩 어긋난 사람이 있다.
+   * 말이 되는 범위 밖이면 무시하고 우리 길이를 쓴다. 남의 시계 때문에 배치가
+   * 0 초로 시작하는 것보다 조금 어긋나는 편이 낫다.
+   */
+  function resetTimer(endsAt = 0) {
     const r = data.rounds
-    timeLeft = run.index === 1 ? (r.firstRoundSeconds ?? r.prepSeconds) : r.prepSeconds
-    timeTotal = Math.max(1, timeLeft)
+    const secs = run.index === 1 ? (r.firstRoundSeconds ?? r.prepSeconds) : r.prepSeconds
+    timeTotal = Math.max(1, secs)
+    const left = Number(endsAt) - Date.now()
+    const sane = Number.isFinite(left) && left > 0 && left <= secs * 1500
+    endAt = sane ? Number(endsAt) : Date.now() + secs * 1000
+    heldLeft = Math.max(0, (endAt - Date.now()) / 1000)
     paintTimer()
   }
   // 여유 → 촉박. 두 색을 섞어 시간이 줄수록 붉어진다. 마지막 5초에만 빨개지면
@@ -1205,12 +1238,13 @@ export async function createPrep({
   const TIME_OK = [0xe8, 0xb3, 0x4f]
   const TIME_LOW = [0xe2, 0x4a, 0x33]
   function paintTimer() {
-    const left = Math.ceil(timeLeft)
+    const now = timeLeftNow()
+    const left = Math.ceil(now)
     el.timer.textContent = String(left)
     const warn = left <= 5
     el.timer.classList.toggle('warn', warn)
     el.timebar.classList.toggle('warn', warn)
-    const k = timeTotal > 0 ? Math.max(0, Math.min(1, timeLeft / timeTotal)) : 0
+    const k = timeTotal > 0 ? Math.max(0, Math.min(1, now / timeTotal)) : 0
     // 남은 만큼 칠한다. 오른쪽에 붙어 있으므로 빈 칸이 좌 → 우로 밀고 들어온다.
     el.timeFill.style.width = `${k * 100}%`
     const mix = (a, b) => Math.round(b + (a - b) * k)
@@ -1241,16 +1275,18 @@ export async function createPrep({
     return placed
   }
 
-  // 튜토리얼은 시간에 쫓기면 안 된다. 코치가 시키는 걸 하는 동안 라운드가
-  // 저절로 시작되면 배우다 말고 전투에 끌려 들어간다.
-  let timerPaused = false
-
-  function tickTimer(dt) {
+  function tickTimer() {
     if (!running || timerPaused) return
-    timeLeft = Math.max(0, timeLeft - dt)
     // 막대는 매 프레임 다시 그린다. 초가 바뀔 때만 그리면 1초씩 툭툭 끊긴다.
     paintTimer()
-    if (timeLeft === 0) {
+    // **숨은 탭에서는 전투를 켜지 않는다.** 시계는 계속 가지만(그래야 돌아왔을
+    // 때 자리 비운 만큼이 깎여 있다) 시작만 미룬다 — 전투 연출은 rAF 로 도는데
+    // 숨은 탭은 rAF 를 안 부른다. 숨은 채로 켜면 로딩에서 멈춘 채 박히고,
+    // 돌아와도 안 풀린다. 실제로 그렇게 박혔다.
+    //
+    // 돌아오면 visibilitychange 가 이 함수를 다시 불러 그 자리에서 시작한다.
+    if (document.hidden) return
+    if (timeLeftNow() === 0) {
       // 판이 **비었을 때만**이 아니라 자리가 남을 때마다 채운다. 넷을 놓을 수
       // 있는데 둘만 놓고 시간이 가면 그냥 손해다 — 대기석 왼쪽부터 올린다.
       if (autoPlaceFromBench() > 0) {
@@ -1265,6 +1301,19 @@ export async function createPrep({
       onFight(toCombatEntries(run.state))
     }
   }
+
+  // 마감을 보는 눈이 rAF 하나뿐이면, 창을 최소화한 사이에 마감이 지나도
+  // 아무도 안 본다. setInterval 은 숨어도(느려질지언정) 돈다.
+  //
+  // rAF 와 둘 다 이 함수를 부르지만 두 번 시작될 일은 없다: 먼저 부른 쪽이
+  // running 을 끄고 나간다.
+  setInterval(tickTimer, 250)
+
+  // 돌아온 순간을 놓치지 않는다. 숨은 동안 마감이 지났으면 여기서 곧바로
+  // 전투로 넘어간다 — 다음 프레임을 기다리면 그만큼 더 뒤처진다.
+  document.addEventListener('visibilitychange', () => {
+    if (!document.hidden) tickTimer()
+  })
 
   // 벤치 칸을 밝히는 색. 판의 청록 테두리와 같은 계열이라 목표가 어디인지
   // 통일된다. 되돌릴 때는 널빤지 원래 색으로 — 상수로 되돌리면 상대 대기석처럼
@@ -1531,7 +1580,7 @@ export async function createPrep({
     const dt = Math.min(0.1, (now - last) / 1000)
     last = now
     if (running) {
-      tickTimer(dt)
+      tickTimer()
       for (const v of views.values()) v.mixer.update(dt)
       // 이펙트도 여기서 늙는다. 전투 루프에만 두면 배치 중에 터뜨린 것(승리
       // 이펙트 미리보기)이 나이를 안 먹어 화면에 굳은 채로 남는다.
@@ -1602,8 +1651,12 @@ export async function createPrep({
      * 남아 "시간이 안 간다"가 화면에 보인다.
      */
     pauseTimer(on) {
+      // 멈출 때 남은 시간을 붙잡고, 풀 때 그만큼 마감을 미룬다. 벽시계라
+      // 그냥 두면 멈춘 동안에도 시간이 간다.
+      if (on && !timerPaused) heldLeft = timeLeftNow()
+      else if (!on && timerPaused) endAt = Date.now() + heldLeft * 1000
       timerPaused = on
-      el.timer.textContent = on ? '∞' : String(Math.ceil(timeLeft))
+      el.timer.textContent = on ? '∞' : String(Math.ceil(timeLeftNow()))
     },
     /** 지금 판으로 전투를 시작한다. 튜토리얼의 "싸우자" 버튼이 부른다. */
     fight() {
@@ -1612,13 +1665,17 @@ export async function createPrep({
       onFight(toCombatEntries(run.state))
       return true
     },
-    /** 배치 단계로 돌아온다. 화면 전환이 아니라 같은 무대의 상태 전환이다. */
-    show() {
+    /**
+     * 배치 단계로 돌아온다. 화면 전환이 아니라 같은 무대의 상태 전환이다.
+     *
+     * @param {number} endsAt 서버가 준 마감 시각. 주면 그때 전투가 시작된다.
+     */
+    show(endsAt = 0) {
       running = true
       boardFrozen = false
       // 전투 중에는 판을 낀 합성을 미뤄 뒀다. 여기서 제한 없이 한 번 돌린다.
       if (resolveMerges(run.state, data) > 0) hint(t('hint.merged'), 'quiet')
-      resetTimer()
+      resetTimer(endsAt)
       last = performance.now()
       scene.resize()
       refresh()
