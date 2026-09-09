@@ -1566,10 +1566,14 @@ export async function createScene({
     const cv = document.createElement('canvas')
     cv.width = W
     cv.height = H
-    const tex = new THREE.CanvasTexture(cv)
-    // 캔버스는 이미 sRGB 값이다. 기본값(Linear)이면 색이 한 번 더 밝혀져
-    // 팀 색이 흰 선으로 뭉개진다.
-    tex.colorSpace = THREE.SRGBColorSpace
+    const newTex = () => {
+      const t = new THREE.CanvasTexture(cv)
+      // 캔버스는 이미 sRGB 값이다. 기본값(Linear)이면 색이 한 번 더 밝혀져
+      // 팀 색이 흰 선으로 뭉개진다.
+      t.colorSpace = THREE.SRGBColorSpace
+      return t
+    }
+    let tex = newTex()
     const mat = new THREE.SpriteMaterial({
       map: tex,
       depthTest: false,
@@ -1701,9 +1705,23 @@ export async function createScene({
        */
       setItems(ids) {
         worn = (ids ?? []).slice(0, 3)
-        H = heightFor(worn)
-        cv.height = H
-        applyScale()
+        const next = heightFor(worn)
+        if (next !== H) {
+          H = next
+          cv.height = H
+          // **텍스처를 새로 만든다.** three 는 WebGL2 에서 texStorage2D 로
+          // 저장소를 잡는데 그건 불변이다 — 처음 올라간 크기가 끝이다. 그 뒤
+          // 갱신은 texSubImage2D 라 크기가 바뀐 캔버스를 올릴 수 없고, GPU 에는
+          // 옛 그림이 그대로 남는다. 스프라이트만 커지므로 화면에서는 **별이
+          // 세로로 늘어나고 아이템 줄은 아예 안 뜬다** — 2성 이상에만 나타났던
+          // 이유가 이것이다: 1성은 아이템을 끼는 순간 배지가 처음 만들어져
+          // 처음부터 큰 캔버스로 올라간다.
+          mat.map?.dispose()
+          tex = newTex()
+          mat.map = tex
+          mat.needsUpdate = true
+          applyScale()
+        }
         draw(lastArgs)
       },
       /**
