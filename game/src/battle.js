@@ -29,6 +29,11 @@ export async function createBattle({ data, scene }) {
   // 한 칸 이동에 시뮬이 쓰는 틱 수. 이 폭에 걸쳐 보간해야 걷는 것으로 보인다.
   // 1틱에 끝내면 나머지는 제자리에 선 채라 칸을 순간이동하는 그림이 된다.
   const MOVE_TICKS = data.combat.moveInterval
+  // 도약 한 번에 쓰는 시간. 걷기 한 칸(moveInterval)보다 길다 — 판을 통째로
+  // 가로지르는 동작이라 같은 시간에 밀어 넣으면 그게 곧 순간이동이다.
+  const LEAP_TICKS = 15
+  // 뛰어오르는 높이. 칸 폭에 매어 두면 판 크기가 바뀌어도 비율이 남는다.
+  const LEAP_ARC = 1.1
 
   let result = null
   let spawns = []
@@ -233,14 +238,23 @@ export async function createBattle({ data, scene }) {
         }
         break
 
-      case 'leap':
-        // 도약은 걷는 게 아니라 순간이동이다 — 보간하면 판을 가로질러 미끄러진다.
-        // prevTile 도 도착지로 맞춰 render 가 이동 중으로 보지 않게 한다.
+      case 'leap': {
         if (!st) break
+        const was = st.tile
         applyReplayEvent(unitState, e)
+        // 걷기 보간에는 안 태운다. 걷기는 한 칸짜리 속도라 판을 가로지르는
+        // 도약을 그 속도로 밀면 바닥을 미끄러진다 — 뛰는 것으로 안 보인다.
         st.prevTile = e.tile
         st.moveTick = -99
+        // **되감기 중에는 안 뛴다.** seekTo 가 지나간 구간을 한 번에 적용할
+        // 때 도약이 수십 개 살아나면 판이 통째로 튄다(이펙트를 안 띄우는 것과
+        // 같은 이유다).
+        if (liveEvents) {
+          st.leapFrom = was
+          st.leapTick = e.tick
+        }
         break
+      }
 
       case 'move':
         if (!st) break
@@ -366,11 +380,30 @@ export async function createBattle({ data, scene }) {
       const k = Math.max(0, Math.min(1, (rt - st.moveTick) / MOVE_TICKS))
       const x = from.x + (to.x - from.x) * k
       const z = from.z + (to.z - from.z) * k
-      const walking = k < 1 && st.alive
-      if (walking) v.faceTo(to.x, to.z)
-      v.root.position.set(x, scene.topY, z)
 
-      if (walking && st.anim !== 'death') {
+      // 도약. 걷기와 **따로** 센다 — 같은 보간을 쓰면 도약이 걷기 속도로
+      // 미끄러지고, 그건 이 동작이 말하려는 것("뛰어넘었다")과 반대다.
+      const lk = st.leapTick === undefined ? 1 : (rt - st.leapTick) / LEAP_TICKS
+      const leaping = lk >= 0 && lk < 1 && st.alive
+      if (leaping) {
+        const lf = tileOf(st.leapFrom) ?? to
+        // 4k(1-k) 는 0 에서 시작해 가운데 1, 끝에 0 인 포물선이다. 착지가
+        // 정확히 바닥이라 발이 판에 파묻히거나 뜨지 않는다.
+        v.faceTo(to.x, to.z)
+        v.root.position.set(
+          lf.x + (to.x - lf.x) * lk,
+          scene.topY + LEAP_ARC * 4 * lk * (1 - lk),
+          lf.z + (to.z - lf.z) * lk,
+        )
+      } else {
+        v.root.position.set(x, scene.topY, z)
+      }
+
+      const walking = k < 1 && st.alive
+
+      if ((walking || leaping) && st.anim !== 'death') {
+        // 모델 팩에 점프 클립이 없다(idle · run · attack · hit · death 뿐).
+        // 공중에서 달리는 그림이 제자리에 굳은 것보다 훨씬 잘 읽힌다.
         st.anim = 'run'
         v.play(v.anims.run)
       } else if (st.anim !== 'death' && rt >= st.animUntil) {
