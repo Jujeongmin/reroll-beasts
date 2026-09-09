@@ -128,6 +128,7 @@ export default {
   'chest.done': '今天已领 · 明天再来',
   'chest.dismissed': '看到最后才能拿到',
   'chest.fail': '现在没有广告可播',
+  'chest.refused': '无法领取 ({why})',
   'result.toNext': '距离{tier}还差{lp}',
   'boot.failed': '无法开始：{why}',
   'name.askAfterTutorial': '这个名字会显示在排行榜和其他玩家眼中。之后可以再改。',

@@ -99,8 +99,16 @@ describe('하루 상자', () => {
     expect(r.profile.pass).toEqual(before.pass)
   })
 
-  it('전적이 없으면 줄 자리가 없다', () => {
-    expect(adReward(null, chest(), data).why).toBe('no_profile')
+  it('전적이 없어도 하루 상자는 받는다 — 판을 안 해도 받는 유일한 젬이다', () => {
+    // 프로필을 요구하면 아직 한 판도 안 끝낸 계정이 정확히 그 하나를 못 받는다.
+    const r = adReward(null, chest(), data)
+    expect(r.ok).toBe(true)
+    expect(r.profile.gems).toBe(PLACEMENTS['daily-chest'].gems)
+  })
+
+  it('판에 붙은 지면은 전적이 있어야 한다', () => {
+    const r = adReward(null, { placementId: 'result-double', matchId: MATCH, rank: 1, ranked: true, dayKey: '2026-09-07' }, data)
+    expect(r.why).toBe('no_profile')
   })
 
   it('결과판 지면은 여전히 그 판이 정산됐어야 한다 — 하루 열쇠로 못 받는다', () => {

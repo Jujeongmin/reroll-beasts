@@ -128,6 +128,7 @@ export default {
   'chest.done': 'Claimed today · back tomorrow',
   'chest.dismissed': 'Watch to the end to get it',
   'chest.fail': 'Ads unavailable right now',
+  'chest.refused': "Couldn't claim ({why})",
   'result.toNext': '{lp} to {tier}',
   'boot.failed': "Can't start: {why}",
   'name.askAfterTutorial': 'This name shows on the leaderboard and to other players. You can change it later.',

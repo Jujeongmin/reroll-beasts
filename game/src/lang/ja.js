@@ -128,6 +128,7 @@ export default {
   'chest.done': '今日は受取済み · 明日また',
   'chest.dismissed': '最後まで見ると受け取れる',
   'chest.fail': '今は広告を出せない',
+  'chest.refused': '受け取れなかった ({why})',
   'result.toNext': '{tier}まで{lp}',
   'boot.failed': '開始できない：{why}',
   'name.askAfterTutorial': 'この名前はランキングと他のプレイヤーに表示される。あとで変更できる。',

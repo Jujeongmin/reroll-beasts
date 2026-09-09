@@ -47,7 +47,13 @@ const EMPTY = { day: null, count: 0, matches: [] }
 export function adReward(profile, { placementId, matchId, rank, ranked, dayKey }, data) {
   const place = PLACEMENTS[placementId]
   if (!place) return { ok: false, why: 'unknown_placement' }
-  if (!profile) return { ok: false, why: 'no_profile' }
+  // 판에 붙은 지면은 프로필이 있어야 한다 — 등수·정산이 거기 있다.
+  // **판과 무관한 지면(하루 상자)은 아니다.** 주석에 적힌 대로 "판을 안 해도
+  // 받을 수 있는 유일한 젬" 인데, 프로필을 요구하면 아직 한 판도 안 끝낸
+  // 계정이 정확히 그 하나를 못 받는다. 빈 프로필로 시작한다 — 지급 결과를
+  // 서버가 그대로 저장하므로 이 자리가 프로필이 생기는 자리가 된다.
+  if (!profile && !place.anyTime) return { ok: false, why: 'no_profile' }
+  profile = profile ?? {}
   // 판에 붙은 지면은 그 판이 정산됐어야 한다. 판과 무관한 지면(하루 상자)은
   // 대신 그날 하루를 열쇠로 삼는다 — 같은 날 두 번 받는 것은 아래 상한이 막는다.
   const key = place.anyTime ? dayKey : matchId

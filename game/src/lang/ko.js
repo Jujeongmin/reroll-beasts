@@ -148,6 +148,7 @@ export default {
   'chest.done': '오늘 받았다 · 내일 다시',
   'chest.dismissed': '끝까지 봐야 받는다',
   'chest.fail': '지금은 광고를 못 튼다',
+  'chest.refused': '못 받았다 ({why})',
   'result.toNext': '{tier}까지 {lp}',
   'boot.failed': '시작할 수 없다: {why}',
   'name.askAfterTutorial': '순위표와 남의 화면에 뜰 이름이다. 나중에 바꿔도 된다.',

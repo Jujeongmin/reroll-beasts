@@ -869,6 +869,18 @@ export function createHome({
         const res = await onAd('daily-chest', r.requestId)
         if (res?.profile) state = { ...state, profile: res.profile }
         render()
+        // **거절당하면 그 사실이 보여야 한다.** 전에는 조용히 다시 그리기만
+        // 해서, 광고를 끝까지 본 사람에게 젬도 안 오르고 이유도 안 뜨는 화면이
+        // 남았다 — 무엇이 잘못됐는지 볼 길이 없었다. 결과판은 이미 이렇게
+        // 하고 있다(result.js 의 adRefused).
+        if (!res?.ok) {
+          console.warn('하루 상자 거절:', res?.why)
+          // 이미 받은 것과 못 받은 것은 다른 말이다. 앞엣것은 정상이고
+          // 뒤엣것은 고장이다.
+          if (res?.why === 'already' || res?.why === 'cap') el.chest.textContent = t('chest.done')
+          else if (res?.why === 'not_watched') el.chest.textContent = t('chest.dismissed')
+          else el.chest.textContent = t('chest.refused', { why: res?.why ?? '?' })
+        }
         return
       }
       if (r.status === 'dismissed') {
