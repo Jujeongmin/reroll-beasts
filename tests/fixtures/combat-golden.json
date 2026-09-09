@@ -1,6 +1,6 @@
 {
   "winner": "A",
-  "ticks": 429,
+  "ticks": 480,
   "log": [
     {
       "tick": 0,
@@ -37,8 +37,8 @@
       "tile": 19,
       "star": 2,
       "items": [],
-      "maxHp": 720,
-      "mana": 30,
+      "maxHp": 765,
+      "mana": 42,
       "manaFull": 100
     },
     {
@@ -94,7 +94,7 @@
       "tick": 2,
       "type": "mana",
       "casterId": 2,
-      "value": 40
+      "value": 52
     },
     {
       "tick": 10,
@@ -199,7 +199,7 @@
       "value": 40
     },
     {
-      "tick": 54,
+      "tick": 49,
       "type": "attack",
       "casterId": 2,
       "targetIds": [
@@ -211,10 +211,10 @@
       "crit": false
     },
     {
-      "tick": 54,
+      "tick": 49,
       "type": "mana",
       "casterId": 2,
-      "value": 50
+      "value": 62
     },
     {
       "tick": 65,
@@ -271,7 +271,7 @@
       "value": 50
     },
     {
-      "tick": 106,
+      "tick": 96,
       "type": "attack",
       "casterId": 2,
       "targetIds": [
@@ -283,10 +283,10 @@
       "crit": false
     },
     {
-      "tick": 106,
+      "tick": 96,
       "type": "mana",
       "casterId": 2,
-      "value": 60
+      "value": 72
     },
     {
       "tick": 110,
@@ -343,25 +343,7 @@
       "value": 60
     },
     {
-      "tick": 155,
-      "type": "attack",
-      "casterId": 3,
-      "targetIds": [
-        1
-      ],
-      "amount": 65,
-      "toShield": 0,
-      "toHp": 65,
-      "crit": false
-    },
-    {
-      "tick": 155,
-      "type": "mana",
-      "casterId": 3,
-      "value": 70
-    },
-    {
-      "tick": 158,
+      "tick": 143,
       "type": "attack",
       "casterId": 2,
       "targetIds": [
@@ -373,9 +355,27 @@
       "crit": false
     },
     {
-      "tick": 158,
+      "tick": 143,
       "type": "mana",
       "casterId": 2,
+      "value": 82
+    },
+    {
+      "tick": 155,
+      "type": "attack",
+      "casterId": 3,
+      "targetIds": [
+        1
+      ],
+      "amount": 97,
+      "toShield": 0,
+      "toHp": 97,
+      "crit": true
+    },
+    {
+      "tick": 155,
+      "type": "mana",
+      "casterId": 3,
       "value": 70
     },
     {
@@ -415,25 +415,7 @@
       "value": 65
     },
     {
-      "tick": 200,
-      "type": "attack",
-      "casterId": 3,
-      "targetIds": [
-        1
-      ],
-      "amount": 65,
-      "toShield": 0,
-      "toHp": 65,
-      "crit": false
-    },
-    {
-      "tick": 200,
-      "type": "mana",
-      "casterId": 3,
-      "value": 80
-    },
-    {
-      "tick": 210,
+      "tick": 190,
       "type": "attack",
       "casterId": 2,
       "targetIds": [
@@ -445,9 +427,27 @@
       "crit": false
     },
     {
-      "tick": 210,
+      "tick": 190,
       "type": "mana",
       "casterId": 2,
+      "value": 92
+    },
+    {
+      "tick": 200,
+      "type": "attack",
+      "casterId": 3,
+      "targetIds": [
+        1
+      ],
+      "amount": 97,
+      "toShield": 0,
+      "toHp": 97,
+      "crit": true
+    },
+    {
+      "tick": 200,
+      "type": "mana",
+      "casterId": 3,
       "value": 80
     },
     {
@@ -487,6 +487,74 @@
       "value": 75
     },
     {
+      "tick": 237,
+      "type": "attack",
+      "casterId": 2,
+      "targetIds": [
+        0
+      ],
+      "amount": 43,
+      "toShield": 0,
+      "toHp": 43,
+      "crit": false
+    },
+    {
+      "tick": 237,
+      "type": "mana",
+      "casterId": 2,
+      "value": 100
+    },
+    {
+      "tick": 238,
+      "type": "skill_aoe",
+      "casterId": 2,
+      "targetIds": [
+        0,
+        1
+      ],
+      "amount": 85,
+      "hits": [
+        {
+          "id": 0,
+          "toShield": 0,
+          "toHp": 44
+        },
+        {
+          "id": 1,
+          "toShield": 0,
+          "toHp": 41
+        }
+      ]
+    },
+    {
+      "tick": 238,
+      "type": "mana",
+      "casterId": 2,
+      "value": 0
+    },
+    {
+      "tick": 240,
+      "type": "dot",
+      "casterId": 2,
+      "targetIds": [
+        0
+      ],
+      "amount": 12,
+      "toShield": 0,
+      "toHp": 12
+    },
+    {
+      "tick": 240,
+      "type": "dot",
+      "casterId": 2,
+      "targetIds": [
+        1
+      ],
+      "amount": 12,
+      "toShield": 0,
+      "toHp": 12
+    },
+    {
       "tick": 245,
       "type": "attack",
       "casterId": 3,
@@ -505,39 +573,16 @@
       "value": 90
     },
     {
-      "tick": 262,
-      "type": "attack",
-      "casterId": 2,
-      "targetIds": [
-        0
-      ],
-      "amount": 43,
-      "toShield": 0,
-      "toHp": 43,
-      "crit": false
-    },
-    {
-      "tick": 262,
-      "type": "mana",
-      "casterId": 2,
-      "value": 90
-    },
-    {
       "tick": 263,
       "type": "attack",
       "casterId": 0,
       "targetIds": [
         2
       ],
-      "amount": 45,
+      "amount": 78,
       "toShield": 0,
-      "toHp": 45,
+      "toHp": 78,
       "crit": false
-    },
-    {
-      "tick": 263,
-      "type": "death",
-      "casterId": 2
     },
     {
       "tick": 263,
@@ -546,28 +591,55 @@
       "value": 90
     },
     {
-      "tick": 272,
-      "type": "move",
-      "casterId": 0,
-      "tile": 18
+      "tick": 270,
+      "type": "dot",
+      "casterId": 2,
+      "targetIds": [
+        0
+      ],
+      "amount": 12,
+      "toShield": 0,
+      "toHp": 12
+    },
+    {
+      "tick": 270,
+      "type": "dot",
+      "casterId": 2,
+      "targetIds": [
+        1
+      ],
+      "amount": 12,
+      "toShield": 0,
+      "toHp": 12
     },
     {
       "tick": 275,
       "type": "attack",
       "casterId": 1,
       "targetIds": [
-        3
+        2
       ],
-      "amount": 57,
+      "amount": 12,
       "toShield": 0,
-      "toHp": 57,
+      "toHp": 12,
       "crit": false
+    },
+    {
+      "tick": 275,
+      "type": "death",
+      "casterId": 2
     },
     {
       "tick": 275,
       "type": "mana",
       "casterId": 1,
       "value": 85
+    },
+    {
+      "tick": 284,
+      "type": "move",
+      "casterId": 0,
+      "tile": 18
     },
     {
       "tick": 290,
@@ -609,6 +681,28 @@
       "type": "mana",
       "casterId": 3,
       "value": 0
+    },
+    {
+      "tick": 300,
+      "type": "dot",
+      "casterId": 2,
+      "targetIds": [
+        0
+      ],
+      "amount": 12,
+      "toShield": 0,
+      "toHp": 12
+    },
+    {
+      "tick": 300,
+      "type": "dot",
+      "casterId": 2,
+      "targetIds": [
+        1
+      ],
+      "amount": 12,
+      "toShield": 0,
+      "toHp": 12
     },
     {
       "tick": 317,
@@ -736,6 +830,12 @@
     },
     {
       "tick": 378,
+      "type": "move",
+      "casterId": 3,
+      "tile": 23
+    },
+    {
+      "tick": 378,
       "type": "mana",
       "casterId": 1,
       "value": 0
@@ -745,11 +845,11 @@
       "type": "attack",
       "casterId": 3,
       "targetIds": [
-        0
+        1
       ],
-      "amount": 78,
+      "amount": 65,
       "toShield": 0,
-      "toHp": 78,
+      "toHp": 65,
       "crit": false
     },
     {
@@ -759,7 +859,13 @@
       "value": 20
     },
     {
-      "tick": 408,
+      "tick": 387,
+      "type": "move",
+      "casterId": 0,
+      "tile": 24
+    },
+    {
+      "tick": 417,
       "type": "attack",
       "casterId": 0,
       "targetIds": [
@@ -771,13 +877,13 @@
       "crit": true
     },
     {
-      "tick": 408,
+      "tick": 417,
       "type": "mana",
       "casterId": 0,
       "value": 21
     },
     {
-      "tick": 408,
+      "tick": 417,
       "type": "mana",
       "casterId": 3,
       "value": 21
@@ -789,9 +895,9 @@
       "targetIds": [
         0
       ],
-      "amount": 40,
+      "amount": 38,
       "toShield": 0,
-      "toHp": 40,
+      "toHp": 38,
       "crit": false
     },
     {
@@ -812,15 +918,10 @@
       "targetIds": [
         3
       ],
-      "amount": 51,
+      "amount": 57,
       "toShield": 0,
-      "toHp": 51,
+      "toHp": 57,
       "crit": false
-    },
-    {
-      "tick": 429,
-      "type": "death",
-      "casterId": 3
     },
     {
       "tick": 429,
@@ -829,7 +930,48 @@
       "value": 10
     },
     {
-      "tick": 429,
+      "tick": 471,
+      "type": "attack",
+      "casterId": 3,
+      "targetIds": [
+        1
+      ],
+      "amount": 97,
+      "toShield": 0,
+      "toHp": 97,
+      "crit": true
+    },
+    {
+      "tick": 471,
+      "type": "mana",
+      "casterId": 3,
+      "value": 41
+    },
+    {
+      "tick": 480,
+      "type": "attack",
+      "casterId": 1,
+      "targetIds": [
+        3
+      ],
+      "amount": 51,
+      "toShield": 0,
+      "toHp": 51,
+      "crit": false
+    },
+    {
+      "tick": 480,
+      "type": "death",
+      "casterId": 3
+    },
+    {
+      "tick": 480,
+      "type": "mana",
+      "casterId": 1,
+      "value": 20
+    },
+    {
+      "tick": 480,
       "type": "end",
       "winner": "A"
     }

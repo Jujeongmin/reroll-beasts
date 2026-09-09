@@ -1055,6 +1055,28 @@
     },
     {
       "tick": 236,
+      "type": "skill_pierce",
+      "casterId": 6,
+      "targetIds": [
+        1,
+        0
+      ],
+      "amount": 139,
+      "hits": [
+        {
+          "id": 1,
+          "toShield": 0,
+          "toHp": 72
+        },
+        {
+          "id": 0,
+          "toShield": 0,
+          "toHp": 67
+        }
+      ]
+    },
+    {
+      "tick": 236,
       "type": "mana",
       "casterId": 6,
       "value": 0

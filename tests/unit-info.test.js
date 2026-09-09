@@ -33,12 +33,23 @@ describe('스킬 설명', () => {
   })
 
   it('지속 피해 범위기는 초 단위로 환산한다', () => {
-    // mushnub = radius 1, tickDamagePct 16, durationTicks 90 → 3초
-    const t = textOf('mushnub')
-    expect(t).toContain('3초')
-    expect(t).toContain('16%')
+    // ghost_skull = radius 1, tickDamagePct 34, durationTicks 120 → 4초
+    const t = textOf('ghost_skull')
+    expect(t).toContain('4초')
+    expect(t).toContain('34%')
     // 즉발 피해가 0 이면 그 문장은 아예 빼야 한다
     expect(t).not.toContain('0% 피해')
+  })
+
+  it('단일기에 붙는 효과를 빠짐없이 적는다', () => {
+    // 이 아홉 유닛은 파라미터를 들고도 카드에 한 줄도 안 나왔다 — 실행기가
+    // 안 읽었기 때문이다. 이제는 실행기도 읽고 카드도 적어야 한다.
+    expect(textOf('blue_demon')).toContain('기절')
+    expect(textOf('frog')).toContain('끌어당')
+    expect(textOf('orc_skull')).toContain('마나')
+    expect(textOf('ninja')).toContain('도약')
+    expect(textOf('ghost')).toContain('무시')
+    expect(textOf('chicken')).toContain('관통')
   })
 
   it('버프는 대상·지속·수치를 모두 담는다', () => {

@@ -107,7 +107,8 @@
       "power": 0.8,
       "attackInterval": 1.1,
       "range": 1,
-      "critChance": 0.05
+      "critChance": 0.05,
+      "manaStart": 1
     },
     "fighter": {
       "hp": 1,
@@ -117,7 +118,8 @@
       "power": 0.8,
       "attackInterval": 0.95,
       "range": 1,
-      "critChance": 0.1
+      "critChance": 0.1,
+      "manaStart": 1
     },
     "shooter": {
       "hp": 0.8,
@@ -127,17 +129,19 @@
       "power": 0.9,
       "attackInterval": 0.85,
       "range": 3,
-      "critChance": 0.1
+      "critChance": 0.1,
+      "manaStart": 1
     },
     "mage": {
-      "hp": 0.8,
+      "hp": 0.85,
       "atk": 0.7,
       "def": 0.7,
       "mr": 1.1,
       "power": 1.4,
-      "attackInterval": 1.05,
+      "attackInterval": 0.95,
       "range": 3,
-      "critChance": 0.05
+      "critChance": 0.05,
+      "manaStart": 1.4
     },
     "assassin": {
       "hp": 0.75,
@@ -147,7 +151,8 @@
       "power": 0.9,
       "attackInterval": 0.9,
       "range": 1,
-      "critChance": 0.2
+      "critChance": 0.2,
+      "manaStart": 1
     },
     "revive": {
       "hp": 1.15,
@@ -157,7 +162,8 @@
       "power": 1,
       "attackInterval": 1.05,
       "range": 1,
-      "critChance": 0.05
+      "critChance": 0.05,
+      "manaStart": 1
     }
   },
   "mana": {

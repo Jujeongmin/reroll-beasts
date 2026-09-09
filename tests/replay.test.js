@@ -371,17 +371,63 @@ describe('replay: 전체 로그 재생 일관성', () => {
       ['mushroom_king', 3, 3],
     ])
     // B: 뭉쳐 서서 튄 피해가 실제로 여럿을 맞힌다.
+    // **3성이어야 한다.** 마법사 계수가 오른 뒤로 2성 B 는 cactoro_blob 이
+    // 스킬을 쓰기 전에 녹아, skill_splash 가 한 번도 안 난다 — 이 테스트가
+    // 볼 것 자체가 사라진다. 위 expect 가 그 사실을 잡아 준다.
     const clusterB = team([
-      ['cat', 2, 0],
-      ['cat', 2, 1],
-      ['cat', 2, 2],
-      ['frog', 2, 3],
+      ['cat', 3, 0],
+      ['cat', 3, 1],
+      ['cat', 3, 2],
+      ['frog', 3, 3],
     ])
 
     const result = simulate({ boardA: mushA, boardB: clusterB, seed: 1, data })
 
     const kinds = new Set(result.log.map((e) => e.type))
     expect(kinds.has('skill_splash'), '이 대진이 skill_splash 이벤트를 안 남겼다').toBe(true)
+
+    const { unitState, teamOf } = replayFullLog(result)
+
+    const deathLogged = new Set(result.log.filter((e) => e.type === 'death').map((e) => e.casterId))
+    for (const [id, st] of unitState) {
+      if (deathLogged.has(id)) {
+        expect(st.alive).toBe(false)
+        expect(st.hp).toBe(0)
+      } else {
+        expect(st.alive).toBe(true)
+        expect(st.hp).toBeGreaterThan(0)
+      }
+    }
+
+    const live = countLiveByTeam(unitState, teamOf)
+    expect(live.A).toBe(result.survivorsA)
+    expect(live.B).toBe(result.survivorsB)
+  })
+
+  it('사망 시 소환 대진 — 전투 중에 태어난 말까지 생존자 수가 일치', () => {
+    // 전투 중 등장은 이 재생기가 처음 겪는 모양이다. spawn 이 tick 0 에만
+    // 온다고 가정한 자리가 하나라도 남아 있으면 여기서 어긋난다 — 소환수가
+    // 만렙 체력으로 시작하거나, 아예 생존자 수에서 빠진다.
+    const splitA = team([
+      ['green_blob', 2, 0],
+      ['green_blob', 2, 1],
+      ['green_blob', 2, 2],
+      ['pink_blob', 2, 3],
+    ])
+    const killerB = team([
+      ['orc_skull', 2, 0],
+      ['orc_skull', 2, 1],
+      ['ninja', 2, 2],
+      ['blue_demon', 2, 3],
+    ])
+
+    const result = simulate({ boardA: splitA, boardB: killerB, seed: 4, data })
+
+    const born = result.log.filter((e) => e.type === 'spawn' && e.tick > 0)
+    expect(born.length, '이 대진이 전투 중 소환을 안 남겼다').toBeGreaterThan(0)
+    // 태어난 말은 최대 체력의 일부로 나온다. 재생기가 maxHp 로 시작하면
+    // 화면 체력이 실제보다 많고, 그만큼 늦게 죽는 것처럼 보인다.
+    for (const e of born) expect(e.hp).toBeLessThan(e.maxHp)
 
     const { unitState, teamOf } = replayFullLog(result)
 

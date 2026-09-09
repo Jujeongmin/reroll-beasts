@@ -81,6 +81,11 @@ export async function createBattle({ data, scene }) {
       st.moveTick = -99
       st.anim = 'idle'
       st.animUntil = 0
+      // 전투 중에 태어나는 말(사망 시 소환)은 그 틱까지 없는 셈 친다.
+      // load 는 로그 전체에서 spawn 을 걷어 오므로, 안 숨기면 소환수가
+      // 1틱부터 판에 서 있다가 부모가 죽을 때 갑자기 체력만 바뀐다.
+      st.alive = !(sp.tick > 0)
+      v.root.visible = st.alive
       unitState.set(sp.casterId, st)
       v.current = null
       v.play(v.anims.idle)
@@ -215,6 +220,19 @@ export async function createBattle({ data, scene }) {
     const st = unitState.get(e.casterId)
 
     switch (e.type) {
+      // 태어난다. 여기서 처음 보인다.
+      case 'spawn':
+        applyReplayEvent(unitState, e)
+        if (st && v) {
+          v.root.visible = true
+          st.prevTile = e.tile
+          st.moveTick = -99
+          st.anim = 'idle'
+          st.animUntil = e.tick
+          v.play(v.anims.idle)
+        }
+        break
+
       case 'leap':
         // 도약은 걷는 게 아니라 순간이동이다 — 보간하면 판을 가로질러 미끄러진다.
         // prevTile 도 도착지로 맞춰 render 가 이동 중으로 보지 않게 한다.

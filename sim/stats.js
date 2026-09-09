@@ -28,7 +28,10 @@ export function resolveStats(unit, star, combatCfg) {
     attackInterval: Math.max(6, Math.floor(base.attackInterval * mod.attackInterval)),
     range: mod.range,
     critChance: mod.critChance,
-    manaStart: base.manaStart,
+    // 시작 마나도 직업이 가른다. 스킬이 정체성인 직업은 첫 시전이 빨라야
+    // 한다 — 마법사는 첫 시전까지 12.3초가 걸리는데 마법사가 낀 판은 18초에
+    // 끝났다. 전체 마나 규칙(평타당 10 · 만렙 100)은 안 건드린다.
+    manaStart: Math.floor(base.manaStart * mod.manaStart),
   }
 }
 

@@ -15,6 +15,28 @@ const SRC_DIR = fileURLToPath(new URL('../game/src/', import.meta.url))
 
 const SKILL_TYPES = new Set(['single', 'aoe', 'buff', 'summon'])
 
+// sim/stats.js 의 resolveStats 가 직업 계수에서 읽는 키 전부.
+const CLASS_KEYS = ['hp', 'atk', 'def', 'mr', 'power', 'attackInterval', 'range', 'critChance', 'manaStart']
+
+// 실행기가 **실제로 읽는** 파라미터. sim/skills.js 와 짝이다.
+//
+// 이 표가 없어서 아홉 유닛이 죽은 값을 들고 출시됐다 — 드래곤은
+// burnTickPct(실행기가 읽는 이름은 tickDamagePct 다), 파랑 악마는 stunTicks,
+// 닭은 pierceCount. 카드에는 "뒤쪽 2명에게 60% 관통" 이 뜨는데 판에서는 아무
+// 일도 안 일어났다. 이름 하나가 조용히 통과하면 그 유닛은 정체성이 없다.
+//
+// **새 파라미터를 데이터에 적기 전에 여기와 실행기를 먼저 고쳐야 한다.**
+const SKILL_PARAMS = {
+  single: new Set([
+    'dmgPct', 'hits', 'defIgnorePct', 'lifestealPct',
+    'pierceCount', 'piercePct', 'stunTicks', 'pull',
+    'manaRefillOnKill', 'releapOnKill',
+  ]),
+  aoe: new Set(['radius', 'dmgPct', 'tickDamagePct', 'durationTicks']),
+  buff: new Set(['target', 'stat', 'amount', 'amountPctMaxHp', 'durationTicks']),
+  summon: new Set(['unitId', 'count', 'hpPct', 'trigger']),
+}
+
 export async function validate(data) {
   const errors = []
   const { combat, units, traits, shop, economy, levels, rounds, lobby, items } = data
@@ -36,10 +58,24 @@ export async function validate(data) {
     if (!originIds.has(u.origin)) errors.push(`유닛 ${u.id} 가 없는 종족 "${u.origin}" 을 참조한다`)
     if (!classIds.has(u.class)) errors.push(`유닛 ${u.id} 가 없는 직업 "${u.class}" 을 참조한다`)
     if (!SKILL_TYPES.has(u.skill?.type)) errors.push(`유닛 ${u.id} 의 스킬 타입 "${u.skill?.type}" 이 4종에 없다`)
+    for (const key of Object.keys(u.skill?.params ?? {})) {
+      if (SKILL_PARAMS[u.skill?.type]?.has(key)) continue
+      errors.push(
+        `유닛 ${u.id} 의 스킬 파라미터 "${key}" 를 ${u.skill?.type} 실행기가 안 읽는다 — 적어도 아무 일도 안 일어난다`,
+      )
+    }
     if (!combat.tierBase[String(u.tier)]) errors.push(`유닛 ${u.id} 의 티어 ${u.tier} 에 tierBase 정의가 없다`)
     if (!combat.classModifier[u.class]) errors.push(`유닛 ${u.id} 의 직업 계수 "${u.class}" 가 combat.json 에 없다`)
     // 화면 크기 배율. 빠지면 그 직업만 조용히 1배로 떨어져 "마법사가 탱커만 하다"가 된다
     if (!combat.classScale[u.class]) errors.push(`유닛 ${u.id} 의 직업 크기 배율 "${u.class}" 가 combat.json 에 없다`)
+    // 계수 키가 하나라도 빠지면 resolveStats 에서 base × undefined = NaN 이
+    // 되고, 그 유닛은 체력이 NaN 이라 **영원히 안 죽는다**. 조용히 나가면 안 된다.
+    for (const key of CLASS_KEYS) {
+      const v = combat.classModifier[u.class]?.[key]
+      if (typeof v !== 'number' || !Number.isFinite(v)) {
+        errors.push(`직업 계수 "${u.class}" 에 ${key} 가 없다(유닛 ${u.id}) — 스탯이 NaN 이 된다`)
+      }
+    }
   }
 
   // 3. 각 시너지의 보유 유닛 수 >= 최대 활성 단계

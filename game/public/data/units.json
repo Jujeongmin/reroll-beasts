@@ -124,7 +124,7 @@
         "type": "aoe",
         "params": {
           "radius": 1,
-          "dmgPct": 0,
+          "dmgPct": 70,
           "tickDamagePct": 16,
           "durationTicks": 90
         }
@@ -312,8 +312,8 @@
         "id": "ab_swarm",
         "type": "aoe",
         "params": {
-          "radius": 1,
-          "dmgPct": 230
+          "radius": 2,
+          "dmgPct": 175
         }
       }
     },
@@ -427,9 +427,9 @@
         "id": "gs_curse",
         "type": "aoe",
         "params": {
-          "radius": 2,
+          "radius": 1,
           "dmgPct": 0,
-          "tickDamagePct": 22,
+          "tickDamagePct": 34,
           "durationTicks": 120
         }
       }
@@ -570,9 +570,8 @@
         "params": {
           "radius": 2,
           "dmgPct": 320,
-          "lineLength": 3,
-          "burnTickPct": 12,
-          "burnTicks": 90
+          "tickDamagePct": 12,
+          "durationTicks": 90
         }
       }
     },
@@ -595,7 +594,7 @@
         "params": {
           "dmgPct": 420,
           "hits": 1,
-          "stunTicks": 30
+          "stunTicks": 60
         }
       }
     },

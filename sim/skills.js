@@ -3,6 +3,7 @@
 // 새 스킬을 추가할 때 실행기를 늘리지 않는다. params 를 늘린다.
 
 import { magicDamage, applyDamage } from './damage.js'
+import { backlineTile, pullTile } from './movement.js'
 
 function findById(all, id) {
   return all.find((u) => u.id === id)
@@ -41,6 +42,102 @@ function castSingle(ctx, caster) {
   const events = [
     { tick: ctx.tick, type: 'skill_single', casterId: caster.id, targetIds: [target.id], amount: total, toShield, toHp },
   ]
+
+  // 이 시전으로 죽었나. 아래 처치 효과들이 전부 이 한 값을 본다 — 각자
+  // target.alive 를 다시 보면 그 사이에 낀 효과(관통·끌어당김)가 값을 바꾼다.
+  const killed = !target.alive
+
+  // ── 관통 ──
+  // 사수 시너지(평타 관통)와 **같은 규칙**을 쓴다: 대상보다 나에게서 먼 적을
+  // 가까운 순으로, 같으면 id 순. 전에는 이 params 를 아무도 안 읽어서 카드에만
+  // "뒤쪽 2명에게 60% 관통" 이 뜨고 판에서는 아무 일도 안 일어났다.
+  const pierceCount = p.pierceCount ?? 0
+  if (pierceCount > 0 && total > 0) {
+    const dist = ctx.board.dist[caster.tile]
+    const behind = ctx.all
+      .filter(
+        (v) =>
+          v.alive &&
+          v.team !== caster.team &&
+          v.id !== target.id &&
+          dist[v.tile] > dist[target.tile],
+      )
+      .sort((x, y) => dist[x.tile] - dist[y.tile] || x.id - y.id)
+      .slice(0, pierceCount)
+    if (behind.length > 0) {
+      const raw = Math.floor((caster.stats.power * (p.dmgPct ?? 100)) / 100)
+      const scale = p.piercePct ?? 100
+      const ids = []
+      const hits = []
+      let pierced = 0
+      for (const v of behind) {
+        const mult = ctx.damageTakenMultiplier(v)
+        const full = magicDamage(raw, ctx.effectiveStat(v, 'mr'), defK) * mult
+        const hit = applyDamage(v, Math.floor((full * scale) / 100))
+        pierced += hit.dealt
+        hits.push({ id: v.id, toShield: hit.toShield, toHp: hit.toHp })
+        ids.push(v.id)
+      }
+      events.push({
+        tick: ctx.tick,
+        type: 'skill_pierce',
+        casterId: caster.id,
+        targetIds: ids,
+        amount: pierced,
+        hits,
+      })
+    }
+  }
+
+  // ── 기절 ──
+  // 스탯 버프와 같은 통에 담는다. effectiveStat 은 모르는 stat 을 그냥
+  // 지나치므로 수치에는 영향이 없고, 만료도 남들과 같은 한 줄이 처리한다.
+  if (p.stunTicks > 0 && target.alive) {
+    target.buffs.push({
+      stat: 'stun',
+      amount: 0,
+      expiresAt: ctx.tick + p.stunTicks,
+      sourceId: caster.id,
+    })
+    events.push({
+      tick: ctx.tick,
+      type: 'stun',
+      casterId: caster.id,
+      targetIds: [target.id],
+      durationTicks: p.stunTicks,
+    })
+  }
+
+  // ── 끌어당김 ──
+  // 내 옆 빈 칸으로 당긴다. 이동 쿨다운을 다시 채우는 이유: 안 채우면 당겨진
+  // 말이 다음 틱에 곧장 걸어 나가 당긴 값이 사라진다.
+  if (p.pull && target.alive) {
+    const spot = pullTile(ctx.board, caster, target, ctx.occupied)
+    if (spot >= 0) {
+      ctx.occupied.delete(target.tile)
+      target.tile = spot
+      ctx.occupied.set(spot, target.id)
+      target.moveCooldown = ctx.combatCfg.moveInterval
+      events.push({ tick: ctx.tick, type: 'move', casterId: target.id, tile: spot })
+    }
+  }
+
+  // ── 처치 보상 ──
+  // 마나 충전: 다음 틱에 곧장 다시 쓴다. 연쇄가 무한하지 않은 이유는 **매번
+  // 죽여야** 이어지기 때문이다 — 적 수가 상한이다.
+  if (killed && p.manaRefillOnKill) caster.mana = ctx.combatCfg.mana.full
+  // 재도약: 죽이면 다시 뒷줄로 뛴다. 자리 고르는 규칙은 전투 시작의 암살자
+  // 도약과 같은 함수다.
+  if (killed && p.releapOnKill && caster.alive) {
+    const foes = ctx.all.filter((o) => o.alive && o.team !== caster.team)
+    const spot = backlineTile(ctx.board, caster, foes, ctx.occupied)
+    if (spot >= 0) {
+      ctx.occupied.delete(caster.tile)
+      caster.tile = spot
+      ctx.occupied.set(spot, caster.id)
+      events.push({ tick: ctx.tick, type: 'leap', casterId: caster.id, tile: spot })
+    }
+  }
 
   // 버섯 4단계: 단일 스킬이 옆칸으로 튄다. 원래 대상은 이미 맞았으므로 뺀다.
   const splashPct = caster.traits?.splashOnSkillPct ?? 0

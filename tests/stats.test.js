@@ -20,9 +20,12 @@ describe('resolveStats', () => {
     expect(resolveStats(wizard, 1, data.combat).range).toBe(3)
   })
 
-  it('시작 마나는 티어가 정한다', () => {
+  it('시작 마나는 티어 × 직업이 정한다', () => {
+    // T2 25 × tank 1 = 25
     expect(resolveStats(knight, 1, data.combat).manaStart).toBe(25)
-    expect(resolveStats(wizard, 1, data.combat).manaStart).toBe(10)
+    // T5 10 × mage 1.4 = 14. **직업 계수가 붙는 자리다** — 마법사는 스킬이
+    // 정체성인데 첫 시전 전에 죽었다. 계수를 안 곱하면 그 손잡이가 사라진다.
+    expect(resolveStats(wizard, 1, data.combat).manaStart).toBe(14)
   })
 
   it('성급이 hp·atk 를 배율로 올린다', () => {

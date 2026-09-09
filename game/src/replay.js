@@ -10,7 +10,8 @@ export function createUnitState(spawn) {
   return {
     tile: spawn.tile,
     maxHp: spawn.maxHp,
-    hp: spawn.maxHp,
+    // 소환수는 최대 체력의 일부로 나온다. hp 가 실려 있으면 그 값이다.
+    hp: spawn.hp ?? spawn.maxHp,
     shield: 0,
     mana: spawn.mana ?? 0,
     manaFull: spawn.manaFull ?? 0,
@@ -24,6 +25,18 @@ export function createUnitState(spawn) {
  */
 export function applyReplayEvent(unitState, e) {
   switch (e.type) {
+    // 전투 중에 태어난 말. 상태는 로그를 훑을 때 미리 만들어 두고, 등장하는
+    // 그 틱에 살린다 — 안 그러면 소환수가 처음부터 판에 서 있다.
+    case 'spawn': {
+      const st = unitState.get(e.casterId)
+      if (st) {
+        st.alive = true
+        st.tile = e.tile
+        st.hp = e.hp ?? e.maxHp
+      }
+      break
+    }
+
     case 'mana': {
       const st = unitState.get(e.casterId)
       if (st) st.mana = e.value
@@ -54,6 +67,7 @@ export function applyReplayEvent(unitState, e) {
     // (sim/skills.js castAoe) — top-level amount 는 합계일 뿐이라 쓰면 안 된다.
     case 'skill_aoe':
     case 'death_blast':
+    case 'skill_pierce':
     case 'skill_splash': {
       for (const h of e.hits ?? []) {
         const ts = unitState.get(h.id)

@@ -32,7 +32,17 @@ export function skillText(unit) {
       const pierce = p.pierceCount
         ? t('skill.pierce', { n: p.pierceCount, pct: p.piercePct })
         : ''
-      return t('skill.single', { pct: p.dmgPct, hits, pierce })
+      // 덧붙는 효과들. **적힌 것만 적는다** — 여기서 문장을 지어내면 카드가
+      // 판보다 앞서 나간다. 실행기가 읽는 키와 이 목록이 짝이다
+      // (tools/validate.mjs 의 SKILL_PARAMS 가 그 짝을 지킨다).
+      const extra = []
+      if (p.defIgnorePct) extra.push(t('skill.defIgnore', { pct: p.defIgnorePct }))
+      if (p.lifestealPct) extra.push(t('skill.lifesteal', { pct: p.lifestealPct }))
+      if (p.stunTicks) extra.push(t('skill.stun', { sec: sec(p.stunTicks) }))
+      if (p.pull) extra.push(t('skill.pull'))
+      if (p.manaRefillOnKill) extra.push(t('skill.manaRefill'))
+      if (p.releapOnKill) extra.push(t('skill.releap'))
+      return [t('skill.single', { pct: p.dmgPct, hits, pierce }), ...extra].join(' ')
     }
     case 'aoe': {
       const burst = p.dmgPct ? t('skill.aoeBurst', { r: p.radius, pct: p.dmgPct }) : ''

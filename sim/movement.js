@@ -76,3 +76,51 @@ export function stepToward(board, self, target, occupied, range = 1) {
 
   return greedyStep(board, self, target, occupied)
 }
+
+/**
+ * 상대 뒷줄의 빈 칸. **암살자 도약과 스킬 재도약이 같이 쓴다.**
+ *
+ * 규칙: 상대 무리에 붙어 있는(가장 가까운 적까지 1칸 이내) 빈 칸 중 내가 선
+ * 자리에서 가장 먼 곳. 거리가 같으면 **먼저 만난 칸**을 쓴다 — 타일을 0부터
+ * 훑으므로 그게 곧 번호가 작은 칸이다. 이 타이브레이크가 결정론의 전부다:
+ * 두 암살자가 같은 칸을 노려도 서버와 클라가 같은 답을 내야 한다.
+ *
+ * 없으면 -1. 판이 꽉 찼거나 상대가 다 죽은 경우다.
+ */
+export function backlineTile(board, self, foes, occupied) {
+  if (foes.length === 0) return -1
+  let best = -1
+  let bestScore = -1
+  for (let t = 0; t < board.tileCount; t++) {
+    if (occupied.has(t)) continue
+    const near = Math.min(...foes.map((o) => board.dist[t][o.tile]))
+    if (near > 1) continue
+    const score = board.dist[self.tile][t]
+    if (score > bestScore) {
+      bestScore = score
+      best = t
+    }
+  }
+  return best
+}
+
+/**
+ * 끌어당길 자리: 내 옆의 빈 칸 중 그 말이 서 있던 자리에 가장 가까운 곳.
+ *
+ * 제일 가까운 칸을 고르는 이유는 그림이다 — 반대편으로 홱 돌아가는 것보다
+ * 끌려오는 것처럼 보인다. neighbors 가 오름차순이라 동률이면 번호가 작은
+ * 칸이 잡힌다.
+ */
+export function pullTile(board, self, victim, occupied) {
+  let best = -1
+  let bestDist = Infinity
+  for (const nb of board.neighbors[self.tile]) {
+    if (occupied.has(nb)) continue
+    const d = board.dist[nb][victim.tile]
+    if (d < bestDist) {
+      bestDist = d
+      best = nb
+    }
+  }
+  return best
+}

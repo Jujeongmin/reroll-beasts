@@ -9,7 +9,7 @@ import { activeTraits } from './traits.js'
 import { resolveStats, applyTraitEffects, traitSpecials } from './stats.js'
 import { applyItems, itemSpecials, mergeSpecials } from './items.js'
 import { findTarget } from './targeting.js'
-import { stepToward } from './movement.js'
+import { stepToward, backlineTile } from './movement.js'
 import { physicalDamage, magicDamage, applyDamage } from './damage.js'
 import { castSkill } from './skills.js'
 import { effectiveStat, damageTakenMultiplier } from './modifiers.js'
@@ -175,6 +175,78 @@ export function simulate({ boardA, boardB, seed, data }) {
 
   const aliveCount = (team) => all.filter((c) => c.alive && c.team === team).length
 
+  // 전투 중에 태어나는 말의 다음 id. **번호를 이어 붙인다** — 재생 쪽이 id 로
+  // 말을 찾으므로 겹치면 안 되고, 순서가 정해져 있어야 서버 판정과 클라 재생이
+  // 같은 판을 만든다. sweepDeaths 가 id 오름차순으로 도니 이 번호도 결정론이다.
+  let nextId = all.length
+
+  /**
+   * 죽은 자리에 새 말을 세운다. **사망 시 소환**이 쓴다.
+   *
+   * **시너지를 다시 안 센다.** 소환수가 시너지 수를 바꾸면 전투 도중에 판
+   * 전체의 스탯이 흔들리는데, 그 변화는 로그만으로 복원되지 않는다 — 화면과
+   * 판정이 갈린다. 아이템도 안 물려준다: 죽은 말이 낀 것을 넘기면 아이템
+   * 하나가 둘이 된다.
+   *
+   * 자리는 죽은 칸에서 가까운 빈 칸부터. 거리가 같으면 번호가 작은 칸이다.
+   */
+  function summonAt(parent, tickNow, occupied) {
+    const p = parent.skill.params
+    const unit = unitById(data.units, p.unitId)
+    if (!unit) return
+    const spots = []
+    for (let t = 0; t < board.tileCount; t++) if (!occupied.has(t)) spots.push(t)
+    spots.sort((x, y) => board.dist[parent.tile][x] - board.dist[parent.tile][y] || x - y)
+
+    for (const tile of spots.slice(0, p.count ?? 1)) {
+      const stats = resolveStats(unit, parent.star, cfg)
+      const c = {
+        localIndex: -1,
+        team: parent.team,
+        unitId: unit.id,
+        star: parent.star,
+        items: [],
+        skill: unit.skill,
+        tile,
+        hp: Math.max(1, Math.floor((stats.hp * (p.hpPct ?? 100)) / 100)),
+        maxHp: stats.hp,
+        shield: 0,
+        mana: stats.manaStart,
+        traits: traitSpecials([]),
+        revivesLeft: 0,
+        alive: true,
+        deathLogged: false,
+        // **소환수는 다시 소환하지 않는다.** 안 막으면 초록 슬라임이 둘로,
+        // 넷으로, 여덟으로 영원히 쪼개져 판이 끝나지 않는다.
+        summoned: true,
+        buffs: [],
+        targetId: null,
+        attackCooldown: 0,
+        moveCooldown: 0,
+        stats,
+        id: nextId++,
+      }
+      all.push(c)
+      occupied.set(tile, c.id)
+      // hp 를 같이 싣는다 — 소환수는 최대 체력의 일부로 나오므로, 재생 쪽이
+      // maxHp 로 시작하면 화면 체력이 실제보다 많다.
+      log.push({
+        tick: tickNow,
+        type: 'spawn',
+        casterId: c.id,
+        unitId: c.unitId,
+        team: c.team,
+        tile,
+        star: c.star,
+        items: [],
+        maxHp: c.maxHp,
+        hp: c.hp,
+        mana: c.mana,
+        manaFull: cfg.mana.full,
+      })
+    }
+  }
+
   let tick = 0
   const finish = (winner) => {
     log.push({ tick, type: 'end', winner })
@@ -216,6 +288,12 @@ export function simulate({ boardA, boardB, seed, data }) {
       c.deathLogged = true
       occupied.delete(c.tile)
       log.push({ tick: tickNow, type: 'death', casterId: c.id })
+
+      // 사망 시 소환. 죽은 칸을 비운 **다음**에 부른다 — 그래야 그 자리부터
+      // 다시 채워진다.
+      if (!c.summoned && c.skill?.type === 'summon' && c.skill.params?.trigger === 'onDeath') {
+        summonAt(c, tickNow, occupied)
+      }
 
       // 망자 3·4 · 부활 2·3: 죽을 때 주변에 마법 피해.
       const blastPct = c.traits.deathBlastPct
@@ -297,22 +375,9 @@ export function simulate({ boardA, boardB, seed, data }) {
     for (const c of all) {
       if (!c.traits.leapToBackline) continue
       const foes = all.filter((o) => o.alive && o.team !== c.team)
-      if (foes.length === 0) continue
-      // 상대들이 서 있는 칸에서 가장 먼 쪽 = 상대 뒷줄.
-      let best = -1
-      let bestScore = -1
-      for (let t = 0; t < board.tileCount; t++) {
-        if (occupied0.has(t)) continue
-        // 상대 무리에서 가장 가까운 적까지의 거리. 이게 작을수록 적진 깊숙이다.
-        const near = Math.min(...foes.map((o) => board.dist[t][o.tile]))
-        if (near > 1) continue
-        // 내 시작 칸에서 먼 쪽이 뒷줄이다.
-        const score = board.dist[c.tile][t]
-        if (score > bestScore || (score === bestScore && best >= 0 && t < best)) {
-          bestScore = score
-          best = t
-        }
-      }
+      // 자리 고르는 규칙은 movement.js 에 있다 — 닌자의 처치 시 재도약이
+      // 같은 규칙을 써야 해서, 두 벌로 두면 언젠가 서로 다른 칸을 고른다.
+      const best = backlineTile(board, c, foes, occupied0)
       if (best < 0) continue
       occupied0.delete(c.tile)
       c.tile = best
@@ -365,6 +430,11 @@ export function simulate({ boardA, boardB, seed, data }) {
         sweepDeaths(tick, occupied)
         if (!c.alive) continue
       }
+
+      // 기절. 이 동안은 움직이지도, 때리지도, 스킬을 쓰지도 못한다.
+      // **쿨다운도 안 내린다** — 내려 두면 풀리는 순간 밀린 공격이 한꺼번에
+      // 나가서, 기절이 오히려 딜을 몰아 주는 효과가 된다.
+      if (c.buffs.some((b) => b.stat === 'stun')) continue
 
       const target = findTarget(board, c, all)
       if (!target) continue
