@@ -679,6 +679,35 @@ try {
    * 그동안 판은 그대로 남아 있어 무엇으로 지었는지 다시 볼 수 있다.
    */
   const leaveBtn = document.getElementById('btn-leave')
+
+  // 내 판이 끝났다고 이미 처리했나. 두 경로(정산 · 서버 방송)가 같은 자리로
+  // 들어오므로 한 번만 돌게 막는다.
+  let ended = false
+
+  /**
+   * 내 판이 끝났다. 탈락이면 나가기만 띄우고, 아니면 결과판을 연다.
+   *
+   * **두 곳에서 부른다** — 정산(settle)과 서버 방송(onSeats).
+   *
+   * 1등은 방송으로만 온다. 남이 다 죽는 순간 내 판은 끝나는데 내 체력은
+   * 멀쩡하고 라운드도 안 찼다 — 정산이 보는 조건(체력 0 · 등수 · 마지막
+   * 라운드) 중 등수만 참이 되는데, 그 등수는 이 방송이 실어 온다. 방송을
+   * 안 보면 정산이 **다음에** 돌 때까지 기다리게 되고, 그건 배치 30초 +
+   * 전투 한 판 뒤다. "다 죽였는데 결과판이 안 뜬다" 가 그 시간이었다.
+   */
+  function finishRun({ eliminated }) {
+    if (ended || coach) return
+    ended = true
+    // 탈락은 결과판을 바로 안 띄운다. 판을 그대로 두고 나가기만 띄운다 —
+    // 누르는 순간 서버에서 좌석을 읽어 등수를 채운다.
+    if (eliminated) {
+      leaveBtn.hidden = false
+      leaveBtn.disabled = false
+      return
+    }
+    openResult()
+  }
+
   leaveBtn.addEventListener('click', async () => {
     if (leaveBtn.disabled) return
     leaveBtn.disabled = true
@@ -971,6 +1000,7 @@ try {
     }
     run.lobby = mm.seats
     // 지난 판에서 남았을 수 있다. 새 판에 뜬 나가기는 거짓말이다.
+    ended = false
     leaveBtn.hidden = true
     leaveBtn.disabled = false
     drawRound()
@@ -1019,7 +1049,15 @@ try {
               roomId,
               // 등수는 내 체력이 0 이 되는 순간이 아니라 서버가 박는 순간에
               // 온다. 결과판이 이미 떠 있으면 그 자리에서 다시 그린다.
-              onSeats: (seats) => resultView.seatsChanged(seats),
+              onSeats: (seats) => {
+                resultView.seatsChanged(seats)
+                const me = seats.find((x) => x.isPlayer)
+                // 전투 연출 중이면 그냥 둔다 — 정산이 끝에서 같은 조건을
+                // 본다. 연출 도중에 결과판을 덮으면 그 판이 어떻게 끝났는지를
+                // 못 본다.
+                if (!me?.rank || inCombat) return
+                finishRun({ eliminated: me.hp <= 0 })
+              },
               // 서버가 앞서 있으면 그 라운드로 건너뛴다.
               onRound: (round, deadline) => catchUpRound(round, deadline),
             }),
@@ -1304,16 +1342,7 @@ try {
       mm.resolveNow?.()
       // 곡은 멈춘 채로 둔다. 결과판이 뜨는 자리에 판 음악이 다시 깔리면
       // 판이 아직 안 끝난 것처럼 들린다.
-      //
-      // 탈락(체력 0)은 결과판을 바로 안 띄운다. 판을 그대로 두고 나가기만
-      // 띄운다 — 누르는 순간 서버에서 좌석을 읽어 등수를 채운다. 1등으로
-      // 끝났거나 마지막 라운드까지 갔으면 남은 것이 없으므로 바로 띄운다.
-      if (s.hp <= 0) {
-        leaveBtn.hidden = false
-        leaveBtn.disabled = false
-        return
-      }
-      openResult()
+      finishRun({ eliminated: s.hp <= 0 })
       return
     }
 
