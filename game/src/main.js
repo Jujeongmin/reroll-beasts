@@ -701,6 +701,11 @@ try {
     // 탈락은 결과판을 바로 안 띄운다. 판을 그대로 두고 나가기만 띄운다 —
     // 누르는 순간 서버에서 좌석을 읽어 등수를 채운다.
     if (eliminated) {
+      // 관전으로 넘긴다. 골드·상점·아바타를 걷어내지 않으면 죽은 사람이
+      // 아직 판을 굴리는 것처럼 보인다 — 실제로 그랬다.
+      prep.spectate()
+      avatar?.dispose?.()
+      avatar = null
       leaveBtn.hidden = false
       leaveBtn.disabled = false
       return
@@ -1093,6 +1098,10 @@ try {
    */
   function catchUpRound(round, deadline) {
     if (!mm || !Number.isInteger(round) || round <= run.index) return
+    // **내 판이 끝났으면 안 따라간다.** 여기서 prep.show 를 부르면 배치
+    // 시계가 다시 돌고, 그 시계가 전투를 켜서 죽은 사람이 남의 라운드마다
+    // 같은 판으로 계속 싸운다 — 화면에서는 "같은 전투가 반복"으로 보인다.
+    if (ended) return
     if (inCombat) {
       pendingRound = { round, deadline }
       return

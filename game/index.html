@@ -515,8 +515,22 @@
     pointer-events: none;
   }
   /* 누를 수 있는 것만 포인터를 받는다 — 나머지는 뒤의 판을 그대로 집게 둔다.
-     #lock 만 적어 두면 옆에 붙는 다음 버튼(설정)이 빠진다 — 오른쪽 줄의 버튼 전부. */
-  #hudR button { pointer-events: auto; }
+     **줄이 아니라 단추로 고른다.** 전에는 #hudR button 만 적어 뒀는데, 나중에
+     가운데 줄(#hudC)에 나가기가 붙으면서 그 단추가 통째로 안 눌렸다 — 보이는데
+     클릭이 안 되는 형태로만 드러난다. 어느 줄에 붙든 단추면 받게 둔다. */
+  #hudbar button { pointer-events: auto; }
+  /* 관전. 내 판이 끝났다 — 골드도 상점도 이제 내 것이 아니다.
+     남겨 두면 살 수 있는 것처럼 보이고, 눌러도 아무 일이 안 일어난다.
+     나가기(#btn-leave)와 로비 목록(#lobby)은 남긴다: 하나는 떠나는 길이고
+     하나는 관전하는 길이다. */
+  #prep.spectating #lvbox,
+  #prep.spectating #odds,
+  #prep.spectating #gold,
+  #prep.spectating #streak,
+  #prep.spectating #lock,
+  #prep.spectating #shopbar,
+  #prep.spectating .stick { display: none; }
+
   #hudL { display: flex; align-items: center; gap: 6px; justify-self: start; }
   /* 골드가 절대 배치(가운데)라 흐름으로는 오른쪽 칸이 안 밀린다.
      잠금도 같이 못 박아 화면 오른쪽 끝에 붙인다. */

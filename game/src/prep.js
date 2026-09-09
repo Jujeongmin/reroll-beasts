@@ -1699,6 +1699,19 @@ export async function createPrep({
       // 라운드가 넘어가면 상대도 바뀐다
     },
     /**
+     * 관전으로 넘어간다. **되돌아오지 않는다** — 내 판이 끝났다는 뜻이다.
+     *
+     * 판을 멈추는 것만으로는 모자라다. 골드·상점·잠금이 그대로 있으면 아직
+     * 내 판인 것처럼 보이고, 눌러도 아무 일이 안 일어난다. 화면에서 걷어내는
+     * 것이 "여기서 할 일은 없다"를 말하는 가장 짧은 방법이다.
+     */
+    spectate() {
+      running = false
+      boardFrozen = true
+      el.timer.textContent = '—'
+      el.root.classList.add('spectating')
+    },
+    /**
      * 전투에 판을 넘긴다. 루프는 battle 이 돌린다.
      * **상점은 그대로 열어 둔다** — TFT 처럼 싸우는 동안에도 굴려야 한다.
      */
