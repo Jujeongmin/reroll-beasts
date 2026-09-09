@@ -859,7 +859,14 @@
     background: var(--bg); color: var(--dim);
     align-items: center; justify-content: center; text-align: center; padding: 24px;
   }
-  @media (orientation: portrait) { #rotate { display: flex; } }
+  /* **폭이 실제로 모자랄 때만** 돌리라고 한다.
+     세로 비율이라는 것만 보면 창을 세로로 길게 늘인 데스크톱에도 뜬다 —
+     거기서는 돌릴 화면이 없고 폭도 이미 넉넉하다.
+     pointer: coarse 로는 못 가른다: 미리보기·임베드 환경이 마우스 기기에서도
+     coarse 를 보고한다(직접 재 봤다). 입력 장치를 묻지 말고 **돌려서 얻을
+     것이 있는가**를 묻는다 — 700px 은 HUD 가 안 겹치는 것을 확인한 667px
+     가로 화면보다 한 뼘 넓게 잡은 값이다. */
+  @media (orientation: portrait) and (max-width: 700px) { #rotate { display: flex; } }
 
   /* 부팅 — 리소스를 **전부** 받고 나서 게임을 연다. 중간에 받으면 상점 카드가
      빈 채로 뜨고 말이 한 박자 늦게 나타난다. */
@@ -1001,14 +1008,30 @@
   /* 메뉴를 감싸던 나무 판을 걷어냈다. 판은 배경 그림을 왼쪽에서 잘라 먹었고,
      정작 그 안에 든 건 버튼 셋뿐이라 액자만 무거웠다. 버튼은 자기 액자를
      이미 갖고 있다. */
-  #home .lobby-panel {
-    /* 가운데 정렬이 아니라 **프로필 카드 아래**로 못 박는다. 세로 가운데에
-       두면 카드가 한 줄 늘어날 때(이름이 생겼다) 그만큼 겹친다 — 카드가
-       기준이어야 겹칠 자리가 없다. */
-    position: absolute; left: 22px; top: 118px;
+  /* 프로필 카드와 메뉴를 **한 흐름에** 세운다.
+     전에는 카드가 absolute(top 16), 메뉴가 absolute(top 118)로 따로 떠
+     있었다. 카드 높이는 내용에 따라 자라는데(이름 · 티어 · 전적 · 최근 등수)
+     메뉴 자리는 118 로 못 박혀 있었으니, 전적이 쌓여 카드가 102px 를 넘는
+     순간 둘이 겹쳤다. 형제의 높이는 CSS 로 못 읽는다 — 같은 컬럼에 넣으면
+     읽을 필요가 없어진다.
+     화면이 낮으면(가로 폰) 넘칠 수 있으므로 그때만 스크롤한다. */
+  #home .leftcol {
+    position: absolute; left: 22px; top: 16px; width: 176px;
     /* 간판 캐릭터(z 없음)보다 위. 말풍선이 드래곤 뒤로 들어가면 안 읽힌다. */
     z-index: 4;
-    display: flex; flex-direction: column; gap: 8px; width: 176px;
+    display: flex; flex-direction: column; gap: 10px;
+    /* 넘칠 때만 세로로 스크롤한다. x 를 명시하지 않으면 y 를 auto 로 둔
+       것만으로 x 도 auto 가 되어, 카드 안의 nowrap 한 줄이 176px 을 넘는
+       순간 가로 막대가 생긴다. */
+    max-height: calc(100% - 32px); overflow-y: auto; overflow-x: hidden;
+    /* 스크롤이 생겨도 막대가 카드 위로 올라타지 않게. */
+    scrollbar-width: thin;
+  }
+  #home .lobby-panel {
+    /* relative 인 이유: guiding 상태가 z-index 를 올린다 — static 이면 그
+       규칙이 조용히 무시된다. */
+    position: relative; z-index: 1;
+    display: flex; flex-direction: column; gap: 8px;
   }
   /* 간판. 게임 이름은 화면에서 가장 큰 글자여야 한다 — 로비에 처음 들어온
      사람이 "무슨 게임인가"를 먼저 읽는다. */
@@ -1113,7 +1136,7 @@
   /* 반투명 띠. 코치 말풍선과 같은 말투를 쓴다 — 화면에 얹힌 정보는 다 같은
      재질이어야 어느 것이 그림이고 어느 것이 UI 인지 헷갈리지 않는다. */
   #home .record {
-    position: absolute; left: 22px; top: 16px; width: 176px; z-index: 4;
+    position: relative; z-index: 1; flex: none;
     padding: 8px 10px; border-radius: 9px; white-space: nowrap;
     font-size: 10px; line-height: 1.4; color: #f0dcb4;
     background: #140e1cbf; backdrop-filter: blur(3px); -webkit-backdrop-filter: blur(3px);
@@ -2338,6 +2361,25 @@
          고를 것이 하나뿐이면 헤맬 일이 없다. 닫으면 사라진다. -->
     <div class="veil"></div>
     <div class="title">REROLL BEASTS</div>
+    <!-- 프로필 카드와 메뉴는 **한 컬럼**이다. 따로 띄우면 카드가 자랄 때
+         메뉴를 덮는다(전적이 쌓이면 실제로 그랬다). -->
+    <div class="leftcol">
+    <!-- 프로필. 왼쪽 위 — 로비에서 눈이 먼저 가는 자리이고, 간판(가운데 위)
+         과 메뉴(왼쪽) 사이라 셋이 한 줄기로 읽힌다. 메뉴와 같은 상자에 넣지
+         않는 이유: 같이 있으면 "누르는 것"으로 읽히는데 이건 읽는 것이다. -->
+    <div class="record" id="home-record">
+      <!-- 내 이름. 누르면 바꾼다 — 순위표와 남의 화면에 뜨는 이름이다. -->
+      <button class="myname" id="record-name" hidden><span id="record-name-text"></span><i>✎</i></button>
+      <div class="tierline">
+        <i class="badge" id="record-badge"></i>
+        <b id="record-tier">브론즈</b>
+        <span id="record-lp"></span>
+      </div>
+      <div class="bar" id="record-bar" hidden><i></i></div>
+      <div class="head" id="record-head"></div>
+      <div class="recent" id="record-recent"></div>
+      <button class="rankbtn" id="record-rank" hidden></button>
+    </div>
     <div class="lobby-panel">
       <div class="menu" id="home-menu">
         <button class="btn-home" data-mode="normal" data-i18n="menu.normal">일반 매치</button>
@@ -2364,21 +2406,6 @@
         <div class="names" id="queue-names" hidden></div>
       </div>
     </div>
-    <!-- 프로필. 왼쪽 위 — 로비에서 눈이 먼저 가는 자리이고, 간판(가운데 위)
-         과 메뉴(왼쪽) 사이라 셋이 한 줄기로 읽힌다. 메뉴와 같은 상자에 넣지
-         않는 이유: 같이 있으면 "누르는 것"으로 읽히는데 이건 읽는 것이다. -->
-    <div class="record" id="home-record">
-      <!-- 내 이름. 누르면 바꾼다 — 순위표와 남의 화면에 뜨는 이름이다. -->
-      <button class="myname" id="record-name" hidden><span id="record-name-text"></span><i>✎</i></button>
-      <div class="tierline">
-        <i class="badge" id="record-badge"></i>
-        <b id="record-tier">브론즈</b>
-        <span id="record-lp"></span>
-      </div>
-      <div class="bar" id="record-bar" hidden><i></i></div>
-      <div class="head" id="record-head"></div>
-      <div class="recent" id="record-recent"></div>
-      <button class="rankbtn" id="record-rank" hidden></button>
     </div>
     <!-- 꾸미기. 무대에서 걸어다닐 캐릭터·판·승리 이펙트를 정한다 — 싸우는 말과는
          무관하다(밸런스에 안 닿는다). -->
