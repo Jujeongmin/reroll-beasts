@@ -78,6 +78,12 @@ export function isFreeLevel(level, data) {
 export function gemsAt(level, data) {
   const rule = data.pass.gems
   if (!rule || level < 1 || level > data.pass.maxLevel) return 0
+  // **1단계는 지급이 불가능하다.** 모두가 1단계에서 시작하므로 그 칸으로
+  // "오른" 적이 없고, 젬은 오른 구간만 센다(gemsBetween 은 from+1 부터다).
+  // 그런데 화면(passTrack)은 이 함수를 그대로 읽어 1단계에 젬을 그렸다 —
+  // 도달한 칸에 보상이 적혀 있는데 지갑에는 안 들어오는, 화면이 거짓말하는
+  // 자리였다. 여기서 0 을 내면 화면과 지급이 같은 말을 한다.
+  if (level <= 1) return 0
   if (itemAt(level, data)) return 0
   return isFreeLevel(level, data) ? (rule.freeAmount ?? rule.amount ?? 0) : (rule.amount ?? 0)
 }

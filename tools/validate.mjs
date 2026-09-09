@@ -367,6 +367,9 @@ export async function validate(data) {
     freeSeen.add(lv)
   }
   // 무료 칸이 하나도 없으면 트랙은 광고판이 되고, 전부 무료면 팔 것이 없다.
+  // 1단계는 모두의 출발점이라 그 칸으로 오르는 사람이 없다 — 무료로 적어
+  // 두면 화면에는 보상이 뜨는데 지갑에는 영영 안 들어온다. 실제로 그랬다.
+  if (freeLevels.includes(1)) errors.push('무료 칸에 1단계가 있다 — 출발점이라 아무도 못 받는다')
   if (freeLevels.length === 0) errors.push('무료 칸이 하나도 없다')
   if (freeLevels.length >= maxPassLevel) errors.push('무료 칸이 트랙 전체다 — 팔 것이 없다')
 

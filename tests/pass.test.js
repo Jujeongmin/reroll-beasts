@@ -84,11 +84,21 @@ describe('gemsAt / gemsBetween', () => {
 
   // 무료 칸이 아홉뿐이라 프리미엄 칸과 같은 값이면 한 시즌을 다 돌아도
   // 젬 상점에서 살 수 있는 것이 없다.
+  it('1단계는 아무것도 안 준다 — 출발점이라 아무도 그 칸으로 오르지 않는다', () => {
+    // gemsBetween 은 오른 구간(from+1 부터)만 센다. 모두가 1단계에서
+    // 시작하므로 그 칸은 어떤 경로로도 지급되지 않는다. 그런데 화면은 이
+    // 함수를 읽어 트랙을 그리므로, 0 이 아니면 "도달한 칸에 보상이 적혀
+    // 있는데 지갑에는 안 들어오는" 거짓말이 된다.
+    expect(gemsAt(1, data)).toBe(0)
+    expect(gemsBetween(1, 1, true, data)).toBe(0)
+  })
+
   it('무료 칸이 잠긴 칸보다 많이 준다', () => {
     const free = data.pass.freeLevels.find((lv) => !itemAt(lv, data))
+    // 1단계는 뺀다 — 위 규칙대로 늘 0 이라 "잠긴 칸" 의 대표가 될 수 없다.
     const locked = [...Array(data.pass.maxLevel)]
       .map((_, i) => i + 1)
-      .find((lv) => !data.pass.freeLevels.includes(lv) && !itemAt(lv, data))
+      .find((lv) => lv > 1 && !data.pass.freeLevels.includes(lv) && !itemAt(lv, data))
     expect(gemsAt(free, data)).toBe(data.pass.gems.freeAmount)
     expect(gemsAt(locked, data)).toBe(data.pass.gems.amount)
     expect(gemsAt(free, data)).toBeGreaterThan(gemsAt(locked, data))
@@ -229,6 +239,11 @@ describe('트랙을 채운다', () => {
 
   it('한 줄이고 칸마다 보상이 하나다', () => {
     for (const t of track()) {
+      // 1단계만 예외다. 출발점이라 보상을 걸어도 아무도 못 받는다.
+      if (t.level === 1) {
+        expect(t.gems, '1단계에 젬이 걸려 있다 — 아무도 못 받는다').toBe(0)
+        continue
+      }
       const something = t.gems > 0 || t.item
       expect(something, `${t.level}단계가 비었다`).toBeTruthy()
       // 물건과 젬을 같이 주지 않는다 — 칸 하나에 보상 하나다.
