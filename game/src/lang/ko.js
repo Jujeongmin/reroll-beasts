@@ -64,6 +64,7 @@ export default {
   'hint.equipped': '{item} 장착',
   'hint.frozenBoard': '전투 중에는 판을 못 바꾼다',
   'hint.merged': '합성 완료',
+  'hud.leave': '나가기',
   'stat.def': '방어력',
   'stat.atkPct': '공격력',
   'stat.damageTakenPct': '받는 피해',

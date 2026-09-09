@@ -44,6 +44,7 @@ export default {
   'hint.equipped': '{item}を装備',
   'hint.frozenBoard': '戦闘中は盤を動かせない',
   'hint.merged': '合成',
+  'hud.leave': '退出',
   'stat.def': '防御力',
   'stat.atkPct': '攻撃力',
   'stat.damageTakenPct': '被ダメージ',

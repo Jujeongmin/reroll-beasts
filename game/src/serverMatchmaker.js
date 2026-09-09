@@ -386,6 +386,46 @@ export async function createServerMatchmaker({
       server.remoteFunction('resolveRound', [], { needResponse: false })
     },
 
+    /**
+     * 서버에 마감을 재촉한다. **응답을 기다린다.**
+     *
+     * 마감(resolveRound)을 부르는 곳은 advance 하나뿐인데, 내가 죽은
+     * 라운드에서는 정산이 곧장 결과 처리로 빠져 advance 까지 못 간다. 방에
+     * 다른 사람이 남아 있으면 그 사람의 advance 가 대신 돌려 주지만, 봇 방이나
+     * 내가 마지막 사람이면 **아무도 안 부른다** — 서버는 그 라운드에 멈춰 서고
+     * 등수도 전적도 LP 도 영영 안 박힌다. 결과판 등수가 `–` 로 남던 길이다.
+     */
+    resolveNow() {
+      return server.remoteFunction('resolveRound', []).catch(() => null)
+    },
+
+    /**
+     * 좌석을 서버에서 통째로 다시 읽는다. 결과판을 열기 직전에 쓴다.
+     *
+     * 브로드캐스트는 체력·등수만 나른다 — 남의 **마지막 판**은 정찰로 받아 둔
+     * 것이라 내가 죽은 뒤에 바뀐 자리는 안 들어온다. 결과판이 답하는 질문이
+     * "무엇으로 짰나" 이므로 그 자리는 서버가 쥔 값이 맞다.
+     *
+     * 내 판은 안 덮는다 — 방금 싸운 그 판이 내 화면에 있고, 서버 쪽 사본은
+     * 정찰 쓰로틀 때문에 한 박자 늦을 수 있다.
+     */
+    async refreshSeats() {
+      const fresh = await server.remoteFunction('getLobby', []).catch(() => null)
+      if (!fresh?.seats) return seats
+      for (const s of fresh.seats) {
+        const seat = seats[s.id]
+        if (!seat) continue
+        seat.hp = s.hp
+        seat.alive = s.alive
+        // 등수는 서버만 안다. 없으면 없는 대로 둔다 — 지어내지 않는다.
+        seat.rank = s.rank ?? null
+        if (Number.isInteger(s.streak)) seat.streak = s.streak
+        if (Number.isInteger(s.level)) seat.level = s.level
+        if (!seat.isPlayer && Array.isArray(s.board)) seat.board = s.board
+      }
+      return seats
+    },
+
     /** 전투 직전 확정 송신. 서버 판정의 근거라 유실되면 안 된다. */
     pushBoard,
 

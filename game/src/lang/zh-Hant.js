@@ -44,6 +44,7 @@ export default {
   'hint.equipped': '已裝備{item}',
   'hint.frozenBoard': '戰鬥中不能動場上',
   'hint.merged': '已合成',
+  'hud.leave': '離開',
   'stat.def': '護甲',
   'stat.atkPct': '攻擊力',
   'stat.damageTakenPct': '受到傷害',

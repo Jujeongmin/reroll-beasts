@@ -44,6 +44,7 @@ export default {
   'hint.equipped': '{item} equipped',
   'hint.frozenBoard': "Can't change the board during battle",
   'hint.merged': 'Merged',
+  'hud.leave': 'Leave',
   'stat.def': 'Armor',
   'stat.atkPct': 'Attack',
   'stat.damageTakenPct': 'Damage taken',

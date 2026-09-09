@@ -638,6 +638,55 @@ try {
     }
   }
 
+  /**
+   * 판이 끝났다. 결과판을 띄운다.
+   *
+   * **서버에서 좌석을 다시 읽고 연다.** 등수는 서버만 알고(죽는 자리에서
+   * 박는다), 남의 마지막 판도 서버 쪽이 온전하다. 마감을 한 번 더 재촉하는
+   * 이유는 idempotent 이기 때문이다 — 이미 넘어간 라운드면 서버가 그대로
+   * 돌려보낸다.
+   */
+  async function openResult() {
+    try {
+      await mm?.resolveNow?.()
+      await mm?.refreshSeats?.()
+    } catch (err) {
+      // 서버가 안 되면 화면이 든 값으로 연다. 등수가 비면 결과판이 `–` 를
+      // 적는다 — 없는 등수를 지어내는 것보다 낫다.
+      console.warn('결과 좌석 갱신 실패:', err?.message)
+    }
+    const mine = run.lobby.find((x) => x.isPlayer)
+    resultView.open({
+      seats: run.lobby,
+      mySeatId: mySeatId(),
+      // LP 는 랭크 판에서만 움직인다. 일반 판에 0 을 적으면 움직였는데 0 인
+      // 것처럼 읽힌다 — 아예 안 적는다.
+      ranked: run.mode === 'ranked',
+      won: mine?.rank === 1,
+      // 판에 들어가기 전 LP. 서버는 이미 더했지만 화면이 든 값은 아직 전이라,
+      // 여기가 "어디에서 어디로" 의 출발점이다.
+      lp: profileLp,
+      rankedGames: profileRankedGames,
+    })
+  }
+
+  /**
+   * 탈락했다. 골드 줄 오른쪽에 나가기만 띄운다.
+   *
+   * 결과판을 곧장 안 띄우는 이유: 죽는 순간과 서버가 등수를 박는 순간은 같지
+   * 않다. 바로 띄우면 등수 칸이 `–` 인 채로 뜨고, 그게 채워지는지는 방송이
+   * 제때 오느냐에 달린다. 누를 때 서버에서 읽어 오면 그 운에 안 기댄다.
+   * 그동안 판은 그대로 남아 있어 무엇으로 지었는지 다시 볼 수 있다.
+   */
+  const leaveBtn = document.getElementById('btn-leave')
+  leaveBtn.addEventListener('click', async () => {
+    if (leaveBtn.disabled) return
+    leaveBtn.disabled = true
+    sfx('open')
+    await openResult()
+    leaveBtn.hidden = true
+  })
+
   const resultView = createResult({
     data,
     thumbFor: (id, star) => prep.thumbFor(id, star),
@@ -921,6 +970,9 @@ try {
       run.round = roundAt(1, data.rounds).label
     }
     run.lobby = mm.seats
+    // 지난 판에서 남았을 수 있다. 새 판에 뜬 나가기는 거짓말이다.
+    leaveBtn.hidden = true
+    leaveBtn.disabled = false
     drawRound()
     home.hide()
     bgm('battle')
@@ -1245,20 +1297,23 @@ try {
     // 체력만 보면 그 사람은 23라운드까지 혼자 판을 굴린다.
     const mine = run.lobby.find((x) => x.isPlayer)
     if (s.hp <= 0 || mine?.rank || run.index >= totalRounds(data.rounds)) {
+      // **마감을 여기서 한 번 재촉한다.** 이 자리에서 곧장 돌아가면 이
+      // 라운드의 resolveRound 를 아무도 안 부른다 — 그걸 부르는 건 저 아래
+      // mm.advance 다. 방에 사람이 나뿐이거나(봇 일곱) 내가 마지막 사람이면
+      // 서버는 이 라운드에 멈춰 서고, 등수도 전적도 LP 도 안 박힌다.
+      mm.resolveNow?.()
       // 곡은 멈춘 채로 둔다. 결과판이 뜨는 자리에 판 음악이 다시 깔리면
       // 판이 아직 안 끝난 것처럼 들린다.
-      resultView.open({
-        seats: run.lobby,
-        mySeatId: mySeatId(),
-        // LP 는 랭크 판에서만 움직인다. 일반 판에 0 을 적으면 움직였는데
-        // 0 인 것처럼 읽힌다 — 아예 안 적는다.
-        ranked: run.mode === 'ranked',
-        won: mine?.rank === 1,
-        // 판에 들어가기 전 LP. 서버는 이미 더했지만 화면이 든 값은 아직
-        // 전이라, 여기가 "어디에서 어디로" 의 출발점이다.
-        lp: profileLp,
-        rankedGames: profileRankedGames,
-      })
+      //
+      // 탈락(체력 0)은 결과판을 바로 안 띄운다. 판을 그대로 두고 나가기만
+      // 띄운다 — 누르는 순간 서버에서 좌석을 읽어 등수를 채운다. 1등으로
+      // 끝났거나 마지막 라운드까지 갔으면 남은 것이 없으므로 바로 띄운다.
+      if (s.hp <= 0) {
+        leaveBtn.hidden = false
+        leaveBtn.disabled = false
+        return
+      }
+      openResult()
       return
     }
 
