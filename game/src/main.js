@@ -117,8 +117,10 @@ addEventListener('focusout', () => setTimeout(fitViewport, 250))
 addEventListener('focusin', (ev) => {
   // **activeElement 가 아니라 이벤트 대상을 본다.** focusin 은 브라우저에
   // 따라 activeElement 가 갱신되기 전에 오고, 그러면 이 검사가 늘 거짓이다.
-  const t = ev.target
-  const isField = !!t && (t.tagName === 'INPUT' || t.tagName === 'TEXTAREA' || t.isContentEditable)
+  const node = ev.target
+  const isField =
+    !!node &&
+    (node.tagName === 'INPUT' || node.tagName === 'TEXTAREA' || node.isContentEditable)
   if (isField) document.getElementById('viewport')?.classList.add('typing')
 })
 addEventListener('focusout', () => {

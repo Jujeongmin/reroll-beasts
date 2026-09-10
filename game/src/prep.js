@@ -672,6 +672,9 @@ export async function createPrep({
     return run.state.board.filter(Boolean)
   }
 
+  /** 마지막으로 센 시너지별 보유 수. 고정된 패널을 다시 그릴 때 쓴다. */
+  let traitCounts = new Map()
+
   function renderTraits() {
     // 보드에 놓인 유닛만 시너지를 낸다 — 벤치는 세지 않는다
     const onBoard = shownBoard()
@@ -686,6 +689,8 @@ export async function createPrep({
       // 활성 단계가 높은 순 → 같은 단계면 보유 수 많은 순
       .sort((a, b) => b[1].step - a[1].step || b[1].count - a[1].count)
 
+    traitCounts = new Map(rows)
+
     el.traits.replaceChildren(
       ...rows.map(([id, v]) => {
         const def = [...data.traits.origins, ...data.traits.classes].find((x) => x.id === id)
@@ -699,8 +704,15 @@ export async function createPrep({
         })
         // 바로 닫으면 패널로 마우스를 옮기는 도중에 사라진다.
         d.addEventListener('pointerleave', scheduleHideTraitInfo)
-        // 터치에는 hover 가 없다. 눌러도 열리게 한다.
+        // 터치에는 hover 가 없다. 눌러서 열고, **눌러 둔 채로 남긴다.**
         d.addEventListener('click', () => {
+          // 같은 것을 다시 누르면 닫는다 — 여는 손짓과 닫는 손짓이 같아야
+          // 한 번 배운 사람이 헤매지 않는다.
+          if (pinnedTrait === id) {
+            hideTraitInfo()
+            return
+          }
+          pinnedTrait = id
           keepTraitInfo()
           showTraitInfo(id, v.count)
         })
@@ -955,17 +967,45 @@ export async function createPrep({
    * 패널에 들어오면 취소한다.
    */
   let traitHideTimer = 0
+  /**
+   * 눌러서 **고정한** 시너지. 없으면 null.
+   *
+   * 손가락에는 hover 가 없다. 탭해서 연 패널이 손을 떼는 순간(pointerleave)
+   * 닫히면 읽을 새가 없다 — 열렸다 사라지는 것만 보인다. 눌러서 열면 바깥을
+   * 누를 때까지 남긴다. 마우스로 스쳐 보는 길은 그대로 둔다: 두 입력이 서로
+   * 다른 손짓을 쓰므로 한쪽을 위해 다른 쪽을 버릴 이유가 없다.
+   */
+  let pinnedTrait = null
   function keepTraitInfo() {
     clearTimeout(traitHideTimer)
   }
   function scheduleHideTraitInfo() {
+    // 고정된 동안에는 스쳐 지나가도 안 닫는다.
+    if (pinnedTrait) return
     clearTimeout(traitHideTimer)
     traitHideTimer = setTimeout(hideTraitInfo, 180)
   }
   function hideTraitInfo() {
     clearTimeout(traitHideTimer)
+    pinnedTrait = null
     el.traitInfo.hidden = true
   }
+
+  // 바깥을 누르면 고정을 푼다. 패널 안(유닛 칸을 짚는 것)과 시너지 줄은
+  // 뺀다 — 그 둘은 "이 패널을 보는 중" 이다.
+  //
+  // 캡처 단계로 듣는다. 판이나 상점이 먼저 이 눌림을 삼키면(말을 집는 순간
+  // pointerdown 이 거기서 끝난다) 패널이 열린 채로 남는다.
+  document.addEventListener(
+    'pointerdown',
+    (ev) => {
+      if (!pinnedTrait) return
+      const node = ev.target
+      if (el.traitInfo.contains(node) || el.traits.contains(node)) return
+      hideTraitInfo()
+    },
+    true,
+  )
 
   el.traitInfo.addEventListener('pointerenter', keepTraitInfo)
   el.traitInfo.addEventListener('pointerleave', (ev) => {
@@ -1012,7 +1052,10 @@ export async function createPrep({
   }
 
   function refresh() {
-    hideTraitInfo()
+    // 고정된 패널은 안 닫는다. 대신 아래 renderTraits 뒤에서 **최신 수로**
+    // 다시 그린다 — 그냥 두면 말을 사고 판 뒤에도 옛 수가 떠 있어 화면이
+    // 거짓말을 한다.
+    if (!pinnedTrait) hideTraitInfo()
     renderLobby()
     // 팔리거나 합쳐져 사라진 유닛의 정보가 남아 있으면 거짓말이 된다
     if (infoUid !== null) {
@@ -1023,6 +1066,12 @@ export async function createPrep({
     }
     renderHud()
     renderTraits()
+    if (pinnedTrait) {
+      const v = traitCounts.get(pinnedTrait)
+      // 그 시너지가 판에서 아예 사라졌으면 띄울 것이 없다.
+      if (v) showTraitInfo(pinnedTrait, v.count)
+      else hideTraitInfo()
+    }
     renderShop()
     // 가진(아직 안 낀) 아이템은 이제 DOM 줄이 아니라 대기석 옆 3D 선반이다.
     scene.setItemShelf(run.state.items)
