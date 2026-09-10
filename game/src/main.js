@@ -580,12 +580,37 @@ try {
       const v = peerFor(p.id)
       if (!v) continue
       v.setVisible(true)
+      v.setName?.(seatName(p.id))
       v.setTarget({ x: p.x, z: p.z })
       v.tick(dt)
+    }
+
+    // **판 주인은 늘 세운다.**
+    //
+    // avatarsOn 은 좌표를 **방송한 사람**만 준다. 봇은 방송을 안 하고, 사람도
+    // 남의 판을 구경 중이면 자기 판에 없다 — 그래서 남의 판에 가면 아무도
+    // 없는 빈 판만 보였다. 누구의 판인지가 화면에 없으면 구경할 이유가 없다.
+    //
+    // 자리는 만들 때 정해지는 기본 자리(판 뒤쪽 가운데)를 그대로 쓴다.
+    // 목적지를 안 주므로 tick 은 제자리에 세워 둔다.
+    if (peeked !== null && peeked !== mySeatId() && peeked !== duelWith && !hereNow.has(peeked)) {
+      const v = peerFor(peeked)
+      if (v) {
+        hereNow.add(peeked)
+        v.setVisible(true)
+        v.setName?.(seatName(peeked))
+        v.tick(dt)
+      }
     }
     // 떠난 사람은 감춘다. 지우지 않는 이유: 곧 돌아올 수 있고, 모델을 다시
     // 만드는 것보다 세워 둔 채 감추는 편이 싸다.
     for (const [id, v] of peers) if (v && !hereNow.has(id)) v.setVisible(false)
+  }
+
+  /** 그 좌석의 이름. 아바타 머리 위에 적는다 — 없으면 빈 문자열. */
+  function seatName(seatId) {
+    const seat = run.lobby.find((s) => s.id === seatId)
+    return seat ? textOf(seat.name) : ''
   }
 
   /** 내 좌석 번호. 로비가 아직 없으면 0(튜토리얼도 0번이다). */
