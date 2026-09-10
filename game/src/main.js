@@ -448,6 +448,12 @@ try {
     for (const [id, v] of peers) {
       if (v && id !== duelA && id !== duelB) v.setVisible(false)
     }
+    // **내가 이 결투에 안 서면 내 아바타도 감춘다.**
+    // 남의 전투를 관전하면 아래 자리는 그 판의 A 몫이다. 내 아바타는 전투가
+    // 시작될 때 그 자리에 세워진 뒤 아무도 안 건드리므로, 감추지 않으면 둘이
+    // 같은 칸에 겹쳐 선다 — 셋이 보이는 것이 아니라 하나가 다른 하나에
+    // 파묻힌다. 무대의 두 자리는 싸우는 두 사람 몫이다.
+    if (avatar && duelA !== mySeatId() && duelB !== mySeatId()) avatar.setVisible(false)
     tickDuel(0)
   }
 
