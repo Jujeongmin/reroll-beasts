@@ -73,19 +73,57 @@ applyStatic()
 const DESIGN_H = 390
 const DESIGN_W_MIN = 700
 const DESIGN_W_MAX = 1040
+/**
+ * 글자를 치는 중인가.
+ *
+ * **손가락 키보드가 innerHeight 를 절반으로 만든다.** 그 상태로 다시 재면
+ * 판이 절반 크기로 쪼그라든다 — 이름을 치는 동안 뒤 화면이 우표만 해지는
+ * 것이 그것이었다. 창이 실제로 바뀐 것이 아니라 키보드가 자리를 먹은 것뿐이니
+ * 다시 잴 이유가 없다. 키보드가 내려가면(focusout) 그때 한 번 잰다.
+ */
+function typing() {
+  const a = document.activeElement
+  return !!a && (a.tagName === 'INPUT' || a.tagName === 'TEXTAREA' || a.isContentEditable)
+}
+
+/** 한 번이라도 제대로 잡았나. 아래 가드가 이 값을 본다. */
+let fitted = false
+
 function fitViewport() {
   const el = document.getElementById('viewport')
   if (!el) return
+  // 아직 한 번도 못 잡았으면 입력 중이라도 잰다. 안 그러면 첫 측정이 실패한
+  // 상태(창 크기를 아직 모를 때)로 굳어 판이 통째로 안 보인다.
+  if (fitted && typing()) return
   const w = Math.round(
     Math.min(DESIGN_W_MAX, Math.max(DESIGN_W_MIN, (DESIGN_H * innerWidth) / innerHeight)),
   )
   const k = Math.min(innerWidth / w, innerHeight / DESIGN_H)
+  // 창 크기가 0 이면 둘 다 NaN 이 된다. 그 값을 넣으면 style 이 조용히
+  // 무시되고 판이 폭 0 으로 남는다 — 다음 기회에 다시 잰다.
+  if (!Number.isFinite(w) || !Number.isFinite(k) || w <= 0 || k <= 0) return
   el.style.width = `${w}px`
   el.style.height = `${DESIGN_H}px`
   el.style.transform = `translate(-50%, -50%) scale(${k})`
+  fitted = true
 }
 fitViewport()
 addEventListener('resize', fitViewport)
+// 키보드가 내려간 **뒤에** 잰다. focusout 그 순간에는 아직 접히는 중이라
+// innerHeight 가 중간값이다 — 그 값으로 재면 어중간한 크기로 굳는다.
+addEventListener('focusout', () => setTimeout(fitViewport, 250))
+// 입력칸을 띄우면 창이 키보드 뒤로 숨을 수 있다. 그동안만 위로 붙인다 —
+// 판 크기는 그대로 두고 창만 옮기므로 뒤 화면이 안 흔들린다.
+addEventListener('focusin', (ev) => {
+  // **activeElement 가 아니라 이벤트 대상을 본다.** focusin 은 브라우저에
+  // 따라 activeElement 가 갱신되기 전에 오고, 그러면 이 검사가 늘 거짓이다.
+  const t = ev.target
+  const isField = !!t && (t.tagName === 'INPUT' || t.tagName === 'TEXTAREA' || t.isContentEditable)
+  if (isField) document.getElementById('viewport')?.classList.add('typing')
+})
+addEventListener('focusout', () => {
+  document.getElementById('viewport')?.classList.remove('typing')
+})
 
 try {
   const data = await loadData()
