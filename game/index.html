@@ -1034,10 +1034,10 @@
     /* 간판 캐릭터(z 없음)보다 위. 말풍선이 드래곤 뒤로 들어가면 안 읽힌다. */
     z-index: 4;
     display: flex; flex-direction: column; gap: 10px;
-    /* 넘칠 때만 세로로 스크롤한다. x 를 명시하지 않으면 y 를 auto 로 둔
-       것만으로 x 도 auto 가 되어, 카드 안의 nowrap 한 줄이 176px 을 넘는
-       순간 가로 막대가 생긴다. */
-    max-height: calc(100% - 32px); overflow-y: auto; overflow-x: hidden;
+    /* **자르지 않는다.** 겹침은 이 컬럼이 세로로 쌓는 것으로 이미 끝났고,
+       여기에 overflow 를 걸면 튜토리얼 옆으로 나오는 말풍선(.firsthint)이
+       잘린다. 카드 높이는 줄 수가 정해져 있어(이름·티어·막대·전적·최근·
+       순위표) 위로 자라지 않는다 — 가장 긴 경우도 가로 화면 안에 든다. */
     /* 스크롤이 생겨도 막대가 카드 위로 올라타지 않게. */
     scrollbar-width: thin;
   }
@@ -1093,8 +1093,13 @@
     background: #05030ad9;
   }
   #home.guiding .veil { display: block; }
-  /* 패널을 덮개 위로 올린다. 패널 자체가 쌓임 맥락이라 버튼만 올릴 수는 없다. */
-  #home.guiding .lobby-panel { z-index: 9; }
+  /* 덮개 위로 올리는 것은 **컬럼(.leftcol)** 이다.
+     안쪽 패널에만 z-index 를 걸면 안 된다: 컬럼이 이미 쌓임 맥락을 만들어서
+     그 9 는 컬럼 안에서만 뜻이 있고, 바깥에서는 컬럼의 4 로 평가돼 덮개(8)
+     아래로 깔린다 — 첫 실행 화면이 통째로 어두워지고 튜토리얼조차 안 눌렸다.
+     쌓임 맥락을 만드는 쪽을 올려야 그 안이 전부 따라 올라온다. */
+  #home.guiding .leftcol { z-index: 9; }
+  #home.guiding .lobby-panel { z-index: 1; }
   /* 튜토리얼만 남기고 전부 죽인다 — 보이되 안 눌린다. */
   #home.guiding .btn-home:not(.is-new),
   #home.guiding .subrow { opacity: .3; pointer-events: none; }
