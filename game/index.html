@@ -597,20 +597,22 @@
   /* 색은 보석이 나르고 숫자는 배경 없이 읽힌다.
      보석 그림을 **마스크로** 쓴다 — 팩에 보라(4티어)가 없어서 색깔별 타일을
      골라 쓸 수가 없다. 모양은 에셋에서, 색은 티어에서 온다. */
-  #odds { display: flex; gap: 2px; padding: 0 2px; }
+  /* 칸 사이와 보석·숫자 사이를 둘 다 벌린다. 2px 은 손가락 화면에서 보석이
+     숫자에 닿아 한 덩어리로 뭉개졌다 — 색과 값이 서로를 가렸다. */
+  #odds { display: flex; gap: 7px; padding: 0 3px; }
   #odds span {
-    display: flex; align-items: center; gap: 2px;
-    font-size: 9px; line-height: 9px; font-weight: 800;
+    display: flex; align-items: center; gap: 4px;
+    font-size: 10px; line-height: 10px; font-weight: 800;
     font-variant-numeric: tabular-nums; color: #f0e6cf; text-shadow: 0 1px 2px #0009;
   }
   #odds span i {
-    width: 9px; height: 9px; flex: none; background: var(--oc);
+    width: 11px; height: 11px; flex: none; background: var(--oc);
     -webkit-mask: url('/assets/ui/gem.png') center / contain no-repeat;
     mask: url('/assets/ui/gem.png') center / contain no-repeat;
   }
   /* 자릿수가 달라 폭이 흔들리면 다섯 칸이 줄을 안 선다. 폭을 못 박고 가운데. */
   #odds span b {
-    width: 18px; text-align: center; font-weight: 800;
+    width: 26px; text-align: center; font-weight: 800;
   }
   #odds span.zero { color: #8d8371; }
   #odds span.zero i { background: #6b6353; opacity: .5; }
@@ -620,8 +622,10 @@
     font-size: 15px; font-weight: 800; color: #ffe08a; font-variant-numeric: tabular-nums;
     text-shadow: 0 1px 2px #0009;
   }
+  /* 동전을 키운다. 13px 은 손가락 화면에서 무엇의 숫자인지 한 박자 늦게
+     읽혔다 — 이 줄에서 제일 자주 보는 값인데 그러면 안 된다. */
   #gold::before {
-    content: ''; width: 13px; height: 13px; flex: none;
+    content: ''; width: 18px; height: 18px; flex: none;
     background: url('/assets/ui/coin.png') center / contain no-repeat;
     image-rendering: pixelated;
   }

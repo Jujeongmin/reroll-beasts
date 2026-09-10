@@ -1054,9 +1054,14 @@ export async function createPrep({
     refresh()
   })
 
+  // 자물쇠는 아이콘뿐이라 무엇을 하는 단추인지 안 읽힌다. 손가락 화면에는
+  // title 툴팁도 안 뜬다. 누른 결과를 힌트로 한 줄 띄우면, 한 번 눌러 본
+  // 사람은 그다음부터 안다 — 아이콘 옆에 글자를 붙여 줄을 넓히는 것보다
+  // 이쪽이 판을 안 잡아먹는다.
   el.lock.addEventListener('click', () => {
     toggleShopLock(run.state)
     renderHud()
+    hint(t(run.state.shopLocked ? 'shop.lockOn' : 'shop.lockOff'), 'quiet')
   })
 
   // ── 단축키 ──────────────────────────────────────────────
