@@ -391,14 +391,50 @@ try {
   /**
    * 그 좌석의 아바타 뷰. 내 좌석이면 내 것, 아니면 좌석별 뷰(peers).
    *
-   * 내가 죽으면 내 아바타는 치워진다(관전으로 넘어갈 때). 그때 내 좌석을
-   * 물어도 peers 가 그 사람 아바타를 만들어 준다 — 죽은 뒤에 내 판을 다시
-   * 봐도 판이 비어 보이지 않는다.
+   * **내가 죽었으면 내 좌석은 아무것도 안 준다.** peers 로 넘기면 죽은 뒤
+   * 내 판을 다시 볼 때 내 아바타가 되살아난다 — 죽은 사람은 판을 떠난 것이다.
    */
   function viewOfSeat(seatId) {
     if (seatId == null) return null
-    if (seatId === mySeatId() && avatar) return avatar
+    if (seatId === mySeatId()) return iAmOut ? null : avatar
     return peerFor(seatId)
+  }
+
+  /**
+   * 구경꾼이 서는 자리. 결투 자리(판 앞뒤 **가운데**)를 피해 옆으로 비킨다.
+   *
+   * 감추지 않고 비켜 세우는 이유: 구경 왔다는 것이 보여야 한다. 여덟이 다
+   * 한 판에 몰릴 수 있고, 그게 이 게임에서 아바타가 있는 이유다.
+   */
+  function watchSpot() {
+    const b = prep.scene.stageBounds()
+    return { x: b.minX + (b.maxX - b.minX) * 0.12, z: (b.minZ + b.maxZ) / 2 }
+  }
+
+  /**
+   * 전투 중 구경꾼 한 프레임.
+   *
+   * 배치 루프가 멈춰 있어 tickAvatar 가 안 돈다 — 결투에 안 선 사람들은
+   * 여기서 대신 돌린다. 안 그러면 구경 온 사람이 굳은 채로 서 있거나,
+   * 다른 판에서 넘어온 자리 그대로 남는다.
+   */
+  function tickWatchers(dt) {
+    const here = run.watchId ?? mySeatId()
+    const fighting = (id) => id === duelA || id === duelB
+    // 나. 결투에 안 섰으면 구경꾼이다 — 걸어다닐 수도 있다.
+    if (avatar && !fighting(mySeatId())) {
+      avatar.setVisible(true)
+      if (avatar.tick(dt)) mm?.pushAvatar?.(avatar.position, here)
+    }
+    for (const p of mm?.avatarsOn?.(here) ?? []) {
+      if (p.id === mySeatId() || fighting(p.id)) continue
+      const v = peerFor(p.id)
+      if (!v) continue
+      v.setVisible(true)
+      v.setName?.(seatName(p.id))
+      v.setTarget({ x: p.x, z: p.z })
+      v.tick(dt)
+    }
   }
 
   /**
@@ -443,17 +479,24 @@ try {
     duelA = aSeat ?? null
     duelB = bSeat ?? null
     duelPlaced.clear()
-    // 결투에 안 선 남들은 감춘다. 전투 중에는 배치 루프가 멈춰 있어 아무도
-    // 이들을 정리하지 않는다 — 구경 왔던 사람이 싸움판 한복판에 남는다.
+    // 결투에 안 선 남들은 **이 판에 와 있는 사람만** 남긴다. 자리는
+    // tickWatchers 가 매 프레임 방송 좌표로 잡는다 — 여기서 감추면 구경 온
+    // 사람이 한 프레임 깜빡이고, 안 감추면 다른 판에 있던 사람이 남는다.
+    const watching = new Set((mm?.avatarsOn?.(run.watchId ?? mySeatId()) ?? []).map((p) => p.id))
     for (const [id, v] of peers) {
-      if (v && id !== duelA && id !== duelB) v.setVisible(false)
+      if (v && id !== duelA && id !== duelB && !watching.has(id)) v.setVisible(false)
     }
-    // **내가 이 결투에 안 서면 내 아바타도 감춘다.**
+    // **내가 이 결투에 안 서면 옆으로 비켜 세운다.**
     // 남의 전투를 관전하면 아래 자리는 그 판의 A 몫이다. 내 아바타는 전투가
-    // 시작될 때 그 자리에 세워진 뒤 아무도 안 건드리므로, 감추지 않으면 둘이
-    // 같은 칸에 겹쳐 선다 — 셋이 보이는 것이 아니라 하나가 다른 하나에
-    // 파묻힌다. 무대의 두 자리는 싸우는 두 사람 몫이다.
-    if (avatar && duelA !== mySeatId() && duelB !== mySeatId()) avatar.setVisible(false)
+    // 시작될 때 그 자리에 세워진 뒤 아무도 안 건드리므로, 비키지 않으면 둘이
+    // 같은 칸에 겹쳐 하나가 다른 하나에 파묻힌다.
+    //
+    // 감추지는 않는다 — 구경 왔다는 것이 보여야 하고, 여덟이 다 한 판에
+    // 몰릴 수 있다. 그게 이 게임에서 아바타가 있는 이유다.
+    if (avatar && duelA !== mySeatId() && duelB !== mySeatId()) {
+      avatar.warpTo(watchSpot())
+      avatar.setVisible(true)
+    }
     tickDuel(0)
   }
 
@@ -833,6 +876,9 @@ try {
   // 내 판이 끝났다고 이미 처리했나. 두 경로(정산 · 서버 방송)가 같은 자리로
   // 들어오므로 한 번만 돌게 막는다.
   let ended = false
+  // 탈락했나. **죽은 사람의 아바타는 판 어디에도 안 선다** — 살아 있는
+  // 구경꾼과 다르다. 죽은 사람은 판을 떠난 것이다.
+  let iAmOut = false
 
   /**
    * 내 판이 끝났다. 탈락이면 나가기만 띄우고, 아니면 결과판을 연다.
@@ -853,9 +899,15 @@ try {
     if (eliminated) {
       // 관전으로 넘긴다. 골드·상점·아바타를 걷어내지 않으면 죽은 사람이
       // 아직 판을 굴리는 것처럼 보인다 — 실제로 그랬다.
+      iAmOut = true
       prep.spectate()
       avatar?.dispose?.()
       avatar = null
+      // 좌석별 뷰로 만들어 둔 내 아바타도 치운다. 안 치우면 관전 중에 그
+      // 자리로 갈 때 다시 보인다.
+      peers.get(mySeatId())?.dispose()
+      peers.delete(mySeatId())
+      peerLook.delete(mySeatId())
       leaveBtn.hidden = false
       leaveBtn.disabled = false
       return
@@ -1156,6 +1208,7 @@ try {
     run.lobby = mm.seats
     // 지난 판에서 남았을 수 있다. 새 판에 뜬 나가기는 거짓말이다.
     ended = false
+    iAmOut = false
     leaveBtn.hidden = true
     leaveBtn.disabled = false
     drawRound()
@@ -1350,6 +1403,7 @@ try {
       // 여기서 믹서를 돌리지 않으면 둘 다 굳은 채로 서 있다.
       onFrame: (dt) => {
         tickDuel(dt)
+        tickWatchers(dt)
       },
       // 상대 이펙트는 그 좌석에 붙어 온다 — 내가 지면 그 사람 것이 내 판에
       // 떨어져야 한다.
@@ -1406,6 +1460,7 @@ try {
       // 여기서 믹서를 돌리지 않으면 둘 다 굳은 채로 서 있다.
       onFrame: (dt) => {
         tickDuel(dt)
+        tickWatchers(dt)
       },
       atTick: battle.tick(),
       // 남의 전투를 보는 중이면 그 판의 두 사람 이펙트를 쓴다.
