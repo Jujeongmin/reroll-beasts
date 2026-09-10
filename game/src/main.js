@@ -121,10 +121,10 @@ addEventListener('focusin', (ev) => {
   const isField =
     !!node &&
     (node.tagName === 'INPUT' || node.tagName === 'TEXTAREA' || node.isContentEditable)
-  if (isField) document.getElementById('viewport')?.classList.add('typing')
+  if (isField) document.body.classList.add('typing')
 })
 addEventListener('focusout', () => {
-  document.getElementById('viewport')?.classList.remove('typing')
+  document.body.classList.remove('typing')
 })
 
 try {

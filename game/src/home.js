@@ -1075,6 +1075,10 @@ export function createHome({
     },
     hide() {
       el.root.hidden = true
+      // 이름 창은 이제 홈 **밖**에 산다(설계 상자 밖이라야 키보드가 떠도
+      // 화면 기준으로 놓인다). 홈이 닫힐 때 따라 닫히던 딸림이 사라졌으니
+      // 여기서 닫는다 — 안 닫으면 판이 시작된 뒤에도 창이 떠 있다.
+      el.nameBox.hidden = true
     },
   }
 }
