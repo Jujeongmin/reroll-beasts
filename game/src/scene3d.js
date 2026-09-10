@@ -2402,8 +2402,12 @@ export async function createScene({
     group.updateMatrixWorld(true)
     // 재질 하나에 기하 하나로 모은다. 재질이 같아도 기하가 다르면 상관없다 —
     // 합치는 쪽이 좌표를 굽는다.
+    // 그룹 자체에 변환이 걸려 있으면, 월드 좌표로 구운 기하를 다시 이 그룹에
+    // 넣을 때 그 변환이 **한 번 더** 곱해져 자리가 어긋난다. 역행렬을 미리
+    // 곱해 상쇄한다 — 그룹이 단위행렬이면 아무 일도 안 하는 곱셈이다.
+    const inv = new THREE.Matrix4().copy(group.matrixWorld).invert()
+
     const buckets = new Map()
-    const dead = []
     group.traverse((o) => {
       if (!o.isMesh || Array.isArray(o.material) || !o.geometry?.attributes?.position) return
       // 화면에 없는 것은 합치지 않는다. 켜질 수도 있는 것을 구워 버리면
@@ -2411,36 +2415,48 @@ export async function createScene({
       if (!o.visible) return
       const key = o.material.uuid
       let b = buckets.get(key)
-      if (!b) buckets.set(key, (b = { mat: o.material, geos: [] }))
+      if (!b) buckets.set(key, (b = { mat: o.material, geos: [], sources: [] }))
       const g = o.geometry.clone()
       g.applyMatrix4(o.matrixWorld)
+      g.applyMatrix4(inv)
       // 합치려면 속성 구성이 같아야 한다. 안 쓰는 것은 떨군다 — 하나만
       // 달라도 mergeGeometries 가 null 을 낸다.
       for (const name of Object.keys(g.attributes)) {
         if (name !== 'position' && name !== 'normal' && name !== 'uv') g.deleteAttribute(name)
       }
       b.geos.push(g)
-      dead.push(o)
+      // 원본을 버킷에 매달아 둔다. **훑은 것 전부가 아니라 합쳐진 것만**
+      // 지우기 위해서다.
+      b.sources.push(o)
     })
 
-    let merged = 0
-    for (const { mat, geos } of buckets.values()) {
-      if (geos.length < 2) continue
-      const g = mergeGeometries(geos, false)
+    for (const b of buckets.values()) {
+      // 혼자인 재질은 합칠 것이 없다. 원본을 그대로 둔다 — 드로우콜 하나는
+      // 애초에 줄일 것도 없다.
+      if (b.geos.length < 2) {
+        for (const g of b.geos) g.dispose()
+        continue
+      }
+      const g = mergeGeometries(b.geos, false)
+      for (const old of b.geos) old.dispose()
+      // 속성이 안 맞으면 null 이 온다(같은 재질인데 uv 가 있는 것과 없는 것이
+      // 섞인 경우). 그때도 원본은 그대로 둔다.
       if (!g) continue
-      for (const old of geos) old.dispose()
-      const mesh = new THREE.Mesh(g, mat)
-      // 좌표를 이미 구웠으므로 이 메시는 원점에 선다.
+      const mesh = new THREE.Mesh(g, b.mat)
+      // 좌표를 이미 구웠으므로 이 메시는 그룹 원점에 선다.
       mesh.matrixAutoUpdate = false
       mesh.receiveShadow = false
       mesh.castShadow = false
       group.add(mesh)
-      merged++
-    }
-    if (merged === 0) return
-    for (const o of dead) {
-      o.removeFromParent()
-      o.geometry?.dispose?.()
+      // **이 버킷의 원본만** 뗀다. 전에는 훑은 메시를 전부 뗐는데, 합치지
+      // 못한 버킷(재질이 하나뿐이거나 속성이 안 맞는)의 메시까지 같이
+      // 사라졌다 — 판 밖 풀 바닥이 통째로 없어지고 나무만 허공에 남던 것이
+      // 이것이다.
+      //
+      // 기하는 **안 버린다.** 같은 기하를 여러 메시가 나눠 쓰므로(수백 메시가
+      // 서른 남짓한 기하를 쓴다) 여기서 버리면 안 합쳐진 다른 메시가 빈 기하를
+      // 들게 된다. 드로우콜을 줄이려던 것이지 메모리를 줄이려던 것이 아니다.
+      for (const o of b.sources) o.removeFromParent()
     }
   }
 
