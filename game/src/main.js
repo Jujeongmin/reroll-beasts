@@ -336,11 +336,16 @@ try {
 
   // 전투 무대에 서는 상대 아바타. 내 아바타(avatar)의 짝이다 — 전투가
   // 끝나면 둘이 마주 보고 이긴 쪽이 한 방 날린다.
-  let foe = null
-  let foeId = null
+  // 결투 자리에 선 **좌석 둘**. 아바타 인스턴스가 아니라 좌석 번호를 든다 —
+  // 내가 죽어서 내 아바타가 사라진 뒤에도, 남의 전투를 보면 그 판의 두 사람이
+  // 서야 한다. 인스턴스를 들고 있으면 "내 것 + 상대 하나" 밖에 못 세운다.
+  let duelA = null
+  let duelB = null
+  // 자리를 이미 잡아 준 좌석. peerFor 가 비동기라 첫 프레임에는 아직 없을 수
+  // 있어, 생길 때까지 매 프레임 다시 챙긴다.
+  const duelPlaced = new Set()
   // 지금 마주 서 있는 상대 좌석. 대결 중에 그 사람이 내 판을 구경하고 있으면
   // 정찰 아바타로도 한 번 더 그려져 셋이 된다 — 대결 아바타가 그 사람이다.
-  let duelWith = null
 
   /**
    * 맞은 자리 위에 피해 숫자를 한 번 띄운다.
@@ -383,38 +388,82 @@ try {
    * 싸우는 말 사이를 돌아다니면 누가 싸우는지 흐려지고, 끝에 한 방 날릴
    * 자리도 매번 달라진다.
    */
-  async function setDuel(theirAvatarId) {
+  /**
+   * 그 좌석의 아바타 뷰. 내 좌석이면 내 것, 아니면 좌석별 뷰(peers).
+   *
+   * 내가 죽으면 내 아바타는 치워진다(관전으로 넘어갈 때). 그때 내 좌석을
+   * 물어도 peers 가 그 사람 아바타를 만들어 준다 — 죽은 뒤에 내 판을 다시
+   * 봐도 판이 비어 보이지 않는다.
+   */
+  function viewOfSeat(seatId) {
+    if (seatId == null) return null
+    if (seatId === mySeatId() && avatar) return avatar
+    return peerFor(seatId)
+  }
+
+  /**
+   * 결투 자리 한 프레임. 아직 못 세운 아바타가 있으면 지금 세운다.
+   *
+   * 매 프레임 다시 보는 이유: peerFor 는 모델을 비동기로 만들어 처음 한두
+   * 프레임은 null 을 낸다. 한 번만 세우고 말면 그 아바타는 영영 안 뜬다.
+   */
+  function tickDuel(dt) {
+    if (duelA == null && duelB == null) return
     const spot = duelSpots()
-    duelWith = run.opponentId
-    // 마주 본다. 내 쪽은 위(-z), 상대는 아래(+z)를 향한다.
-    avatar?.warpTo(spot.mine, Math.PI)
-    avatar?.setVisible(true)
-    if (foe && foeId !== theirAvatarId) {
-      foe.dispose()
-      foe = null
+    for (const [seatId, at, facing] of [
+      [duelA, spot.mine, Math.PI],
+      [duelB, spot.theirs, 0],
+    ]) {
+      if (seatId == null) continue
+      const v = viewOfSeat(seatId)
+      if (!v) continue
+      if (!duelPlaced.has(seatId)) {
+        v.warpTo(at, facing)
+        v.setVisible(true)
+        // 내 아바타에는 이름을 안 단다 — 머리 위 화살표가 이미 나를 가리킨다.
+        v.setName?.(seatId === mySeatId() && avatar ? '' : seatName(seatId))
+        duelPlaced.add(seatId)
+      }
+      v.tick(dt)
     }
-    foeId = theirAvatarId
-    if (!foe) {
-      foe = await createAvatar({
-        scene: prep.scene,
-        data,
-        avatarId: theirAvatarId,
-        at: spot.theirs,
-        facing: 0,
-      }).catch(() => null)
+  }
+
+  /**
+   * 전투 무대에 **두 좌석**을 마주 세운다.
+   *
+   * 좌석을 받는다(아바타 id 가 아니라). 남의 전투를 관전하면 그 판의 두
+   * 사람이 서야 하는데, 전에는 "내 아바타 + 상대 하나" 로 못 박혀 있어
+   * 아래 자리에 늘 내가 섰다 — 내가 죽어 아바타가 치워진 뒤에는 위쪽 하나만
+   * 덩그러니 남았다.
+   *
+   * @param {number|null} aSeat 화면 **아래**에 설 좌석
+   * @param {number|null} bSeat 화면 **위**에 설 좌석
+   */
+  function setDuel(aSeat, bSeat) {
+    duelA = aSeat ?? null
+    duelB = bSeat ?? null
+    duelPlaced.clear()
+    // 결투에 안 선 남들은 감춘다. 전투 중에는 배치 루프가 멈춰 있어 아무도
+    // 이들을 정리하지 않는다 — 구경 왔던 사람이 싸움판 한복판에 남는다.
+    for (const [id, v] of peers) {
+      if (v && id !== duelA && id !== duelB) v.setVisible(false)
     }
-    foe?.warpTo(spot.theirs, 0)
-    foe?.setVisible(true)
-    // 누구와 붙는지 그 사람 머리 위에 적는다. 오른쪽 순위표에도 있지만
-    // 그건 눈이 판을 떠나야 읽힌다 — 싸우는 동안 눈은 판 가운데에 있다.
-    const them = run.lobby.find((x) => x.id === run.opponentId)
-    foe?.setName?.(them ? textOf(them.name) : '')
+    tickDuel(0)
   }
 
   /** 전투가 끝나고 배치로 돌아간다. 상대 아바타는 치운다. */
   function clearDuel() {
-    foe?.setVisible(false)
-    duelWith = null
+    for (const seatId of [duelA, duelB]) {
+      if (seatId == null) continue
+      // 내 아바타는 안 감춘다 — 배치로 돌아가면 그대로 서 있어야 한다.
+      if (seatId === mySeatId() && avatar) continue
+      const v = peers.get(seatId)
+      v?.setVisible(false)
+      v?.setName?.('')
+    }
+    duelA = null
+    duelB = null
+    duelPlaced.clear()
   }
 
   /**
@@ -428,8 +477,10 @@ try {
     const spot = duelSpots()
     const from = iWon ? spot.mine : spot.theirs
     const to = iWon ? spot.theirs : spot.mine
-    const win = iWon ? avatar : foe
-    const lose = iWon ? foe : avatar
+    // iWon 은 "**아래 자리**가 이겼나" 다 — 관전에서는 f.a 를 아래에 놓고
+    // iAmA: true 로 넘기므로 내 판이든 남의 판이든 같은 뜻이 된다.
+    const win = viewOfSeat(iWon ? duelA : duelB)
+    const lose = viewOfSeat(iWon ? duelB : duelA)
     const y = prep.scene.topY + 0.55
     const V = prep.scene.THREE.Vector3
     win?.act('cheer')
@@ -575,7 +626,7 @@ try {
     for (const p of mm?.avatarsOn?.(here) ?? []) {
       // 나는 안 그린다(내 방송이 되돌아와도). 대결 상대도 안 그린다 — 그 사람은
       // 이미 대결 자리에 서 있다. 둘 다 안 걸러 셋이 서 있던 적이 있다.
-      if (p.id === mySeatId() || (duelWith !== null && p.id === duelWith)) continue
+      if (p.id === mySeatId() || p.id === duelA || p.id === duelB) continue
       hereNow.add(p.id)
       const v = peerFor(p.id)
       if (!v) continue
@@ -593,7 +644,13 @@ try {
     //
     // 자리는 만들 때 정해지는 기본 자리(판 뒤쪽 가운데)를 그대로 쓴다.
     // 목적지를 안 주므로 tick 은 제자리에 세워 둔다.
-    if (peeked !== null && peeked !== mySeatId() && peeked !== duelWith && !hereNow.has(peeked)) {
+    if (
+      peeked !== null &&
+      peeked !== mySeatId() &&
+      peeked !== duelA &&
+      peeked !== duelB &&
+      !hereNow.has(peeked)
+    ) {
       const v = peerFor(peeked)
       if (v) {
         hereNow.add(peeked)
@@ -1280,14 +1337,13 @@ try {
     // 배치로 돌아오면 곡이 이어진다(매 라운드 도입부만 듣게 되지 않는다).
     bgmHold()
     // 두 아바타를 마주 세운다 — 끝에 한 방 주고받을 자리다.
-    setDuel(run.lobby.find((x) => x.id === run.opponentId)?.avatar)
+    setDuel(mySeatId(), run.opponentId)
     await battle.load(result, {
       onBack,
       // 전투 중에도 아바타는 숨을 쉬어야 한다 — 배치 루프가 멈춰 있어서
       // 여기서 믹서를 돌리지 않으면 둘 다 굳은 채로 서 있다.
       onFrame: (dt) => {
-        avatar?.tick(dt)
-        foe?.tick(dt)
+        tickDuel(dt)
       },
       // 상대 이펙트는 그 좌석에 붙어 온다 — 내가 지면 그 사람 것이 내 판에
       // 떨어져야 한다.
@@ -1335,16 +1391,15 @@ try {
     // 0 부터 다시 틀면 내 판으로 돌아왔을 때 이미 본 전투를 또 보게 된다.
     const boomOfSeat = (id) =>
       id === mySeatId() ? myBoomId() : run.lobby.find((x) => x.id === id)?.boom
-    const avatarOfSeat = (id) => run.lobby.find((x) => x.id === id)?.avatar
-    // 남의 전투를 보면 그 판의 두 사람이 선다. 내 전투면 내 아바타 그대로다.
-    setDuel(mine ? avatarOfSeat(run.opponentId) : avatarOfSeat(f.b))
+    // 남의 전투를 보면 **그 판의 두 사람**이 선다. A(좌석 번호가 낮은 쪽)를
+    // 아래에 두는 것은 setSideFlip 과 같은 규칙이다.
+    setDuel(mine ? mySeatId() : f.a, mine ? run.opponentId : f.b)
     battle.load(mine ? run.fight.result : f.result, {
       onBack: run.fight.onBack,
       // 전투 중에도 아바타는 숨을 쉬어야 한다 — 배치 루프가 멈춰 있어서
       // 여기서 믹서를 돌리지 않으면 둘 다 굳은 채로 서 있다.
       onFrame: (dt) => {
-        avatar?.tick(dt)
-        foe?.tick(dt)
+        tickDuel(dt)
       },
       atTick: battle.tick(),
       // 남의 전투를 보는 중이면 그 판의 두 사람 이펙트를 쓴다.
