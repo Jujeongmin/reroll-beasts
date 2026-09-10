@@ -120,7 +120,7 @@ export default {
   'result.phasePlacement': 'Placement {n}/{of} · bigger swings',
   'result.phaseSoft': 'Post-placement {n}/{of} · 2× LP',
   'home.provisional': 'Provisional',
-  'result.ad': 'Watch an ad: 2× pass XP · +{xp}',
+  'result.ad': 'Watch an ad: pass XP {xp} → {x2}',
   'result.adDone': '+{xp} XP received',
   'result.adDismissed': 'Watch to the end to get it',
   'result.adFail': 'Ads unavailable right now',

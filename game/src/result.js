@@ -289,9 +289,10 @@ export function createResult({ data, thumbFor, onClose, onAd = null }) {
         // **얼마인지 적는다.** "2배" 만으로는 기준을 모른다 — 이번 판이 몇을
         // 줬는지가 화면 어디에도 없었다. 지급은 서버가 같은 함수로 다시
         // 세므로(sim/ads.js 가 xpForRank 를 부른다) 여기 뜬 수가 곧 받는 수다.
-        el.ad.textContent = t('result.ad', {
-          xp: me?.rank ? xpForRank(me.rank, data, { ranked }) : 0,
-        })
+        // 받는 값과 광고를 본 값을 **나란히** 적는다. "2배" 만으로는
+        // 무엇의 2배인지 모르고, 더해지는 양만 적으면 원래가 얼마인지 모른다.
+        const base = me?.rank ? xpForRank(me.rank, data, { ranked }) : 0
+        el.ad.textContent = t('result.ad', { xp: base, x2: base * 2 })
         el.ad.disabled = false
       }
 
