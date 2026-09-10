@@ -1934,6 +1934,7 @@
   /* 머리. 등수가 이 화면의 첫 문장이다 — 작게 적으면 여덟 줄을 다 훑고 나서야
      내가 몇 등인지 안다. */
   #result .bhead {
+    flex: none;
     display: flex; align-items: center; gap: 14px;
     padding: 0 4px 8px; box-shadow: inset 0 -1px 0 #ffffff14;
   }
@@ -1952,11 +1953,14 @@
 
   #result-rows {
     flex: 1 1 auto; min-height: 0;
+    /* 넘치면 여기서 스크롤한다. 안 걸어 두면 줄들이 시트 밖으로 자라
+       광고·나가기 위에 그대로 얹힌다. */
+    overflow-y: auto; overflow-x: hidden;
     display: flex; flex-direction: column; gap: 4px;
   }
 
   #result .r {
-    flex: 1 1 0; min-height: 40px; max-height: 76px;
+    flex: 1 1 0; min-height: 34px; max-height: 76px;
     display: flex; align-items: center; gap: 9px; padding: 0 8px;
     background: #1a120bb8; border-radius: 3px; box-shadow: inset 0 0 0 1px #ffffff0f;
   }
@@ -2011,7 +2015,10 @@
   /* 줄에는 LP 를 안 적는다. 남의 점수는 남의 구간(배치·준배치)에 달렸고 내
      화면이 그 사람의 판수를 알 길이 없다 — 내 점수는 위 띠에 있다. */
 
-  #result .acts { align-self: center; display: flex; gap: 10px; align-items: center; }
+  /* flex: none 이 핵심이다. 이 줄이 눌리면 광고·나가기가 줄들 밑으로 깔려
+     보이지도 눌리지도 않는다 — 여덟 줄짜리 판을 낮은 화면(가로 폰)에서 열면
+     실제로 그랬다. */
+  #result .acts { flex: none; align-self: center; display: flex; gap: 10px; align-items: center; }
   #result-close { min-width: 160px; }
   /* 광고 버튼. 나가기와 같은 줄, 금빛으로 — "덤"이라는 것이 보여야 한다. */
   #result-ad {
