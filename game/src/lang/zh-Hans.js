@@ -120,7 +120,7 @@ export default {
   'result.phasePlacement': '定级赛 {n}/{of} · 变动更大',
   'result.phaseSoft': '定级赛后 {n}/{of} · LP两倍',
   'home.provisional': '定级赛',
-  'result.ad': '看广告：通行证经验两倍',
+  'result.ad': '看广告获得双倍通行证经验 · +{xp}',
   'result.adDone': '已获得 +{xp} 经验',
   'result.adDismissed': '看到最后才能拿到',
   'result.adFail': '现在没有广告可播',

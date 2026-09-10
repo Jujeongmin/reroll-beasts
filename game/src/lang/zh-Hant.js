@@ -120,7 +120,7 @@ export default {
   'result.phasePlacement': '定位賽 {n}/{of} · 變動更大',
   'result.phaseSoft': '定位賽後 {n}/{of} · LP兩倍',
   'home.provisional': '定位賽',
-  'result.ad': '看廣告：通行證經驗兩倍',
+  'result.ad': '看廣告獲得雙倍通行證經驗 · +{xp}',
   'result.adDone': '已獲得 +{xp} 經驗',
   'result.adDismissed': '看到最後才拿得到',
   'result.adFail': '現在沒有廣告可播',

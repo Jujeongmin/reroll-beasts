@@ -140,7 +140,7 @@ export default {
   'result.phasePlacement': '배치 {n}/{of} · 평소보다 크게 움직인다',
   'result.phaseSoft': '준배치 {n}/{of} · 평소의 2배',
   'home.provisional': '임시',
-  'result.ad': '광고 보고 패스 경험치 2배',
+  'result.ad': '광고 보고 패스 경험치 2배 · +{xp}',
   'result.adDone': '+{xp} 경험치 받았다',
   'result.adDismissed': '끝까지 봐야 받는다',
   'result.adFail': '지금은 광고를 못 튼다',

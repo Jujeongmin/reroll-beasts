@@ -12,6 +12,7 @@
 
 import { unitById } from '@sim/data.js'
 import { lpDelta, phaseProgress, divisionOf, divisionLabel, nextDivisionLabel, TIERS } from '@sim/rank.js'
+import { xpForRank } from '@sim/pass.js'
 import { accountTag, tagDuplicates, joinTag } from '@sim/name.js'
 import { t, textOf, esc } from './i18n.js'
 import { sfx } from './audio.js'
@@ -285,7 +286,12 @@ export function createResult({ data, thumbFor, onClose, onAd = null }) {
       if (!el.ad.classList.contains('done')) {
         const can = !!onAd && !!ads() && !adsOff && !!me?.rank
         el.ad.hidden = !can
-        el.ad.textContent = t('result.ad')
+        // **얼마인지 적는다.** "2배" 만으로는 기준을 모른다 — 이번 판이 몇을
+        // 줬는지가 화면 어디에도 없었다. 지급은 서버가 같은 함수로 다시
+        // 세므로(sim/ads.js 가 xpForRank 를 부른다) 여기 뜬 수가 곧 받는 수다.
+        el.ad.textContent = t('result.ad', {
+          xp: me?.rank ? xpForRank(me.rank, data, { ranked }) : 0,
+        })
         el.ad.disabled = false
       }
 

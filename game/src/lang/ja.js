@@ -120,7 +120,7 @@ export default {
   'result.phasePlacement': '配置戦 {n}/{of} · 変動が大きい',
   'result.phaseSoft': '配置戦のあと {n}/{of} · LP 2倍',
   'home.provisional': '仮ランク',
-  'result.ad': '広告を見る：パスXP 2倍',
+  'result.ad': '広告を見てパス経験値2倍 · +{xp}',
   'result.adDone': '+{xp} XP 獲得',
   'result.adDismissed': '最後まで見ると受け取れる',
   'result.adFail': '今は広告を出せない',
