@@ -58,10 +58,23 @@
     -webkit-font-smoothing: antialiased;
     -webkit-tap-highlight-color: transparent;
     user-select: none;
+    /* 사파리는 접두사 붙은 쪽만 본다. 없으면 손가락으로 글자가 잡힌다. */
+    -webkit-user-select: none;
+    /* 그림을 꾹 누르면 "공유 · 사진 앱에 저장 · 복사하기" 가 뜬다. 이 판의
+       그림은 전부 게임 말이지 저장할 사진이 아니다 — 말을 끌려다 메뉴가
+       뜨면 그 손짓이 통째로 죽는다. 이 속성은 상속되므로 여기 한 번이면
+       판 전체가 덮인다. */
+    -webkit-touch-callout: none;
+  }
+  /* 글자를 치는 칸만 예외. 고르고 지우고 붙여넣어야 한다. */
+  input, textarea {
+    user-select: text; -webkit-user-select: text; -webkit-touch-callout: default;
   }
   ::-webkit-scrollbar { display: none; }
   button { font: inherit; color: inherit; border: 0; background: none; cursor: pointer; }
-  img { image-rendering: pixelated; }
+  /* 그림을 끌어다 놓는 것도 막는다 — 데스크톱에서 말을 끌면 브라우저가
+     "그림 파일을 옮긴다" 로 알아듣고 유령 그림을 물고 다닌다. */
+  img { image-rendering: pixelated; -webkit-user-drag: none; }
 
   /* ── 반응형 ────────────────────────────────────────
      기준 화면은 812×390 (가로 든 휴대폰) 이다. 여기 맞춰 잰 값이 수십 개라

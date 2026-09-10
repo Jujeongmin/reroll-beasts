@@ -61,6 +61,17 @@ addEventListener(
   },
   true,
 )
+// 꾹 눌러 뜨는 브라우저 메뉴를 막는다.
+//
+// CSS 의 -webkit-touch-callout 은 사파리만 본다. 안드로이드 크롬에서 그림을
+// 길게 누르면 같은 자리에서 contextmenu 가 뜨는데, 그게 뜨는 순간 말을 끌던
+// 손짓이 통째로 죽는다. 글자 칸은 붙여넣기 메뉴가 필요하니 남긴다.
+addEventListener('contextmenu', (ev) => {
+  const node = ev.target
+  if (node && (node.tagName === 'INPUT' || node.tagName === 'TEXTAREA')) return
+  ev.preventDefault()
+})
+
 // 정적 문구를 지금 언어로 채운다. 화면을 세우기 전에 해야 첫 프레임부터 맞는
 // 언어가 뜬다 — HTML 에 적힌 한국어는 표가 없을 때의 보루다.
 applyStatic()
