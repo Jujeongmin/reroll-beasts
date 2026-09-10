@@ -42,6 +42,7 @@ export default {
   'hint.sold': '賣出 +{gold}金',
   'hint.autoPlace': '已從待機區上場',
   'hint.equipped': '已裝備{item}',
+  'hint.firstItem': '獲得道具 — 從下方架子拖到單位身上即可裝備',
   'hint.frozenBoard': '戰鬥中不能動場上',
   'hint.merged': '已合成',
   'hud.leave': '離開',

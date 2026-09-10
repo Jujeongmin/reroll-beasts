@@ -62,6 +62,7 @@ export default {
   'hint.sold': '판매 +{gold}골드',
   'hint.autoPlace': '대기석에서 자동 배치',
   'hint.equipped': '{item} 장착',
+  'hint.firstItem': '아이템이 생겼다 — 아래 선반에서 말에게 끌어다 놓으면 낀다',
   'hint.frozenBoard': '전투 중에는 판을 못 바꾼다',
   'hint.merged': '합성 완료',
   'hud.leave': '나가기',

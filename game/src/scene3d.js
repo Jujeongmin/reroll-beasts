@@ -1544,6 +1544,77 @@ export async function createScene({
    * 싸울 때 다르게 보였다. 안 넘겨도 옳은 쪽으로 떨어지게 둔다 — 부르는 곳이
    * 셋이고 앞으로 늘 텐데, 기본값이 틀리면 새로 부르는 곳마다 같은 실수를 한다.
    */
+  /**
+   * 머리 위 이름표. **결투 상대가 누구인지 판 위에서 말한다.**
+   *
+   * 오른쪽 순위표에도 상대 이름이 뜨지만, 그건 눈이 판을 떠나야 읽힌다 —
+   * 싸우는 동안 눈은 판 가운데에 있다. 이름을 그 사람 위에 얹으면 "지금 저
+   * 사람과 붙는다" 가 눈을 안 옮기고도 읽힌다.
+   *
+   * 배지와 따로 두는 이유: 배지는 말의 별·체력·아이템을 나르고 칸마다 하나씩
+   * 붙는다. 이름표는 판에 한둘뿐이고 훨씬 크다 — 같은 캔버스에 욱여넣으면
+   * 둘 다 어중간해진다.
+   */
+  function makeNameTag(text) {
+    const W = 320
+    const H = 64
+    const cv = document.createElement('canvas')
+    cv.width = W
+    cv.height = H
+    const g = cv.getContext('2d')
+
+    function draw(s) {
+      g.clearRect(0, 0, W, H)
+      const label = String(s ?? '')
+      if (!label) return
+      g.font = '800 34px system-ui, -apple-system, sans-serif'
+      g.textAlign = 'center'
+      g.textBaseline = 'middle'
+      const pad = 16
+      const w = Math.min(W - 8, g.measureText(label).width + pad * 2)
+      const x = (W - w) / 2
+      // 받침을 먼저 깐다. 밝은 무대 위에서 글자만 두면 안 읽힌다 —
+      // 배지가 아이콘 밑에 어두운 판을 까는 것과 같은 이유다.
+      g.fillStyle = '#0d0b12f0'
+      g.fillRect(x, 8, w, H - 16)
+      g.strokeStyle = '#ffd166cc'
+      g.lineWidth = 2
+      g.strokeRect(x + 1, 9, w - 2, H - 18)
+      g.fillStyle = '#fff4d8'
+      g.fillText(label, W / 2, H / 2)
+    }
+
+    draw(text)
+    const tex = new THREE.CanvasTexture(cv)
+    tex.colorSpace = THREE.SRGBColorSpace
+    const mat = new THREE.SpriteMaterial({
+      map: tex,
+      depthTest: false,
+      transparent: true,
+      toneMapped: false,
+      fog: false,
+    })
+    const sprite = new THREE.Sprite(mat)
+    // 배지(10)보다 위. 말이 앞에 서 있어도 이름이 가려지면 안 된다.
+    sprite.renderOrder = 12
+    // 바닥 앵커. position.y 를 캔버스 아랫변으로 잡아 위로만 자라게 한다.
+    sprite.center.set(0.5, 0)
+    const w = spacing.unitStep * 2.4
+    sprite.scale.set(w, (w * H) / W, 1)
+
+    return {
+      sprite,
+      set(next) {
+        draw(next)
+        tex.needsUpdate = true
+      },
+      dispose() {
+        mat.map?.dispose()
+        mat.dispose()
+      },
+    }
+  }
+
   function makeBadge({ team, star, withHp, items = [], showStars = star > 1 }) {
     const W = 128
     // 아이콘 한 칸 28px — 게임플레이 거리에서 16px는 뭘 꼈는지 안 읽혔다.
@@ -2395,6 +2466,7 @@ export async function createScene({
     pickAt,
     pickObjects,
     makeBadge,
+    makeNameTag,
     preloadItemIcons,
     preloadFx,
     flyFx,

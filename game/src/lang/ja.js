@@ -42,6 +42,7 @@ export default {
   'hint.sold': '売却 +{gold}G',
   'hint.autoPlace': '控えから配置した',
   'hint.equipped': '{item}を装備',
+  'hint.firstItem': 'アイテムを手に入れた — 下の棚から駒へドラッグして装備',
   'hint.frozenBoard': '戦闘中は盤を動かせない',
   'hint.merged': '合成',
   'hud.leave': '退出',

@@ -1002,13 +1002,13 @@ export async function createPrep({
    * @param {string} text
    * @param {'bad'|'ok'|'quiet'} [kind] 기본은 'bad' — 안내의 대부분이 거절이다
    */
-  function hint(text, kind = 'bad') {
+  function hint(text, kind = 'bad', ms = 1400) {
     if (kind === 'bad') sfx('error')
     else if (kind === 'ok') sfx('drop')
     el.hint.textContent = text
     el.hint.classList.add('show')
     clearTimeout(hintTimer)
-    hintTimer = setTimeout(() => el.hint.classList.remove('show'), 1400)
+    hintTimer = setTimeout(() => el.hint.classList.remove('show'), ms)
   }
 
   function refresh() {
@@ -1702,6 +1702,13 @@ export async function createPrep({
       scene.resize()
       refresh()
       // 라운드가 넘어가면 상대도 바뀐다
+    },
+    /**
+     * 처음 보는 것을 한 번 일러 준다. 힌트보다 오래 띄운다 — 읽으라고 띄우는
+     * 문장이지 "방금 뭐가 막혔다" 를 알리는 문장이 아니다.
+     */
+    tip(text) {
+      hint(text, 'quiet', 4200)
     },
     /**
      * 관전으로 넘어간다. **되돌아오지 않는다** — 내 판이 끝났다는 뜻이다.

@@ -36,7 +36,7 @@ import { keepAwake } from './wakelock.js'
 import { createAvatar } from './avatarView.js'
 import { createJoystick } from './joystick.js'
 import { createSettings, reduceMotion } from './settings.js'
-import { applyStatic, t } from './i18n.js'
+import { applyStatic, t, textOf } from './i18n.js'
 import { initAudio, sfx, bgm, bgmHold, bgmRelease, refreshVolumes } from './audio.js'
 import { createServerMatchmaker, connectServer, startQueue } from './serverMatchmaker.js'
 import { createPrep } from './prep.js'
@@ -133,7 +133,14 @@ try {
    */
   function grantIfDue(index) {
     if (!itemRounds.has(index)) return
+    // 처음 받는 아이템인가. 지급 **전에** 세야 한다.
+    const first = (run.state.items?.length ?? 0) === 0
     const id = grantItem(run.state, createRng(itemSeed(run.seed, index)), data)
+    // **한 판에 한 번만 일러 준다.** 아이템이 선반에 쌓이는데 그것으로 무엇을
+    // 하는지는 아무 데도 안 적혀 있었다 — 카드를 눌러야 나오는 설명은 이미
+    // 쓸 줄 아는 사람에게만 닿는다. 첫 아이템이 들어오는 그 순간이 말하기
+    // 가장 좋은 자리다.
+    if (first && id) prep?.tip?.(t('hint.firstItem'))
     return id
   }
 
@@ -347,6 +354,10 @@ try {
     }
     foe?.warpTo(spot.theirs, 0)
     foe?.setVisible(true)
+    // 누구와 붙는지 그 사람 머리 위에 적는다. 오른쪽 순위표에도 있지만
+    // 그건 눈이 판을 떠나야 읽힌다 — 싸우는 동안 눈은 판 가운데에 있다.
+    const them = run.lobby.find((x) => x.id === run.opponentId)
+    foe?.setName?.(them ? textOf(them.name) : '')
   }
 
   /** 전투가 끝나고 배치로 돌아간다. 상대 아바타는 치운다. */

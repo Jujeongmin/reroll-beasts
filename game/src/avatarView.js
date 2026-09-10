@@ -79,7 +79,36 @@ export async function createAvatar({ scene, data, avatarId, at = null, facing: f
   }
   let markT = 0
 
+  // 머리 위 이름표. 결투 상대에게만 붙는다 — 처음부터 만들지 않고 setName 이
+  // 처음 불릴 때 만든다. 판에 서는 아바타 대부분은 이름표가 필요 없다.
+  let tag = null
+  let tagBase = 0
+
   return {
+    /**
+     * 머리 위에 이름을 단다. 빈 값이면 감춘다.
+     *
+     * 높이는 모델을 재서 잡는다 — 아바타마다 키가 달라 상수로 박으면 어떤
+     * 아바타는 머리에 박히고 어떤 아바타는 허공에 뜬다(내 표식이 쓰는 규칙과
+     * 같다).
+     */
+    setName(text) {
+      if (!text) {
+        if (tag) tag.sprite.visible = false
+        return
+      }
+      if (!tag) {
+        const T = scene.THREE
+        const box = new T.Box3().setFromObject(view.root)
+        tagBase = box.max.y - scene.topY + 0.5
+        tag = scene.makeNameTag(text)
+        tag.sprite.position.y = tagBase
+        view.root.add(tag.sprite)
+      } else {
+        tag.set(text)
+      }
+      tag.sprite.visible = true
+    },
     get position() {
       return { ...pos }
     },
@@ -194,6 +223,8 @@ export async function createAvatar({ scene, data, avatarId, at = null, facing: f
     },
 
     dispose() {
+      tag?.dispose()
+      tag = null
       view.dispose()
     },
   }

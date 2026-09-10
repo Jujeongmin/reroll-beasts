@@ -42,6 +42,7 @@ export default {
   'hint.sold': 'Sold +{gold}g',
   'hint.autoPlace': 'Placed from the bench',
   'hint.equipped': '{item} equipped',
+  'hint.firstItem': 'You got an item — drag it from the shelf below onto a unit',
   'hint.frozenBoard': "Can't change the board during battle",
   'hint.merged': 'Merged',
   'hud.leave': 'Leave',
