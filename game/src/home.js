@@ -265,6 +265,9 @@ export function createHome({
     // 서버가 거절하면 그 사유를 그대로 적는다 — 클라가 통과시킨 것도 서버가
     // 막을 수 있다(규칙이 나중에 갈릴 수 있다).
     if (!res?.ok) {
+      // 화면에 사유를 적고 콘솔에도 남긴다 — 화면 문구는 번역된 말이라
+      // 어느 갈래에서 막혔는지가 안 보인다.
+      console.warn('이름 저장 거절:', res?.why ?? '(응답 없음)')
       el.nameWhy.textContent = res?.why ? t('why.' + res.why) : t('name.failed')
       return
     }

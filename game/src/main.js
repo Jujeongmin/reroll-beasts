@@ -123,7 +123,38 @@ addEventListener('resize', fitViewport)
 // 키보드가 내려간 **뒤에** 잰다. focusout 그 순간에는 아직 접히는 중이라
 // innerHeight 가 중간값이다 — 그 값으로 재면 어중간한 크기로 굳는다.
 addEventListener('focusout', () => setTimeout(fitViewport, 250))
-// 입력칸을 띄우면 창이 키보드 뒤로 숨을 수 있다. 그동안만 위로 붙인다 —
+/**
+ * 이름 창을 **실제로 보이는 영역**에 맞춘다.
+ *
+ * 이 창은 설계 상자 밖 fixed 라 화면 기준인데, 손가락 키보드가 뜨면 화면
+ * 아래쪽이 키보드에 덮인다. visualViewport 가 "덮이고 남은 영역" 을 알려
+ * 주므로 창을 거기에 맞추면 키보드가 있든 없든 그 가운데에 뜬다.
+ *
+ * 맨 위로 붙이던 전에는, 게임이 레터박스 안에 있을 때(세로로 긴 창) 창만
+ * 그 밖 검은 띠로 나갔다. "화면 위" 와 "보이는 영역 위" 는 다르다.
+ */
+function fitNameBox() {
+  const box = document.getElementById('namebox')
+  if (!box) return
+  const vv = globalThis.visualViewport
+  if (!vv) {
+    box.style.top = ''
+    box.style.height = ''
+    box.style.bottom = ''
+    return
+  }
+  box.style.top = `${vv.offsetTop}px`
+  box.style.height = `${vv.height}px`
+  // inset:0 의 bottom 이 남아 있으면 top+height+bottom 이 함께 걸려
+  // 브라우저가 하나를 버린다. 명시적으로 푼다.
+  box.style.bottom = 'auto'
+}
+globalThis.visualViewport?.addEventListener('resize', fitNameBox)
+globalThis.visualViewport?.addEventListener('scroll', fitNameBox)
+addEventListener('resize', fitNameBox)
+fitNameBox()
+
+// 입력칸을 띄우면 창이 키보드 뒤로 숨을 수 있다. 그 순간 자리를 다시 잡는다 —
 // 판 크기는 그대로 두고 창만 옮기므로 뒤 화면이 안 흔들린다.
 addEventListener('focusin', (ev) => {
   // **activeElement 가 아니라 이벤트 대상을 본다.** focusin 은 브라우저에
@@ -132,7 +163,12 @@ addEventListener('focusin', (ev) => {
   const isField =
     !!node &&
     (node.tagName === 'INPUT' || node.tagName === 'TEXTAREA' || node.isContentEditable)
-  if (isField) document.body.classList.add('typing')
+  if (isField) {
+    document.body.classList.add('typing')
+    // 키보드가 올라오는 데 한 박자 걸린다. 올라온 **뒤에** 다시 맞춘다.
+    fitNameBox()
+    setTimeout(fitNameBox, 300)
+  }
 })
 addEventListener('focusout', () => {
   document.body.classList.remove('typing')
