@@ -159,6 +159,9 @@ async function readLobby(): Promise<any | null> {
  */
 const QUEUE_TTL_MS = 15000
 
+/** 사람 방에서 마감 뒤 판정까지 기다리는 시간(ms). 마지막 판이 도착할 틈이다. */
+const JUDGE_GRACE_MS = 800
+
 function withRoom<T>(fn: () => Promise<T>): Promise<T> {
   return $lock(`room:${$sender.roomId ?? 'none'}`, fn)
 }
@@ -1001,7 +1004,11 @@ export class Server {
       // 사람이 하나뿐인 방은 마감 전에도 넘어갈 수 있다. 봇은 정찰을 안 하니
       // 혼자 일찍 넘겨도 손해 보는 사람이 없다. 사람이 둘 이상이면 마감이 법이다.
       const humans = state.seats.filter((s: any) => !s.isBot && s.alive).length
-      const { changed, fights } = resolveRound(state, Date.now(), DATA, { early: humans <= 1 })
+      // 사람이 둘 이상이면 마감 뒤 **잠깐 더** 기다린다. 모두가 마감 순간에
+      // 마지막 판을 올리고 곧바로 판정을 청하는데, 먼저 온 청이 남의 마지막
+      // 판보다 앞서 돌면 그 사람은 옮기다 만 판으로 판정받는다.
+      const now = humans <= 1 ? Date.now() : Date.now() - JUDGE_GRACE_MS
+      const { changed, fights } = resolveRound(state, now, DATA, { early: humans <= 1 })
       if (!changed) return state
 
       // 이 판의 이름. **방 이름만으로는 모자란다** — 1인 방(solo-계정)은 같은
@@ -1019,7 +1026,9 @@ export class Server {
         round: state.round,
         phase: state.phase,
         deadline: state.deadline,
-        fights,
+        // 판은 뺀다 — 방송은 모두에게 가고, 판이 필요한 사람은 자기가 청한
+        // resolveRound 의 응답에서 받는다.
+        fights: fights.map(({ boardA, boardB, ...f }: any) => f),
         seats: state.seats.map((s: any) => ({
           id: s.id,
           hp: s.hp,

@@ -87,8 +87,16 @@ export function resolveRound(state, now, data, { early = false } = {}) {
     const seed = fightSeed(state.seed, state.round, a, b)
     const r = simulate({ boardA: seatA.board, boardB: seatB.board, seed, data })
     fights.push({
+      // 어느 라운드의 판정인가. 클라가 "이 판정이 지금 내 전투의 것인가" 를
+      // 라운드 번호 셈 없이 읽는다.
+      round: state.round,
       a,
       b,
+      // **판정에 쓴 판.** 클라는 정찰로 받은 판을 들고 있는데, 상대의 마지막
+      // 판은 마감과 거의 같은 순간에 올라와 늦게 도착한다. 그 낡은 판으로
+      // 돌리면 화면의 승패·피해가 서버와 갈리고 사람마다 체력이 달라진다.
+      boardA: seatA.board,
+      boardB: seatB.board,
       winner: r.winner,
       survivorsA: r.survivorsA,
       survivorsB: r.survivorsB,

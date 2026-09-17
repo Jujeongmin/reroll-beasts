@@ -194,10 +194,25 @@ export async function createServerMatchmaker({
     seat.avatar = m.avatar
     seat.boom = m.boom
   })
-  server.onRoomMessage(myRoom, 'ROUND_RESOLVED', (m) => {
-    // 서버 판정으로 미러를 다시 맞춘다. 결정론이 지켜졌으면 이미 같은 값이라
-    // 아무것도 안 바뀐다 — 이 동기화는 어긋남을 잡는 안전망이다.
-    for (const s of m.seats ?? []) {
+  // 서버가 마지막으로 판정한 라운드와 그 대진. **체력의 주인은 서버다.**
+  // 이 라운드까지는 클라가 체력을 제 손으로 깎지 않는다 — 방송으로 이미
+  // 깎인 값 위에 한 번 더 깎으면 사람마다 체력이 달라진다(실제로 그랬다).
+  let judged = { round: -1, fights: [] }
+  function takeJudgement(round, phase, fights) {
+    if (!Array.isArray(fights) || fights.length === 0) return
+    const r = Number.isInteger(fights[0].round)
+      ? fights[0].round
+      : phase === 'done'
+        ? round
+        : round - 1
+    if (r > judged.round) judged = { round: r, fights }
+    // 같은 라운드인데 판이 든 쪽(내 청의 응답)이 오면 그걸로 바꾼다.
+    else if (r === judged.round && fights[0].boardA && !judged.fights[0]?.boardA) {
+      judged = { round: r, fights }
+    }
+  }
+  function syncSeats(list) {
+    for (const s of list ?? []) {
       const seat = seats[s.id]
       if (!seat) continue
       seat.hp = s.hp
@@ -206,6 +221,12 @@ export async function createServerMatchmaker({
       // 등수는 서버만 안다(죽는 자리에서 박는다). 결과판이 이 값을 읽는다.
       seat.rank = s.rank ?? null
     }
+  }
+
+  server.onRoomMessage(myRoom, 'ROUND_RESOLVED', (m) => {
+    takeJudgement(m.round, m.phase, m.fights)
+    // 서버 판정으로 미러를 맞춘다. 체력은 이 값이 정답이다.
+    syncSeats(m.seats)
     // 좌석이 갱신됐다고 알린다. 결과판이 이걸 기다린다 — 내 체력이 0 이 된
     // 순간과 서버가 등수를 박는 순간은 같지 않다.
     onSeats?.(seats)
@@ -335,21 +356,54 @@ export async function createServerMatchmaker({
      */
     otherFights(n) {
       const out = []
-      for (const [a, b] of pairs) {
+      // 서버 판정이 있으면 **그 판으로** 돌린다. 정찰로 받은 판은 늦을 수 있다.
+      const fromServer = judged.round === n && judged.fights[0]?.boardA
+      const list = fromServer
+        ? judged.fights.map((f) => [f.a, f.b, f.boardA, f.boardB])
+        : pairs.map(([a, b]) => [a, b, seats[a].board, seats[b].board])
+      for (const [a, b, boardA, boardB] of list) {
         if (a === mySeat.id || b === mySeat.id) continue
-        const result = simulate({
-          boardA: seats[a].board,
-          boardB: seats[b].board,
-          seed: fightSeed(state.seed, n, a, b),
-          data,
-        })
+        const result = simulate({ boardA, boardB, seed: fightSeed(state.seed, n, a, b), data })
         out.push({ a, b, winner: result.winner, result })
       }
       return out
     },
 
+    /** 서버가 판정을 마친 마지막 라운드. 없으면 -1. */
+    judgedThrough() {
+      return judged.round
+    },
+
+    /**
+     * 이번 라운드의 **서버 판정**을 받아 온다. 전투를 틀기 전에 부른다.
+     *
+     * 모든 사람이 서버가 판정한 그 판으로 전투를 돌려야 화면의 승패·피해가
+     * 서로 같다. 전에는 각자 정찰로 받은 판으로 돌렸는데, 상대의 마지막 판은
+     * 마감 순간에 올라와 늦게 도착하므로 사람마다 다른 전투를 봤다 — 체력이
+     * 서로 다르게 보인 한 갈래다.
+     *
+     * 사람 방은 마감 뒤 잠깐 기다려야 판정이 나므로 몇 번 다시 청한다.
+     * 끝내 못 받으면 null — 부른 쪽이 제 판으로 돌린다(연결이 끊겨도 판은
+     * 굴러야 한다). 그때도 체력은 나중에 오는 방송이 바로잡는다.
+     *
+     * @returns {Promise<object[]|null>} 그 라운드의 대진(판 포함)
+     */
+    async judge(n, { tries = 8, gapMs = 400 } = {}) {
+      for (let i = 0; i < tries && judged.round < n; i++) {
+        if (i > 0) await new Promise((r) => setTimeout(r, gapMs))
+        const st = await server.remoteFunction('resolveRound', []).catch(() => null)
+        if (!st) continue
+        takeJudgement(st.round, st.phase, st.fights)
+        if (judged.round >= n) syncSeats(st.seats)
+      }
+      if (judged.round !== n || !judged.fights[0]?.boardA) return null
+      return judged.fights
+    },
+
     /** 남의 전투 결과를 체력·연승에 반영한다. 로컬판(applyOthers)과 같은 셈. */
-    applyFights(fights, { stageDamage }) {
+    applyFights(fights, { stageDamage, round = null }) {
+      // 서버가 이미 판정한 라운드면 손대지 않는다. 체력은 방송으로 이미 맞았다.
+      if (round !== null && judged.round >= round) return
       for (const f of fights) {
         const A = seats[f.a]
         const B = seats[f.b]
@@ -383,6 +437,9 @@ export async function createServerMatchmaker({
     advance(n) {
       state.round = n
       growBotSeats(state, data)
+      // 방금 싸운 라운드를 서버가 이미 판정했으면 청하지 않는다. 1인 방은
+      // 마감 전에도 넘어가므로, 또 청하면 **다음 라운드**가 빈손으로 판정된다.
+      if (judged.round >= n - 1) return
       server.remoteFunction('resolveRound', [], { needResponse: false })
     },
 

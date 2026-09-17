@@ -457,10 +457,11 @@ try {
   function tickWatchers(dt) {
     const here = run.watchId ?? mySeatId()
     const fighting = (id) => id === duelA || id === duelB
-    // 나. 결투에 안 섰으면 구경꾼이다 — 걸어다닐 수도 있다.
+    // 나. 결투에 안 섰으면 구경꾼이다. 자리는 setDuel 이 잡았고 전투 중에는
+    // 안 움직이므로 방송도 없다 — 숨 쉬는 애니메이션만 돌린다.
     if (avatar && !fighting(mySeatId())) {
       avatar.setVisible(true)
-      if (avatar.tick(dt)) mm?.pushAvatar?.(avatar.position, here)
+      avatar.tick(dt)
     }
     for (const p of mm?.avatarsOn?.(here) ?? []) {
       if (p.id === mySeatId() || fighting(p.id)) continue
@@ -532,7 +533,11 @@ try {
     if (avatar && duelA !== mySeatId() && duelB !== mySeatId()) {
       avatar.warpTo(watchSpot())
       avatar.setVisible(true)
+      // 선 자리를 **한 번** 알린다. 전투 중에는 매 프레임 안 보낸다.
+      mm?.pushAvatar?.(avatar.position, run.watchId ?? mySeatId())
     }
+    // 목적지 표시를 끈다. warpTo 가 목적지를 버렸는데 표시만 남으면 거짓말이다.
+    prep.scene.setGoal(null)
     tickDuel(0)
   }
 
@@ -643,10 +648,15 @@ try {
 
   const stick = createJoystick({
     root: document.getElementById('viewport'),
-    onMove: (dx, dy) => avatar?.setStick(dx, dy),
+    // **전투 중에는 제자리다.** 결투·구경 자리는 setDuel 이 잡는다 — 걸어
+    // 다니면 그 좌표를 매 프레임 방송하느라 전투 연출이 끊겼다.
+    onMove: (dx, dy) => {
+      if (!inCombat) avatar?.setStick(dx, dy)
+    },
     // 짚은 자리에 표시를 남긴다. 없으면 "눌러도 반응이 없다"로 읽힌다 —
     // 아바타는 반 박자 뒤에 움직이고, 화면 구석에 서 있으면 그마저 안 보인다.
     onTap: (x, y) => {
+      if (inCombat) return
       const at = avatar?.goTo(x, y)
       if (at) prep.scene.markMove(at.x, at.z, { ripple: !reduceMotion() })
     },
@@ -1296,6 +1306,8 @@ try {
               onSeats: (seats) => {
                 resultView.seatsChanged(seats)
                 const me = seats.find((x) => x.isPlayer)
+                // 내 체력도 서버 값이 정답이다. 전투 중이면 정산이 읽는다.
+                if (me && !inCombat && run.state) run.state.hp = me.hp
                 // 전투 연출 중이면 그냥 둔다 — 정산이 끝에서 같은 조건을
                 // 본다. 연출 도중에 결과판을 덮으면 그 판이 어떻게 끝났는지를
                 // 못 본다.
@@ -1377,20 +1389,39 @@ try {
       console.warn('판 밖에서 전투를 시작하려 했다 — 무시한다')
       return
     }
-    const info = roundAt(run.index, data.rounds)
+    // **지금부터 전투다.** 판정을 기다리는 사이에 온 라운드 방송이
+    // catchUpRound 로 라운드를 넘겨 버리지 않게 먼저 표시한다.
+    inCombat = true
+    const round = run.index
+    const info = roundAt(round, data.rounds)
     // 전투 시드를 라운드마다 다르게 준다. 같은 시드를 재사용하면
     // 치명타·타겟 순서가 매판 똑같아진다.
-    const battleSeed = roundSeed(run.index)
-    const enemy = mm.opponentBoard(run.index)
+    let battleSeed = roundSeed(round)
+    let enemy = mm.opponentBoard(round)
     // 최종 보드를 지금 올린다 — 서버가 같은 판으로 판정해야 결과가 일치한다.
-    // 여기만 쓰로틀을 안 탄다(serverMatchmaker.pushBoard 참고).
-    mm.pushBoard(entries)
+    // 여기만 쓰로틀을 안 탄다(serverMatchmaker.pushBoard 참고). **도착을
+    // 기다린다** — 판정을 청하기 전에 서버에 있어야 한다.
+    await mm.pushBoard(entries)
 
     // **서버와 같은 진영 순서로 돌린다.** 좌석 번호가 낮은 쪽이 A 다. 내가
     // 늘 A 라고 두면 같은 시드로도 다른 전투가 나온다 — 전투가 A/B 대칭이
     // 아니기 때문이다(같은 판끼리 붙이면 늘 B 가 이긴다). 그러면 화면이 낸
     // 승패·피해가 서버 판정과 어긋나고, 다음 방송이 올 때 체력이 튄다.
-    const iAmA = run.iAmA !== false
+    let iAmA = run.iAmA !== false
+
+    // **서버가 판정한 그 판으로 돌린다.** 정찰로 받은 상대 판은 마지막
+    // 수정이 늦게 올 수 있어, 각자 돌리면 사람마다 다른 전투를 본다.
+    // 대진도 서버 것을 믿는다 — 클라가 센 생존자가 틀리면 짝이 달라진다.
+    const judged = (await mm.judge?.(round)) ?? null
+    const myFight = judged?.find((f) => f.a === mySeatId() || f.b === mySeatId())
+    if (myFight) {
+      iAmA = myFight.a === mySeatId()
+      run.iAmA = iAmA
+      run.opponentId = iAmA ? myFight.b : myFight.a
+      entries = iAmA ? myFight.boardA : myFight.boardB
+      enemy = iAmA ? myFight.boardB : myFight.boardA
+      battleSeed = myFight.seed
+    }
     let result
     try {
       result = simulate({
@@ -1401,6 +1432,7 @@ try {
       })
     } catch (err) {
       console.error(err)
+      inCombat = false
       return
     }
 
@@ -1424,7 +1456,6 @@ try {
 
     // 전투 중에는 코치를 내린다 — 시킬 게 없는데 "싸우자" 가 계속 떠 있으면
     // 아직 안 누른 줄 안다. 결과가 나오면 finish() 가 다시 올린다.
-    inCombat = true
     coach?.hide()
     prep.hide()
     // 전투 소리가 서는 자리를 비운다. 판 안 곡은 낮게 깔리지만, 그 위로
@@ -1530,13 +1561,19 @@ try {
     const mySurvivors = iAmA ? result.survivorsA : result.survivorsB
     const foeSurvivors = iAmA ? result.survivorsB : result.survivorsA
 
-    // 연승은 **전투가 끝나는 순간**(battle 의 onEnd) 이미 셌다. 여기서 또
-    // 세면 한 판에 두 번 오른다.
-    if (!won) s.hp = Math.max(0, s.hp - defeatDamage(foeSurvivors, info.damage))
     // **0번 좌석이 아니라 내 좌석이다.** 매치 방에서 내 자리는 계정 순서로
     // 정해지므로 0 이 아닐 수 있다 — 0 에 적으면 남의 체력·연승을 내 것으로
     // 덮어써서, 순위표가 엉뚱한 사람을 죽인다.
     const me = run.lobby.find((x) => x.isPlayer)
+    // **체력의 주인은 서버다.** 이 라운드를 서버가 이미 판정했으면 좌석
+    // 체력은 방송으로 벌써 깎여 있다. 그 위에 또 깎으면 사람마다 체력이
+    // 달라진다 — 전투 연출이 먼저 끝난 사람이 판정을 부르고, 아직 연출 중인
+    // 사람은 깎인 값 위에 한 번 더 깎았다.
+    const judged = (mm.judgedThrough?.() ?? -1) >= run.index
+    // 연승은 **전투가 끝나는 순간**(battle 의 onEnd) 이미 셌다. 여기서 또
+    // 세면 한 판에 두 번 오른다.
+    if (judged && me) s.hp = me.hp
+    else if (!won) s.hp = Math.max(0, s.hp - defeatDamage(foeSurvivors, info.damage))
     if (me) {
       me.hp = s.hp
       // 순위표가 내 연승도 같은 규칙으로 표시해야 한다.
@@ -1546,9 +1583,9 @@ try {
 
     // 내가 이겼으면 상대도 잃는다. 순위표가 내 전투와 같은 규칙을 따라야 한다.
     const foe = mm.opponentSeat()
-    if (won && foe) foe.hp = Math.max(0, foe.hp - defeatDamage(mySurvivors, info.damage))
+    if (!judged && won && foe) foe.hp = Math.max(0, foe.hp - defeatDamage(mySurvivors, info.damage))
     // 전투를 시작할 때 이미 돌려 둔 결과를 여기서 반영한다
-    mm.applyFights(run.otherFights ?? [], { stageDamage: info.damage })
+    mm.applyFights(run.otherFights ?? [], { stageDamage: info.damage, round: run.index })
 
     // 기본 수입·이자·연승은 여기서. **이긴 값은 빼고 더한다** — 그건 전투가
     // 끝나는 순간 이미 줬다. 이자를 지금 세는 것이 핵심이다: 그 사이에 곧
@@ -1587,7 +1624,8 @@ try {
       // 라운드의 resolveRound 를 아무도 안 부른다 — 그걸 부르는 건 저 아래
       // mm.advance 다. 방에 사람이 나뿐이거나(봇 일곱) 내가 마지막 사람이면
       // 서버는 이 라운드에 멈춰 서고, 등수도 전적도 LP 도 안 박힌다.
-      mm.resolveNow?.()
+      // 이미 판정됐으면 안 부른다 — 1인 방은 부르는 즉시 다음 라운드가 돈다.
+      if (!judged) mm.resolveNow?.()
       // 곡은 멈춘 채로 둔다. 결과판이 뜨는 자리에 판 음악이 다시 깔리면
       // 판이 아직 안 끝난 것처럼 들린다.
       finishRun({ eliminated: s.hp <= 0 })
